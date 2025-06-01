@@ -1,0 +1,366 @@
+/* Club Manager Styles */
+/* File: assets/css/club-manager-styles.css */
+
+.club-manager-app {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Fix body scroll when modals are open */
+body.modal-open {
+    overflow: hidden !important;
+}
+
+.club-manager-app input:focus,
+.club-manager-app select:focus,
+.club-manager-app textarea:focus {
+    outline: none;
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+}
+
+.club-manager-app .modal-box {
+    max-height: calc(100vh - 5em);
+}
+
+@media (max-width: 640px) {
+    .club-manager-app .modal-box {
+        max-height: 90vh;
+        margin: 1rem;
+        width: calc(100% - 2rem);
+        max-width: calc(100% - 2rem);
+    }
+}
+
+/* Fix DaisyUI pink/rose accent colors */
+.club-manager-app .btn-primary {
+    background-color: #f97316 !important;
+    border-color: #f97316 !important;
+}
+
+.club-manager-app .btn-primary:hover {
+    background-color: #ea580c !important;
+    border-color: #ea580c !important;
+}
+
+.club-manager-app .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.club-manager-app [type="checkbox"]:checked,
+.club-manager-app [type="radio"]:checked {
+    background-color: #f97316 !important;
+    border-color: #f97316 !important;
+}
+
+.club-manager-app .checkbox-orange:checked {
+    background-color: #f97316 !important;
+    border-color: #f97316 !important;
+}
+
+.club-manager-app .range-orange::-webkit-slider-thumb {
+    background-color: #f97316 !important;
+}
+
+.club-manager-app .range-orange::-moz-range-thumb {
+    background-color: #f97316 !important;
+}
+
+.club-manager-app .range-xs::-webkit-slider-thumb {
+    background-color: #f97316 !important;
+    width: 1rem;
+    height: 1rem;
+}
+
+.club-manager-app .range-xs::-moz-range-thumb {
+    background-color: #f97316 !important;
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Fix modal backdrop color */
+.club-manager-app .modal::backdrop,
+.club-manager-app .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(4px);
+}
+
+/* Remove DaisyUI theme colors */
+.club-manager-app .modal-open .modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Prevent any pink/rose colors */
+.club-manager-app * {
+    --fallback-p: 25 84% 50% !important;
+    --fallback-pc: 0 0% 100% !important;
+}
+
+/* Player Card Styles */
+.player-card-container {
+    margin-top: 2rem;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(1rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Evaluation History Styles */
+.evaluation-history-item {
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    transition: all 0.2s;
+}
+
+.evaluation-history-item:hover {
+    background-color: #f3f4f6;
+    transform: translateX(0.25rem);
+}
+
+/* MODAL Z-INDEX AND MOBILE FIXES - UPDATED */
+.club-manager-app .modal-wrapper {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+    overflow: hidden !important;
+}
+
+.club-manager-app .modal-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9998 !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.club-manager-app .modal-container {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 1rem !important;
+}
+
+.club-manager-app .modal-content {
+    position: relative !important;
+    z-index: 10000 !important;
+    background-color: white !important;
+    max-height: calc(100vh - 2rem) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* Mobile-specific modal fixes */
+@media (max-width: 768px) {
+    .club-manager-app .modal-container {
+        padding: 0.5rem !important;
+    }
+    
+    .club-manager-app .modal-content {
+        max-height: calc(100vh - 1rem) !important;
+        width: calc(100vw - 1rem) !important;
+        max-width: calc(100vw - 1rem) !important;
+        margin: 0.5rem !important;
+    }
+    
+    /* Ensure scrolling works on iOS */
+    .club-manager-app .modal-wrapper,
+    .club-manager-app .modal-container,
+    .club-manager-app .modal-content {
+        -webkit-transform: translateZ(0) !important;
+        transform: translateZ(0) !important;
+    }
+}
+
+/* Range input styles */
+.club-manager-app .range {
+    --range-shdw: #f97316;
+}
+
+.club-manager-app .range:focus {
+    outline: none;
+}
+
+/* Progress bar for category average */
+.category-average-bar {
+    position: relative;
+    height: 0.5rem;
+    background-color: #e5e7eb;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.category-average-fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    background-color: #f97316;
+    transition: width 0.3s ease;
+}
+
+/* Modal styles */
+.modal-wrapper {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    overflow-y: auto;
+}
+
+.modal-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 1rem;
+}
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    position: relative;
+    background-color: white;
+    border-radius: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    max-width: 100%;
+    overflow: hidden;
+}
+
+/* Mobile-specific action button fixes */
+@media (max-width: 768px) {
+    /* Force minimum touch target sizes */
+    .club-manager-app td button {
+        min-width: 44px !important;
+        min-height: 44px !important;
+        padding: 8px !important;
+        margin: 2px !important;
+        touch-action: manipulation !important;
+        -webkit-tap-highlight-color: transparent !important;
+        position: relative !important;
+        z-index: 10 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    /* Ensure button containers have proper spacing and don't interfere */
+    .club-manager-app td .flex {
+        gap: 8px !important;
+        position: relative !important;
+        z-index: 10 !important;
+    }
+    
+    /* Prevent text selection and scrolling conflicts */
+    .club-manager-app td button {
+        -webkit-user-select: none !important;
+        -moz-user-select: none !important;
+        -ms-user-select: none !important;
+        user-select: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+    }
+    
+    /* Fix SVG icons to not interfere with touch */
+    .club-manager-app td button svg {
+        pointer-events: none !important;
+        width: 20px !important;
+        height: 20px !important;
+    }
+    
+    /* Fix table row interactions on mobile */
+    .club-manager-app tbody tr {
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    /* Ensure action column has enough space and doesn't cause overflow issues */
+    .club-manager-app td:last-child {
+        min-width: 160px !important;
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        position: relative !important;
+        z-index: 10 !important;
+    }
+    
+    /* Better table handling on mobile - prevent horizontal scroll conflicts */
+    .club-manager-app .overflow-x-auto {
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: thin !important;
+        position: relative !important;
+        z-index: 1 !important;
+    }
+    
+    /* Fix modal z-index issues on mobile */
+    .club-manager-app .fixed.inset-0 {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        z-index: 9999 !important;
+    }
+    
+    /* Better button feedback on mobile */
+    .club-manager-app button:active {
+        transform: scale(0.95) !important;
+        transition: transform 0.1s ease !important;
+    }
+    
+    /* Improve table cell padding for better touch targets */
+    .club-manager-app td {
+        padding: 12px 8px !important;
+        position: relative !important;
+    }
+    
+    /* Override any table hover effects that might interfere */
+    .club-manager-app tbody tr:hover {
+        background-color: transparent !important;
+    }
+    
+    /* Ensure proper stacking context for buttons */
+    .club-manager-app td button:hover,
+    .club-manager-app td button:focus,
+    .club-manager-app td button:active {
+        z-index: 20 !important;
+        position: relative !important;
+    }
+    
+    /* Fix any flex issues in action column */
+    .club-manager-app td:last-child .flex {
+        flex-wrap: nowrap !important;
+        justify-content: center !important;
+        align-items: center !important;
+    }
+}
+
+/* iOS-specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .club-manager-app button {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+    }
+    
+    .club-manager-app .fixed {
+        -webkit-transform: translateZ(0);
+        transform: translateZ(0);
+    }
+}
