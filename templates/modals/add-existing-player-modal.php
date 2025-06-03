@@ -6,16 +6,16 @@
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     class="fixed inset-0 z-[9999] overflow-hidden" 
+     class="fixed inset-0 z-50 overflow-hidden" 
      style="display: none;">
     <!-- Modal container with scrolling -->
     <div class="fixed inset-0 overflow-y-auto">
-        <!-- Background overlay -->
-        <div class="fixed inset-0 bg-black bg-opacity-50" 
+        <!-- Background overlay with lower z-index -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 z-40" 
              @click="closeAddExistingPlayerModal()"></div>
         
-        <!-- Modal panel container -->
-        <div class="flex items-center justify-center min-h-full p-4">
+        <!-- Modal panel container with higher z-index -->
+        <div class="relative z-50 flex items-center justify-center min-h-full p-4">
             <!-- Modal content -->
             <div class="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden"
                  x-transition:enter="transition ease-out duration-300"
