@@ -159,7 +159,7 @@ body.modal-open {
 
 .club-manager-app .modal-content {
     position: relative !important;
-    z-index: 10000 !important;
+    z-index: 10001 !important;
     background-color: white !important;
     max-height: calc(100vh - 2rem) !important;
     overflow-y: auto !important;
