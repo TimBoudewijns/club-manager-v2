@@ -7,25 +7,10 @@ class Club_Manager_Assets {
     
     private $plugin_name;
     private $version;
-    private $can_view_club_teams_cache = null;
     
     public function __construct($plugin_name, $version) {
         $this->plugin_name = $plugin_name;
         $this->version = $version;
-        
-        // Hook to check teams access after everything is loaded
-        add_action('init', array($this, 'check_teams_access'), 999);
-    }
-    
-    /**
-     * Check teams access after init
-     */
-    public function check_teams_access() {
-        if (is_user_logged_in() && class_exists('Club_Manager_Teams_Helper')) {
-            $user_id = get_current_user_id();
-            $this->can_view_club_teams_cache = Club_Manager_Teams_Helper::can_view_club_teams($user_id);
-            error_log('Club Manager Assets (after init): Can view club teams = ' . ($this->can_view_club_teams_cache ? 'yes' : 'no'));
-        }
     }
     
     /**
@@ -200,12 +185,9 @@ class Club_Manager_Assets {
     private function get_localize_data() {
         $user_id = get_current_user_id();
         
-        // Use cached value if available, otherwise check now
+        // Simple direct database check
         $can_view_club_teams = false;
-        if ($this->can_view_club_teams_cache !== null) {
-            $can_view_club_teams = $this->can_view_club_teams_cache;
-        } elseif (class_exists('Club_Manager_Teams_Helper')) {
-            // Fallback check
+        if (class_exists('Club_Manager_Teams_Helper')) {
             $can_view_club_teams = Club_Manager_Teams_Helper::can_view_club_teams($user_id);
         }
         

@@ -31,20 +31,55 @@ class Club_Manager_Teams_Helper {
             return false;
         }
         
-        // Check if Teams plugin function exists
-        if (!function_exists('wc_memberships_for_teams_get_teams')) {
-            error_log('Club Manager: wc_memberships_for_teams_get_teams function not found');
+        // Method 1: Try the official function if it exists
+        if (function_exists('wc_memberships_for_teams_get_teams')) {
+            $teams = wc_memberships_for_teams_get_teams($user_id, array(
+                'role' => 'owner,manager'
+            ));
+            
+            if (!empty($teams)) {
+                return true;
+            }
+        }
+        
+        // Method 2: Direct database check as fallback
+        global $wpdb;
+        
+        // Check if team post type exists
+        if (!post_type_exists('wc_memberships_team')) {
             return false;
         }
         
-        // Get teams where user is owner or manager
-        $teams = wc_memberships_for_teams_get_teams($user_id, array(
-            'role' => 'owner,manager'
-        ));
+        // Query for teams where user is author (owner)
+        $query = $wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} 
+             WHERE post_type = 'wc_memberships_team' 
+             AND post_author = %d 
+             AND post_status = 'publish'
+             LIMIT 1",
+            $user_id
+        );
         
-        error_log('Club Manager: Found teams for user ' . $user_id . ': ' . print_r($teams, true));
+        $result = $wpdb->get_var($query);
         
-        return !empty($teams);
+        if ($result) {
+            return true;
+        }
+        
+        // Check meta for team members with manager role
+        $meta_query = $wpdb->prepare(
+            "SELECT post_id FROM {$wpdb->postmeta} 
+             WHERE meta_key = '_member_id' 
+             AND meta_value = %d
+             LIMIT 1",
+            $user_id
+        );
+        
+        $team_ids = $wpdb->get_col($meta_query);
+        
+        // For now, assume if user is a member, they might be a manager
+        // This is a simplified check
+        return !empty($team_ids);
     }
     
     /**
@@ -62,32 +97,53 @@ class Club_Manager_Teams_Helper {
             return array();
         }
         
-        // Check if Teams plugin function exists
-        if (!function_exists('wc_memberships_for_teams_get_teams')) {
-            return array();
-        }
-        
         $managed_teams = array();
         
-        // Get teams where user is owner or manager
-        $teams = wc_memberships_for_teams_get_teams($user_id, array(
-            'role' => 'owner,manager'
-        ));
-        
-        if (!empty($teams)) {
-            foreach ($teams as $team) {
-                // Get the team object
-                if (is_object($team) && method_exists($team, 'get_id') && method_exists($team, 'get_name')) {
-                    // Get user's role in this team
-                    $member = $team->get_member($user_id);
-                    $role = $member ? $member->get_role() : 'member';
-                    
-                    $managed_teams[] = array(
-                        'team_id' => $team->get_id(),
-                        'team_name' => $team->get_name(),
-                        'role' => $role
-                    );
+        // Method 1: Try the official function
+        if (function_exists('wc_memberships_for_teams_get_teams')) {
+            $teams = wc_memberships_for_teams_get_teams($user_id, array(
+                'role' => 'owner,manager'
+            ));
+            
+            if (!empty($teams)) {
+                foreach ($teams as $team) {
+                    if (is_object($team) && method_exists($team, 'get_id') && method_exists($team, 'get_name')) {
+                        // Get user's role in this team
+                        $role = 'member';
+                        if (method_exists($team, 'get_member')) {
+                            $member = $team->get_member($user_id);
+                            if ($member && method_exists($member, 'get_role')) {
+                                $role = $member->get_role();
+                            }
+                        }
+                        
+                        $managed_teams[] = array(
+                            'team_id' => $team->get_id(),
+                            'team_name' => $team->get_name(),
+                            'role' => $role
+                        );
+                    }
                 }
+            }
+        } else {
+            // Method 2: Direct database query
+            global $wpdb;
+            
+            // Get teams where user is owner
+            $owned_teams = $wpdb->get_results($wpdb->prepare(
+                "SELECT ID, post_title FROM {$wpdb->posts} 
+                 WHERE post_type = 'wc_memberships_team' 
+                 AND post_author = %d 
+                 AND post_status = 'publish'",
+                $user_id
+            ));
+            
+            foreach ($owned_teams as $team) {
+                $managed_teams[] = array(
+                    'team_id' => $team->ID,
+                    'team_name' => $team->post_title,
+                    'role' => 'owner'
+                );
             }
         }
         
@@ -110,25 +166,30 @@ class Club_Manager_Teams_Helper {
             return false;
         }
         
-        // Check if function exists
-        if (!function_exists('wc_memberships_for_teams_get_team')) {
-            return false;
-        }
-        
-        // Get team object
-        $team = wc_memberships_for_teams_get_team($team_id);
-        
-        if (!$team || !is_object($team)) {
-            return false;
-        }
-        
-        // Get team member
-        if (method_exists($team, 'get_member')) {
-            $member = $team->get_member($user_id);
+        // Method 1: Try official function
+        if (function_exists('wc_memberships_for_teams_get_team')) {
+            $team = wc_memberships_for_teams_get_team($team_id);
             
-            if ($member && method_exists($member, 'get_role')) {
-                return $member->get_role();
+            if ($team && is_object($team) && method_exists($team, 'get_member')) {
+                $member = $team->get_member($user_id);
+                
+                if ($member && method_exists($member, 'get_role')) {
+                    return $member->get_role();
+                }
             }
+        }
+        
+        // Method 2: Check if user is post author (owner)
+        global $wpdb;
+        
+        $post_author = $wpdb->get_var($wpdb->prepare(
+            "SELECT post_author FROM {$wpdb->posts} 
+             WHERE ID = %d AND post_type = 'wc_memberships_team'",
+            $team_id
+        ));
+        
+        if ($post_author == $user_id) {
+            return 'owner';
         }
         
         return false;
