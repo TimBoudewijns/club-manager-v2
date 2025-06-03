@@ -4,7 +4,7 @@
  */
 
 // Get user's managed teams from Teams for WooCommerce Memberships
-$managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams();
+$managed_teams = Club_Manager_Assets::get_user_managed_teams();
 ?>
 
 <div class="bg-white rounded-2xl shadow-xl p-8">

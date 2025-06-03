@@ -1,4 +1,15 @@
 <?php
+/**
+ * Helper class for Teams for WooCommerce Memberships integration
+ * 
+ * @package Club_Manager
+ * @subpackage Helpers
+ */
+
+// Prevent direct access
+if (!defined('ABSPATH')) {
+    exit;
+}
 
 /**
  * Helper class for Teams for WooCommerce Memberships integration

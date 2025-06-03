@@ -4,7 +4,7 @@
  */
 
 // Check if user can view club teams
-$can_view_club_teams = Club_Manager_Teams_Helper::can_view_club_teams();
+$can_view_club_teams = Club_Manager_Assets::check_teams_membership_role();
 ?>
 <style>
     /* Fix gradient buttons specifically */
