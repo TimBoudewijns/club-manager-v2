@@ -1,3 +1,11 @@
+<?php
+// Direct PHP check
+$show_club_teams = false;
+if (class_exists('Club_Manager_Teams_Helper')) {
+    $show_club_teams = Club_Manager_Teams_Helper::can_view_club_teams();
+    error_log('Club Manager Tabs: Show club teams = ' . ($show_club_teams ? 'yes' : 'no'));
+}
+?>
 <!-- Tabs Section -->
 <div class="bg-white rounded-xl shadow-md p-1 md:p-2 mb-8 overflow-x-auto">
     <div class="flex items-center">
@@ -12,9 +20,8 @@
                     <span>My Teams</span>
                 </span>
             </button>
-            <button x-show="canViewClubTeams"
-                    x-cloak
-                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
+            <?php if ($show_club_teams): ?>
+            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
                     :class="activeTab === 'club-teams' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
                     @click="activeTab = 'club-teams'">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">
@@ -24,6 +31,7 @@
                     <span>Club Teams</span>
                 </span>
             </button>
+            <?php endif; ?>
         </div>
     </div>
 </div>

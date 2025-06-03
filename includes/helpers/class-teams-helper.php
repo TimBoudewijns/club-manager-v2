@@ -27,7 +27,10 @@ class Club_Manager_Teams_Helper {
             $user_id = get_current_user_id();
         }
         
+        error_log('Club Manager: Checking teams access for user ID: ' . $user_id);
+        
         if (!$user_id) {
+            error_log('Club Manager: No user ID found');
             return false;
         }
         
@@ -52,6 +55,8 @@ class Club_Manager_Teams_Helper {
         // Get user's teams
         $teams = wc_memberships_for_teams_get_user_teams($user_id);
         
+        error_log('Club Manager: Found ' . count($teams) . ' teams for user');
+        
         if (empty($teams)) {
             return false;
         }
@@ -67,9 +72,11 @@ class Club_Manager_Teams_Helper {
             
             if ($member && method_exists($member, 'get_role')) {
                 $role = $member->get_role();
+                error_log('Club Manager: User role in team ' . $team->get_id() . ': ' . $role);
                 
                 // Check if user is owner or manager
                 if (in_array($role, array('owner', 'manager'))) {
+                    error_log('Club Manager: User has access - returning true');
                     return true;
                 }
             }
