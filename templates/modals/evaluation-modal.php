@@ -11,7 +11,7 @@
     <div class="modal-container">
         <div class="modal-backdrop" @click="showEvaluationModal = false"></div>
         
-        <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden max-h-[90vh] overflow-y-auto"
+        <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-4xl w-full overflow-hidden"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 transform scale-90"
              x-transition:enter-end="opacity-100 transform scale-100"
@@ -19,14 +19,14 @@
              x-transition:leave-start="opacity-100 transform scale-100"
              x-transition:leave-end="opacity-0 transform scale-90"
              @click.stop>
-            <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-4 md:p-6 text-white sticky top-0 z-10">
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-4 md:p-6 text-white">
                 <h3 class="font-bold text-xl md:text-2xl">Player Evaluation</h3>
                 <p class="text-orange-100 mt-1 text-sm md:text-base">
                     <span x-text="evaluatingPlayer?.first_name + ' ' + evaluatingPlayer?.last_name"></span> - 
                     <span x-text="selectedTeam?.name"></span>
                 </p>
             </div>
-            <div class="p-4 md:p-6">
+            <div class="p-4 md:p-6 max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">
                 <!-- Evaluation Categories -->
                 <div class="space-y-6">
                     <template x-for="category in evaluationCategories" :key="category.name">
