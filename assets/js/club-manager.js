@@ -12,6 +12,14 @@ window.clubManager = function() {
         selectedPlayerCard: null,
         canViewClubTeams: window.clubManagerAjax?.can_view_club_teams || false,
         
+        // Club teams data
+        clubTeams: [],
+        selectedClubTeam: null,
+        clubTeamPlayers: [],
+        viewingClubPlayer: null,
+        selectedClubPlayerCard: null,
+        isViewingClubTeam: false,
+        
         // Team data
         showCreateTeamModal: false,
         newTeam: {
@@ -169,6 +177,13 @@ window.clubManager = function() {
             this.$watch('showPlayerHistoryModal', (value) => {
                 document.body.style.overflow = value ? 'hidden' : '';
             });
+            
+            // Watch for tab changes
+            this.$watch('activeTab', (value) => {
+                if (value === 'club-teams' && this.canViewClubTeams) {
+                    this.loadClubTeams();
+                }
+            });
         },
         
         // API helper
@@ -232,7 +247,40 @@ window.clubManager = function() {
             this.selectedTeam = team;
             this.viewingPlayer = null;
             this.selectedPlayerCard = null;
+            this.isViewingClubTeam = false;
             await this.loadTeamPlayers();
+        },
+        
+        // Club Team Methods
+        async loadClubTeams() {
+            try {
+                this.clubTeams = await this.apiPost('cm_get_club_teams', {
+                    season: this.currentSeason
+                });
+            } catch (error) {
+                console.error('Error loading club teams:', error);
+            }
+        },
+        
+        async selectClubTeam(team) {
+            this.selectedClubTeam = team;
+            this.viewingClubPlayer = null;
+            this.selectedClubPlayerCard = null;
+            this.isViewingClubTeam = true;
+            await this.loadClubTeamPlayers();
+        },
+        
+        async loadClubTeamPlayers() {
+            if (!this.selectedClubTeam) return;
+            
+            try {
+                this.clubTeamPlayers = await this.apiPost('cm_get_club_team_players', {
+                    team_id: this.selectedClubTeam.id,
+                    season: this.currentSeason
+                });
+            } catch (error) {
+                console.error('Error loading club team players:', error);
+            }
         },
         
         // Player Methods
@@ -362,8 +410,9 @@ window.clubManager = function() {
         },
         
         // Player History
-        async viewPlayerHistory(playerId) {
-            const player = this.teamPlayers.find(p => p.id == playerId);
+        async viewPlayerHistory(playerId, isClubView = false) {
+            const players = isClubView ? this.clubTeamPlayers : this.teamPlayers;
+            const player = players.find(p => p.id == playerId);
             if (!player) return;
             
             this.showPlayerHistoryModal = true;
@@ -386,8 +435,8 @@ window.clubManager = function() {
             }
         },
         
-        handleHistoryClick(playerId) {
-            this.viewPlayerHistory(playerId);
+        handleHistoryClick(playerId, isClubView = false) {
+            this.viewPlayerHistory(playerId, isClubView);
         },
         
         // Evaluation Methods
@@ -406,11 +455,14 @@ window.clubManager = function() {
             this.initializeCurrentEvaluationScores();
         },
         
-        async loadEvaluations(player) {
+        async loadEvaluations(player, isClubView = false) {
             try {
-                const data = await this.apiPost('cm_get_evaluations', {
+                const team = isClubView ? this.selectedClubTeam : this.selectedTeam;
+                const action = isClubView ? 'cm_get_club_player_evaluations' : 'cm_get_evaluations';
+                
+                const data = await this.apiPost(action, {
                     player_id: player.id,
-                    team_id: this.selectedTeam.id,
+                    team_id: team.id,
                     season: this.currentSeason
                 });
                 
@@ -550,10 +602,15 @@ window.clubManager = function() {
         },
         
         // Player Card Methods
-        handlePlayerCardClick(playerId) {
-            const player = this.teamPlayers.find(p => p.id == playerId);
+        handlePlayerCardClick(playerId, isClubView = false) {
+            const players = isClubView ? this.clubTeamPlayers : this.teamPlayers;
+            const player = players.find(p => p.id == playerId);
             if (player) {
-                this.viewPlayerCard(player);
+                if (isClubView) {
+                    this.viewClubPlayerCard(player);
+                } else {
+                    this.viewPlayerCard(player);
+                }
             }
         },
         
@@ -594,11 +651,51 @@ window.clubManager = function() {
             }, 500);
         },
         
-        async loadEvaluationHistory(player) {
+        async viewClubPlayerCard(player) {
+            // If clicking same player, toggle card
+            if (this.viewingClubPlayer && this.viewingClubPlayer.id === player.id) {
+                this.viewingClubPlayer = null;
+                this.selectedClubPlayerCard = null;
+                if (this.playerCardChart) {
+                    this.playerCardChart.destroy();
+                    this.playerCardChart = null;
+                }
+                return;
+            }
+            
+            // Destroy existing chart if any
+            if (this.playerCardChart) {
+                this.playerCardChart.destroy();
+                this.playerCardChart = null;
+            }
+            
+            this.viewingClubPlayer = player;
+            this.selectedClubPlayerCard = this.selectedClubTeam;
+            
+            // Load evaluations first
+            await this.loadEvaluations(player, true);
+            await this.loadEvaluationHistory(player, true);
+            
+            // Load AI advice
+            await this.loadPlayerAdvice(player, true);
+            
+            // Wait for Alpine to update the DOM
+            await this.$nextTick();
+            
+            // Wait a bit more for the DOM to be ready and try to create chart
+            setTimeout(() => {
+                this.createSpiderChart(true);
+            }, 500);
+        },
+        
+        async loadEvaluationHistory(player, isClubView = false) {
             try {
-                const data = await this.apiPost('cm_get_evaluations', {
+                const team = isClubView ? this.selectedClubTeam : this.selectedTeam;
+                const action = isClubView ? 'cm_get_club_player_evaluations' : 'cm_get_evaluations';
+                
+                const data = await this.apiPost(action, {
                     player_id: player.id,
-                    team_id: this.selectedTeam.id,
+                    team_id: team.id,
                     season: this.currentSeason
                 });
                 
@@ -645,13 +742,14 @@ window.clubManager = function() {
         },
         
         getSubcategoryEvaluations(category, evaluatedAt) {
-            if (!this.viewingPlayer || !this.evaluations[this.viewingPlayer.id]) {
+            const viewingPlayer = this.isViewingClubTeam ? this.viewingClubPlayer : this.viewingPlayer;
+            if (!viewingPlayer || !this.evaluations[viewingPlayer.id]) {
                 return [];
             }
             
             const evaluationDate = evaluatedAt.split(' ')[0];
             
-            return this.evaluations[this.viewingPlayer.id].filter(e => 
+            return this.evaluations[viewingPlayer.id].filter(e => 
                 e.category === category && 
                 e.subcategory && 
                 e.evaluated_at.startsWith(evaluationDate)
@@ -672,12 +770,14 @@ window.clubManager = function() {
         
         getPlayerCardCategoryAverage(categoryKey) {
             const category = this.evaluationCategories.find(c => c.key === categoryKey);
-            if (!category || !this.viewingPlayer || !this.evaluations[this.viewingPlayer.id]) {
+            const viewingPlayer = this.isViewingClubTeam ? this.viewingClubPlayer : this.viewingPlayer;
+            
+            if (!category || !viewingPlayer || !this.evaluations[viewingPlayer.id]) {
                 return '5.0';
             }
             
             // Filter evaluations based on selected date
-            let evaluationsToUse = this.evaluations[this.viewingPlayer.id];
+            let evaluationsToUse = this.evaluations[viewingPlayer.id];
             if (this.selectedEvaluationDate !== 'all') {
                 const selectedDate = this.selectedEvaluationDate;
                 evaluationsToUse = evaluationsToUse.filter(e => 
@@ -722,21 +822,23 @@ window.clubManager = function() {
             return average.toFixed(1);
         },
         
-        createSpiderChart() {
-            const canvas = document.getElementById('playerCardSpiderChart');
+        createSpiderChart(isClubView = false) {
+            const canvasId = isClubView ? 'clubPlayerCardSpiderChart' : 'playerCardSpiderChart';
+            const canvas = document.getElementById(canvasId);
+            const viewingPlayer = isClubView ? this.viewingClubPlayer : this.viewingPlayer;
             
-            if (!canvas || !this.viewingPlayer) {
-                setTimeout(() => this.createSpiderChart(), 200);
+            if (!canvas || !viewingPlayer) {
+                setTimeout(() => this.createSpiderChart(isClubView), 200);
                 return;
             }
             
             if (canvas.offsetParent === null) {
-                setTimeout(() => this.createSpiderChart(), 200);
+                setTimeout(() => this.createSpiderChart(isClubView), 200);
                 return;
             }
             
             if (typeof Chart === 'undefined') {
-                setTimeout(() => this.createSpiderChart(), 200);
+                setTimeout(() => this.createSpiderChart(isClubView), 200);
                 return;
             }
             
@@ -848,18 +950,21 @@ window.clubManager = function() {
             }
             
             setTimeout(() => {
-                this.createSpiderChart();
+                this.createSpiderChart(this.isViewingClubTeam);
             }, 100);
         },
         
         // AI Advice Methods
-        async loadPlayerAdvice(player) {
+        async loadPlayerAdvice(player, isClubView = false) {
             this.adviceLoading = true;
             
             try {
-                const data = await this.apiPost('cm_get_player_advice', {
+                const team = isClubView ? this.selectedClubTeam : this.selectedTeam;
+                const action = isClubView ? 'cm_get_club_player_advice' : 'cm_get_player_advice';
+                
+                const data = await this.apiPost(action, {
                     player_id: player.id,
-                    team_id: this.selectedTeam.id,
+                    team_id: team.id,
                     season: this.currentSeason
                 });
                 
@@ -940,8 +1045,9 @@ window.clubManager = function() {
         },
         
         // PDF Download
-        async downloadPlayerCardPDF(event) {
-            if (!this.viewingPlayer) return;
+        async downloadPlayerCardPDF(event, isClubView = false) {
+            const viewingPlayer = isClubView ? this.viewingClubPlayer : this.viewingPlayer;
+            if (!viewingPlayer) return;
             
             let button = null;
             let originalContent = '';
@@ -983,16 +1089,17 @@ window.clubManager = function() {
                 let yPosition = 20;
                 
                 // Title
-                const playerName = this.viewingPlayer.first_name + ' ' + this.viewingPlayer.last_name;
+                const playerName = viewingPlayer.first_name + ' ' + viewingPlayer.last_name;
                 pdf.setFontSize(24);
                 pdf.setTextColor.apply(pdf, orangeColor);
                 pdf.text(playerName, pageWidth / 2, yPosition, { align: 'center' });
                 yPosition += 10;
                 
                 // Subtitle
+                const team = isClubView ? this.selectedClubTeam : this.selectedTeam;
                 pdf.setFontSize(14);
                 pdf.setTextColor.apply(pdf, mediumGray);
-                pdf.text(this.selectedTeam.name + ' - ' + this.currentSeason, pageWidth / 2, yPosition, { align: 'center' });
+                pdf.text(team.name + ' - ' + this.currentSeason, pageWidth / 2, yPosition, { align: 'center' });
                 yPosition += 15;
                 
                 // Player Info Box
@@ -1002,14 +1109,14 @@ window.clubManager = function() {
                 
                 pdf.setFontSize(12);
                 pdf.setTextColor.apply(pdf, darkGray);
-                pdf.text('Position: ' + (this.viewingPlayer.position || 'Not assigned'), margin + 5, yPosition + 8);
-                pdf.text('Jersey #: ' + (this.viewingPlayer.jersey_number || '-'), margin + 60, yPosition + 8);
-                pdf.text('Email: ' + this.viewingPlayer.email, margin + 5, yPosition + 18);
-                pdf.text('Birth Date: ' + this.viewingPlayer.birth_date, margin + 100, yPosition + 18);
+                pdf.text('Position: ' + (viewingPlayer.position || 'Not assigned'), margin + 5, yPosition + 8);
+                pdf.text('Jersey #: ' + (viewingPlayer.jersey_number || '-'), margin + 60, yPosition + 8);
+                pdf.text('Email: ' + viewingPlayer.email, margin + 5, yPosition + 18);
+                pdf.text('Birth Date: ' + viewingPlayer.birth_date, margin + 100, yPosition + 18);
                 yPosition += 35;
                 
                 // Notes if available
-                if (this.viewingPlayer.notes) {
+                if (viewingPlayer.notes) {
                     pdf.setFontSize(12);
                     pdf.setTextColor.apply(pdf, darkGray);
                     pdf.setFont(undefined, 'bold');
@@ -1017,7 +1124,7 @@ window.clubManager = function() {
                     pdf.setFont(undefined, 'normal');
                     yPosition += 7;
                     
-                    const splitNotes = pdf.splitTextToSize(this.viewingPlayer.notes, contentWidth);
+                    const splitNotes = pdf.splitTextToSize(viewingPlayer.notes, contentWidth);
                     pdf.text(splitNotes, margin, yPosition);
                     yPosition += splitNotes.length * 5 + 10;
                 }
@@ -1125,10 +1232,19 @@ window.clubManager = function() {
             });
             
             await this.loadTeams();
+            if (this.canViewClubTeams && this.activeTab === 'club-teams') {
+                await this.loadClubTeams();
+            }
+            
             this.selectedTeam = null;
             this.teamPlayers = [];
             this.viewingPlayer = null;
             this.selectedPlayerCard = null;
+            
+            this.selectedClubTeam = null;
+            this.clubTeamPlayers = [];
+            this.viewingClubPlayer = null;
+            this.selectedClubPlayerCard = null;
         }
     };
 };

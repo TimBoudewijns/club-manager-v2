@@ -63,6 +63,7 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-player-ajax.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-evaluation-ajax.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-ai-ajax.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-club-ajax.php';
         
         // AI
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ai/class-ai-manager.php';
@@ -103,12 +104,14 @@ class Club_Manager {
         $player_ajax = new Club_Manager_Player_Ajax();
         $evaluation_ajax = new Club_Manager_Evaluation_Ajax();
         $ai_ajax = new Club_Manager_AI_Ajax();
+        $club_ajax = new Club_Manager_Club_Ajax();
         
         // Initialize AJAX handlers
         $this->loader->add_action('init', $team_ajax, 'init');
         $this->loader->add_action('init', $player_ajax, 'init');
         $this->loader->add_action('init', $evaluation_ajax, 'init');
         $this->loader->add_action('init', $ai_ajax, 'init');
+        $this->loader->add_action('init', $club_ajax, 'init');
         
         // AI Manager
         $ai_manager = new Club_Manager_AI_Manager();
