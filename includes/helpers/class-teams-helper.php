@@ -116,7 +116,8 @@ class Club_Manager_Teams_Helper {
         error_log('Club Manager: Found ' . count($teams) . ' teams for user');
         
         if (empty($teams)) {
-            return false;
+            error_log('Club Manager: No teams found via function, trying alternative method');
+            return self::check_teams_alternative($user_id);
         }
         
         // Check each team for owner or manager role
