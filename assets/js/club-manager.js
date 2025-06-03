@@ -10,6 +10,7 @@ window.clubManager = function() {
         teamPlayers: [],
         viewingPlayer: null,
         selectedPlayerCard: null,
+        canViewClubTeams: window.clubManagerAjax?.can_view_club_teams || false,
         
         // Team data
         showCreateTeamModal: false,
@@ -149,6 +150,7 @@ window.clubManager = function() {
         // Initialize
         init() {
             console.log('Club Manager initializing...');
+            console.log('Can view club teams:', this.canViewClubTeams);
             this.loadTeams();
             
             // Fix for modals on mobile

@@ -12,7 +12,8 @@
                     <span>My Teams</span>
                 </span>
             </button>
-            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
+            <button x-show="canViewClubTeams"
+                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
                     :class="activeTab === 'club-teams' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
                     @click="activeTab = 'club-teams'">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">
@@ -24,4 +25,4 @@
             </button>
         </div>
     </div>
-</div> 
+</div>

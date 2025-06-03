@@ -190,7 +190,45 @@ class Club_Manager_Assets {
             'nonce' => wp_create_nonce('club_manager_nonce'),
             'user_id' => $user_id,
             'is_logged_in' => is_user_logged_in(),
-            'preferred_season' => get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025'
+            'preferred_season' => get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025',
+            'can_view_club_teams' => $this->check_teams_membership_role($user_id)
         );
     }
-} 
+    
+    /**
+     * Check if user has owner or manager role in Teams for WooCommerce Memberships
+     */
+    private function check_teams_membership_role($user_id) {
+        if (!$user_id) {
+            return false;
+        }
+        
+        // Check if Teams for WooCommerce Memberships is active
+        if (!function_exists('wc_memberships_for_teams')) {
+            return false;
+        }
+        
+        // Get user's teams
+        $teams = wc_memberships_for_teams_get_user_teams($user_id);
+        
+        if (empty($teams)) {
+            return false;
+        }
+        
+        // Check each team for owner or manager role
+        foreach ($teams as $team) {
+            $member = wc_memberships_for_teams_get_team_member($team, $user_id);
+            
+            if ($member) {
+                $role = $member->get_role();
+                
+                // Check if user is owner or manager
+                if (in_array($role, array('owner', 'manager'))) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+}

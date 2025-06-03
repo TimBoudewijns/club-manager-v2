@@ -40,6 +40,9 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/core/class-loader.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/core/class-activator.php';
         
+        // Helpers
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/helpers/class-teams-helper.php';
+        
         // Database
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-database.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-teams-table.php';
@@ -136,4 +139,4 @@ class Club_Manager {
     public function get_version() {
         return $this->version;
     }
-} 
+}
