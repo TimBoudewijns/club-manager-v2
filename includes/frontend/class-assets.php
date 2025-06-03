@@ -185,11 +185,27 @@ class Club_Manager_Assets {
     private function get_localize_data() {
         $user_id = get_current_user_id();
         
+        // Debug Teams plugin status
+        error_log('Club Manager Assets: Checking teams for user ' . $user_id);
+        error_log('Club Manager Assets: Teams plugin active? ' . (class_exists('WC_Memberships_For_Teams_Loader') ? 'yes' : 'no'));
+        
         // Check if Teams Helper class exists
         $can_view_club_teams = false;
         if (class_exists('Club_Manager_Teams_Helper')) {
-            $can_view_club_teams = Club_Manager_Teams_Helper::can_view_club_teams($user_id);
+            // Make sure Teams plugin is loaded
+            if (did_action('woocommerce_memberships_for_teams_loaded')) {
+                $can_view_club_teams = Club_Manager_Teams_Helper::can_view_club_teams($user_id);
+            } else {
+                error_log('Club Manager Assets: Teams plugin not yet loaded');
+                // Try after init
+                add_action('init', function() use ($user_id) {
+                    $can_view = Club_Manager_Teams_Helper::can_view_club_teams($user_id);
+                    error_log('Club Manager Assets: Delayed check result: ' . ($can_view ? 'yes' : 'no'));
+                }, 99);
+            }
         }
+        
+        error_log('Club Manager Assets: Can view club teams = ' . ($can_view_club_teams ? 'yes' : 'no'));
         
         return array(
             'ajax_url' => admin_url('admin-ajax.php'),
