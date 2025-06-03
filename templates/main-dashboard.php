@@ -3,8 +3,11 @@
  * Main dashboard template
  */
 
-// Check if user can view club teams
-$can_view_club_teams = Club_Manager_Assets::check_teams_membership_role();
+// Check if user can view club teams - only if class exists
+$can_view_club_teams = false;
+if (class_exists('Club_Manager_Teams_Helper')) {
+    $can_view_club_teams = Club_Manager_Teams_Helper::can_view_club_teams();
+}
 ?>
 <style>
     /* Fix gradient buttons specifically */
@@ -23,6 +26,9 @@ $can_view_club_teams = Club_Manager_Assets::check_teams_membership_role();
     .club-manager-app .hover\:to-orange-700:hover {
         --tw-gradient-to: #c2410c !important;
     }
+    
+    /* Hide elements with x-cloak until Alpine loads */
+    [x-cloak] { display: none !important; }
 </style>
 
 <div class="club-manager-app min-h-screen bg-white" x-data="clubManager()" data-theme="light">
@@ -58,10 +64,10 @@ $can_view_club_teams = Club_Manager_Assets::check_teams_membership_role();
         
         <!-- Club Teams Tab -->
         <div x-show="activeTab === 'club-teams' && canViewClubTeams" 
+             x-cloak
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 transform scale-95"
              x-transition:enter-end="opacity-100 transform scale-100">
-            
             <?php if ($can_view_club_teams): ?>
                 <?php include 'partials/club-teams.php'; ?>
             <?php else: ?>

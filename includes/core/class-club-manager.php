@@ -41,7 +41,10 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/core/class-activator.php';
         
         // Helpers
-        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/helpers/class-teams-helper.php';
+        $helpers_file = CLUB_MANAGER_PLUGIN_DIR . 'includes/helpers/class-teams-helper.php';
+        if (file_exists($helpers_file)) {
+            require_once $helpers_file;
+        }
         
         // Database
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-database.php';
