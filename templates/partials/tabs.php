@@ -6,16 +6,7 @@ $show_club_teams = false;
 if (did_action('init')) {
     if (class_exists('Club_Manager_Teams_Helper')) {
         $show_club_teams = Club_Manager_Teams_Helper::can_view_club_teams();
-        error_log('Club Manager Tabs (after init): Show club teams = ' . ($show_club_teams ? 'yes' : 'no'));
     }
-} else {
-    // If we're too early, schedule a check
-    add_action('init', function() {
-        if (class_exists('Club_Manager_Teams_Helper')) {
-            $result = Club_Manager_Teams_Helper::can_view_club_teams();
-            error_log('Club Manager Tabs (delayed check): Show club teams = ' . ($result ? 'yes' : 'no'));
-        }
-    }, 999);
 }
 ?>
 <!-- Tabs Section -->
@@ -33,7 +24,8 @@ if (did_action('init')) {
                 </span>
             </button>
             
-            <!-- Always show the button, but use Alpine.js to control visibility based on JavaScript value -->
+            <?php if ($show_club_teams): ?>
+            <!-- Only show Club Teams tab if user has permission -->
             <button x-show="canViewClubTeams"
                     x-cloak
                     class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
@@ -46,19 +38,6 @@ if (did_action('init')) {
                     <span>Club Teams</span>
                 </span>
             </button>
-            
-            <?php if ($show_club_teams): ?>
-            <!-- Fallback: PHP-rendered button for when JavaScript is disabled -->
-            <noscript>
-                <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base text-gray-600 hover:text-orange-600 hover:bg-orange-50">
-                    <span class="flex items-center justify-center space-x-1 md:space-x-2">
-                        <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                        </svg>
-                        <span>Club Teams</span>
-                    </span>
-                </button>
-            </noscript>
             <?php endif; ?>
         </div>
     </div>
