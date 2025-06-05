@@ -2,12 +2,6 @@
 /**
  * Main dashboard template
  */
-
-// Check if user can view club teams - only if class exists
-$can_view_club_teams = false;
-if (class_exists('Club_Manager_Teams_Helper')) {
-    $can_view_club_teams = Club_Manager_Teams_Helper::can_view_club_teams();
-}
 ?>
 <style>
     /* Fix gradient buttons specifically */
@@ -62,16 +56,14 @@ if (class_exists('Club_Manager_Teams_Helper')) {
             <?php include 'partials/player-card.php'; ?>
         </div>
         
-        <!-- Club Teams Tab -->
-        <?php if ($can_view_club_teams): ?>
-        <div x-show="activeTab === 'club-teams'" 
+        <!-- Club Teams Tab - Only show if user has permission (controlled by Alpine.js) -->
+        <div x-show="activeTab === 'club-teams' && canViewClubTeams" 
              x-cloak
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 transform scale-95"
              x-transition:enter-end="opacity-100 transform scale-100">
             <?php include 'partials/club-teams.php'; ?>
         </div>
-        <?php endif; ?>
         
         <!-- Include Modals -->
         <?php 

@@ -1,13 +1,8 @@
 <?php
-// Direct PHP check - but do it after init
-$show_club_teams = false;
-
-// Check if we're after the init hook
-if (did_action('init')) {
-    if (class_exists('Club_Manager_Teams_Helper')) {
-        $show_club_teams = Club_Manager_Teams_Helper::can_view_club_teams();
-    }
-}
+/**
+ * Tabs partial template
+ * Only show Club Teams tab if user has permission (controlled by Alpine.js)
+ */
 ?>
 <!-- Tabs Section -->
 <div class="bg-white rounded-xl shadow-md p-1 md:p-2 mb-8 overflow-x-auto">
@@ -24,8 +19,7 @@ if (did_action('init')) {
                 </span>
             </button>
             
-            <?php if ($show_club_teams): ?>
-            <!-- Only show Club Teams tab if user has permission -->
+            <!-- Club Teams tab - only show if user has permission -->
             <button x-show="canViewClubTeams"
                     x-cloak
                     class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
@@ -38,7 +32,6 @@ if (did_action('init')) {
                     <span>Club Teams</span>
                 </span>
             </button>
-            <?php endif; ?>
         </div>
     </div>
 </div>
