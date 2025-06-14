@@ -31,6 +31,11 @@ class Club_Manager_Teams_Helper {
             return false;
         }
         
+        // First check if Teams for WooCommerce Memberships is active
+        if (!post_type_exists('wc_memberships_team')) {
+            return false;
+        }
+        
         // Method 1: Try the official function if it exists
         if (function_exists('wc_memberships_for_teams_get_teams')) {
             $teams = wc_memberships_for_teams_get_teams($user_id, array(
@@ -44,11 +49,6 @@ class Club_Manager_Teams_Helper {
         
         // Method 2: Direct database check as fallback
         global $wpdb;
-        
-        // Check if team post type exists
-        if (!post_type_exists('wc_memberships_team')) {
-            return false;
-        }
         
         // Query for teams where user is author (owner)
         $query = $wpdb->prepare(
@@ -67,19 +67,23 @@ class Club_Manager_Teams_Helper {
         }
         
         // Check meta for team members with manager role
+        // We need to check if the user is a manager, not just a member
         $meta_query = $wpdb->prepare(
-            "SELECT post_id FROM {$wpdb->postmeta} 
-             WHERE meta_key = '_member_id' 
-             AND meta_value = %d
+            "SELECT pm1.post_id 
+             FROM {$wpdb->postmeta} pm1
+             INNER JOIN {$wpdb->postmeta} pm2 
+                ON pm1.post_id = pm2.post_id 
+                AND pm2.meta_key = '_role' 
+                AND pm2.meta_value IN ('owner', 'manager')
+             WHERE pm1.meta_key = '_member_id' 
+             AND pm1.meta_value = %d
              LIMIT 1",
             $user_id
         );
         
-        $team_ids = $wpdb->get_col($meta_query);
+        $result = $wpdb->get_var($meta_query);
         
-        // For now, assume if user is a member, they might be a manager
-        // This is a simplified check
-        return !empty($team_ids);
+        return !empty($result);
     }
     
     /**
@@ -143,6 +147,32 @@ class Club_Manager_Teams_Helper {
                     'team_id' => $team->ID,
                     'team_name' => $team->post_title,
                     'role' => 'owner'
+                );
+            }
+            
+            // Also get teams where user is a manager (not owner)
+            $manager_teams = $wpdb->get_results($wpdb->prepare(
+                "SELECT p.ID, p.post_title 
+                 FROM {$wpdb->posts} p
+                 INNER JOIN {$wpdb->postmeta} pm1 
+                    ON p.ID = pm1.post_id 
+                    AND pm1.meta_key = '_member_id' 
+                    AND pm1.meta_value = %d
+                 INNER JOIN {$wpdb->postmeta} pm2 
+                    ON p.ID = pm2.post_id 
+                    AND pm2.meta_key = '_role' 
+                    AND pm2.meta_value = 'manager'
+                 WHERE p.post_type = 'wc_memberships_team' 
+                 AND p.post_status = 'publish'
+                 AND p.post_author != %d",
+                $user_id, $user_id
+            ));
+            
+            foreach ($manager_teams as $team) {
+                $managed_teams[] = array(
+                    'team_id' => $team->ID,
+                    'team_name' => $team->post_title,
+                    'role' => 'manager'
                 );
             }
         }

@@ -192,12 +192,16 @@ class Club_Manager_Club_Ajax extends Club_Manager_Ajax_Handler {
             if (function_exists('wc_memberships_for_teams_get_team')) {
                 $team = wc_memberships_for_teams_get_team($team_id);
                 
-                if ($team && method_exists($team, 'get_members')) {
+                if ($team && is_object($team) && method_exists($team, 'get_members')) {
                     $members = $team->get_members();
                     
                     foreach ($members as $member) {
-                        if (method_exists($member, 'get_user_id')) {
-                            $member_ids[] = $member->get_user_id();
+                        if (method_exists($member, 'get_user_id') && method_exists($member, 'get_role')) {
+                            $member_role = $member->get_role();
+                            // Only include owners and managers
+                            if (in_array($member_role, ['owner', 'manager'])) {
+                                $member_ids[] = $member->get_user_id();
+                            }
                         }
                     }
                 }
@@ -219,12 +223,16 @@ class Club_Manager_Club_Ajax extends Club_Manager_Ajax_Handler {
             if (!empty($team_ids)) {
                 $placeholders = implode(',', array_fill(0, count($team_ids), '%d'));
                 
-                // Get members from team meta
+                // Get members with owner or manager role only
                 $results = $wpdb->get_col($wpdb->prepare(
-                    "SELECT DISTINCT meta_value 
-                    FROM {$wpdb->postmeta} 
-                    WHERE post_id IN ($placeholders) 
-                    AND meta_key = '_member_id'",
+                    "SELECT DISTINCT pm1.meta_value 
+                    FROM {$wpdb->postmeta} pm1
+                    INNER JOIN {$wpdb->postmeta} pm2 
+                        ON pm1.post_id = pm2.post_id 
+                        AND pm2.meta_key = '_role' 
+                        AND pm2.meta_value IN ('owner', 'manager')
+                    WHERE pm1.post_id IN ($placeholders) 
+                    AND pm1.meta_key = '_member_id'",
                     ...$team_ids
                 ));
                 
