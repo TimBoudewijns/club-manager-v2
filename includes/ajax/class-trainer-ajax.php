@@ -210,7 +210,16 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $wc_team = $this->get_wc_team_for_cm_team($cm_team_id, $user_id);
             
             if (!$wc_team) {
-                $errors[] = "Could not find WooCommerce team for team ID: $cm_team_id";
+                // Get team name for better error message
+                global $wpdb;
+                $teams_table = Club_Manager_Database::get_table_name('teams');
+                $team_name = $wpdb->get_var($wpdb->prepare(
+                    "SELECT name FROM $teams_table WHERE id = %d",
+                    $cm_team_id
+                ));
+                
+                $errors[] = "Kan geen WooCommerce team vinden voor: " . ($team_name ?: "Team ID $cm_team_id") . 
+                           ". Zorg ervoor dat je een Teams for Memberships team hebt aangemaakt.";
                 continue;
             }
             
@@ -340,6 +349,22 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
      */
     private function get_wc_team_for_cm_team($cm_team_id, $user_id) {
         global $wpdb;
+        
+        // First check if we have a mapping
+        $mapping_table = Club_Manager_Database::get_table_name('team_wc_mapping');
+        $wc_team_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT wc_team_id FROM $mapping_table WHERE cm_team_id = %d",
+            $cm_team_id
+        ));
+        
+        if ($wc_team_id && function_exists('wc_memberships_for_teams_get_team')) {
+            $team = wc_memberships_for_teams_get_team($wc_team_id);
+            if ($team && $team->post && $team->post->post_status === 'publish') {
+                return $team;
+            }
+        }
+        
+        // If no mapping exists, try to find and create one
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
         // Get the team owner
@@ -349,23 +374,63 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         ));
         
         if (!$team_owner_id) {
+            error_log('Club Manager: No owner found for team ID: ' . $cm_team_id);
             return false;
         }
         
         // Find WC team for this owner
+        $wc_team = null;
+        
         if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            // Method 1: Get all teams where owner is a member with owner/manager role
             $teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
             
-            foreach ($teams as $team) {
-                if (is_object($team)) {
-                    $member = $team->get_member($team_owner_id);
-                    if ($member && in_array($member->get_role(), ['owner', 'manager'])) {
-                        return $team;
+            if (!empty($teams)) {
+                foreach ($teams as $team) {
+                    if (is_object($team)) {
+                        $member = $team->get_member($team_owner_id);
+                        if ($member && in_array($member->get_role(), ['owner', 'manager'])) {
+                            $wc_team = $team;
+                            break;
+                        }
                     }
+                }
+            }
+            
+            // Method 2: Find teams by post author
+            if (!$wc_team) {
+                $wc_team_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT ID 
+                    FROM {$wpdb->posts}
+                    WHERE post_type = 'wc_memberships_team'
+                    AND post_status = 'publish'
+                    AND post_author = %d
+                    ORDER BY ID DESC
+                    LIMIT 1",
+                    $team_owner_id
+                ));
+                
+                if ($wc_team_id) {
+                    $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
                 }
             }
         }
         
+        // If we found a team, save the mapping
+        if ($wc_team) {
+            $wpdb->insert(
+                $mapping_table,
+                [
+                    'cm_team_id' => $cm_team_id,
+                    'wc_team_id' => $wc_team->get_id()
+                ],
+                ['%d', '%d']
+            );
+            
+            return $wc_team;
+        }
+        
+        error_log('Club Manager: No WC team found for CM team ID: ' . $cm_team_id . ' (owner: ' . $team_owner_id . ')');
         return false;
     }
     

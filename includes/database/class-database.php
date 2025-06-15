@@ -55,7 +55,8 @@ class Club_Manager_Database {
             self::get_table_name('team_players'),
             self::get_table_name('player_evaluations'),
             self::get_table_name('player_advice'),
-            self::get_table_name('team_trainers')
+            self::get_table_name('team_trainers'),
+            self::get_table_name('team_wc_mapping')
             // Note: trainer_invitations table removed - we use WC Teams invitations
         );
         
