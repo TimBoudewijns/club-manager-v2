@@ -193,23 +193,36 @@ class Club_Manager_Assets {
         
         // Get trainer limit from WooCommerce Teams
         $trainer_limit = null;
-        if (function_exists('wc_memberships_for_teams')) {
-            // Get managed teams
-            $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
-            
-            if (!empty($managed_teams)) {
-                // Get the highest seat limit from all managed teams
-                foreach ($managed_teams as $team_info) {
-                    if (function_exists('wc_memberships_for_teams_get_team')) {
-                        $team = wc_memberships_for_teams_get_team($team_info['team_id']);
+        if (function_exists('wc_memberships_for_teams') && class_exists('Club_Manager_Teams_Helper')) {
+            // Check if user can view club teams first
+            if (Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
+                // Try to get seat info
+                global $wpdb;
+                
+                // Find any team for this user
+                $team_id = $wpdb->get_var($wpdb->prepare(
+                    "SELECT ID FROM {$wpdb->posts} 
+                     WHERE post_type = 'wc_memberships_team' 
+                     AND (post_author = %d OR ID IN (
+                         SELECT post_id FROM {$wpdb->postmeta} 
+                         WHERE meta_key = '_member_id' AND meta_value = %d
+                     ))
+                     AND post_status = 'publish'
+                     LIMIT 1",
+                    $user_id, $user_id
+                ));
+                
+                if ($team_id && function_exists('wc_memberships_for_teams_get_team')) {
+                    $team = wc_memberships_for_teams_get_team($team_id);
+                    
+                    if ($team && is_object($team)) {
+                        // Get team seat count
+                        $seat_count = 0;
+                        if (method_exists($team, 'get_seat_count')) {
+                            $seat_count = $team->get_seat_count();
+                        }
                         
-                        if ($team && is_object($team)) {
-                            // Get team seat count
-                            $seat_count = 0;
-                            if (method_exists($team, 'get_seat_count')) {
-                                $seat_count = $team->get_seat_count();
-                            }
-                            
+                        if ($seat_count > 0) {
                             // Get used seats
                             $used_seats = 0;
                             if (method_exists($team, 'get_used_seat_count')) {
@@ -217,13 +230,18 @@ class Club_Manager_Assets {
                             }
                             
                             // Calculate available seats
-                            $available_seats = $seat_count - $used_seats;
-                            
-                            if (!$trainer_limit || $available_seats > $trainer_limit) {
-                                $trainer_limit = $available_seats;
-                            }
+                            $trainer_limit = max(0, $seat_count - $used_seats);
+                        } else {
+                            // No seat limit = unlimited
+                            $trainer_limit = 999;
                         }
+                    } else {
+                        // No team found but user has access = unlimited
+                        $trainer_limit = 999;
                     }
+                } else {
+                    // User has club access but no team found = unlimited
+                    $trainer_limit = 999;
                 }
             }
         }

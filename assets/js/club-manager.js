@@ -377,8 +377,8 @@ window.clubManager = function() {
         
         // Check trainer limit
         canInviteMoreTrainers() {
-            if (!this.trainerLimit) {
-                return true; // No limit set
+            if (!this.trainerLimit || this.trainerLimit === 999) {
+                return true; // No limit set or unlimited
             }
             return this.activeTrainers.length < this.trainerLimit;
         },
