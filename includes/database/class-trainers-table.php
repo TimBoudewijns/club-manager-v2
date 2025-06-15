@@ -11,6 +11,8 @@ class Club_Manager_Trainers_Table {
     public static function create_table($charset_collate) {
         global $wpdb;
         
+        require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+        
         // Team trainers table
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         

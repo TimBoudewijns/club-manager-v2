@@ -51,7 +51,12 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-teams-table.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-players-table.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-evaluations-table.php';
-        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-trainers-table.php';
+        
+        // Check if trainers table file exists before including
+        $trainers_table_file = CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-trainers-table.php';
+        if (file_exists($trainers_table_file)) {
+            require_once $trainers_table_file;
+        }
         
         // Models
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/models/class-team-model.php';
@@ -120,6 +125,21 @@ class Club_Manager {
         // AI Manager
         $ai_manager = new Club_Manager_AI_Manager();
         $this->loader->add_action('init', $ai_manager, 'init');
+        
+        // Check for database updates
+        $this->loader->add_action('init', $this, 'check_database_version');
+    }
+    
+    /**
+     * Check database version and run updates if needed.
+     */
+    public function check_database_version() {
+        $current_db_version = get_option('club_manager_db_version', '1.0.0');
+        
+        // If database version is less than 1.1.0, we need to create trainer tables
+        if (version_compare($current_db_version, '1.1.0', '<')) {
+            Club_Manager_Database::create_tables();
+        }
     }
     
     /**

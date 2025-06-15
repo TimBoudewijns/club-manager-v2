@@ -25,7 +25,9 @@ class Club_Manager_Database {
         Club_Manager_Evaluations_Table::create_table($charset_collate);
         
         // Create trainers table
-        Club_Manager_Trainers_Table::create_table($charset_collate);
+        if (class_exists('Club_Manager_Trainers_Table')) {
+            Club_Manager_Trainers_Table::create_table($charset_collate);
+        }
         
         // Update database version
         update_option('club_manager_db_version', '1.1.0');

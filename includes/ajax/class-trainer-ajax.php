@@ -60,6 +60,25 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$invitations_table'") === $invitations_table;
+        
+        if (!$table_exists) {
+            // Try to create the tables
+            if (class_exists('Club_Manager_Trainers_Table')) {
+                $charset_collate = $wpdb->get_charset_collate();
+                Club_Manager_Trainers_Table::create_table($charset_collate);
+            }
+            
+            // Check again
+            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$invitations_table'") === $invitations_table;
+            
+            if (!$table_exists) {
+                wp_send_json_error('Trainer tables not found. Please deactivate and reactivate the plugin.');
+                return;
+            }
+        }
+        
         // Get pending invitations for teams owned by user
         $invitations = $wpdb->get_results($wpdb->prepare(
             "SELECT i.*, t.name as team_name 
@@ -174,10 +193,20 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         
         // Create invitation records
         $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
+        
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$invitations_table'") === $invitations_table;
+        
+        if (!$table_exists) {
+            wp_send_json_error('Trainer tables not found. Please deactivate and reactivate the plugin.');
+            return;
+        }
+        
         $invitation_token = wp_generate_password(32, false);
+        $success_count = 0;
         
         foreach ($team_ids as $team_id) {
-            $wpdb->insert(
+            $result = $wpdb->insert(
                 $invitations_table,
                 [
                     'team_id' => $team_id,
@@ -191,12 +220,24 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 ],
                 ['%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s']
             );
+            
+            if ($result) {
+                $success_count++;
+            }
+        }
+        
+        if ($success_count === 0) {
+            wp_send_json_error('Failed to create invitations. Database error: ' . $wpdb->last_error);
+            return;
         }
         
         // Send invitation email
         $this->send_invitation_email($email, $invitation_token, $team_ids, $message);
         
-        wp_send_json_success(['message' => 'Invitation sent successfully']);
+        wp_send_json_success([
+            'message' => 'Invitation sent successfully',
+            'invitations_created' => $success_count
+        ]);
     }
     
     /**
