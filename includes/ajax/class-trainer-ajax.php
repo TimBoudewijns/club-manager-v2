@@ -227,44 +227,136 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
-        // Check if the team object has the invite_member method
-        if (!method_exists($wc_team, 'invite_member')) {
-            error_log('Club Manager: WC team object does not have invite_member method');
-            wp_send_json_error('Team invitation method not available. Please check WooCommerce Teams configuration.');
-            return;
-        }
-        
         $success_count = 0;
         $errors = [];
         
         try {
-            // Debug logging
-            error_log('Club Manager: Attempting to invite ' . $email . ' to team ID: ' . $wc_team->get_id());
+            // Debug what type of object we have
+            error_log('Club Manager: WC Team object class: ' . get_class($wc_team));
+            error_log('Club Manager: Available methods: ' . implode(', ', get_class_methods($wc_team)));
             
-            // Create invitation with proper parameters
-            $invitation_args = array(
-                'sender_id' => $user_id,
-                'role' => 'member' // WC Teams uses 'member' role
-            );
+            // Try different methods to create invitation
+            $invitation = null;
             
-            // Try to create the invitation
-            $invitation = $wc_team->invite_member($email, $invitation_args);
+            // Method 1: Direct invite_member method
+            if (method_exists($wc_team, 'invite_member')) {
+                error_log('Club Manager: Using invite_member method');
+                $invitation = $wc_team->invite_member($email, array(
+                    'sender_id' => $user_id,
+                    'role' => 'member'
+                ));
+            }
+            // Method 2: Create invitation through invitation class
+            elseif (class_exists('WC_Memberships_For_Teams_Team_Invitation')) {
+                error_log('Club Manager: Using WC_Memberships_For_Teams_Team_Invitation class');
+                
+                // Create invitation data
+                $invitation_data = array(
+                    'team_id' => $wc_team->get_id(),
+                    'email' => $email,
+                    'sender_id' => $user_id,
+                    'role' => 'member',
+                    'status' => 'pending'
+                );
+                
+                // Try to create invitation object
+                $invitation = new WC_Memberships_For_Teams_Team_Invitation();
+                
+                // Set properties
+                if (method_exists($invitation, 'set_team_id')) {
+                    $invitation->set_team_id($wc_team->get_id());
+                }
+                if (method_exists($invitation, 'set_email')) {
+                    $invitation->set_email($email);
+                }
+                if (method_exists($invitation, 'set_sender_id')) {
+                    $invitation->set_sender_id($user_id);
+                }
+                if (method_exists($invitation, 'set_role')) {
+                    $invitation->set_role('member');
+                }
+                
+                // Save the invitation
+                if (method_exists($invitation, 'save')) {
+                    $invitation->save();
+                }
+            }
+            // Method 3: Use global function if available
+            elseif (function_exists('wc_memberships_for_teams_create_team_invitation')) {
+                error_log('Club Manager: Using wc_memberships_for_teams_create_team_invitation function');
+                $invitation = wc_memberships_for_teams_create_team_invitation(array(
+                    'team_id' => $wc_team->get_id(),
+                    'email' => $email,
+                    'sender_id' => $user_id,
+                    'role' => 'member'
+                ));
+            }
+            // Method 4: Try through team's invitation handler
+            elseif (method_exists($wc_team, 'get_invitations_handler') || method_exists($wc_team, 'invitations')) {
+                error_log('Club Manager: Trying through team invitations handler');
+                
+                $handler = null;
+                if (method_exists($wc_team, 'get_invitations_handler')) {
+                    $handler = $wc_team->get_invitations_handler();
+                } elseif (method_exists($wc_team, 'invitations')) {
+                    $handler = $wc_team->invitations();
+                }
+                
+                if ($handler && method_exists($handler, 'create') || method_exists($handler, 'invite')) {
+                    if (method_exists($handler, 'invite')) {
+                        $invitation = $handler->invite($email, array(
+                            'sender_id' => $user_id,
+                            'role' => 'member'
+                        ));
+                    } else {
+                        $invitation = $handler->create(array(
+                            'email' => $email,
+                            'sender_id' => $user_id,
+                            'role' => 'member'
+                        ));
+                    }
+                }
+            }
+            else {
+                error_log('Club Manager: No known method to create invitations found');
+                wp_send_json_error('Unable to create invitation. WC Teams API may have changed.');
+                return;
+            }
             
+            // Check if invitation was created successfully
             if ($invitation && !is_wp_error($invitation)) {
                 $success_count++;
                 
-                // Store Club Manager specific data
-                $this->store_cm_invitation_data($invitation->get_id(), $team_ids, $role, $message);
+                // Get invitation ID
+                $invitation_id = null;
+                if (method_exists($invitation, 'get_id')) {
+                    $invitation_id = $invitation->get_id();
+                } elseif (is_object($invitation) && isset($invitation->id)) {
+                    $invitation_id = $invitation->id;
+                } elseif (is_numeric($invitation)) {
+                    $invitation_id = $invitation;
+                }
                 
-                // Also store sender_id in post meta for email customization
-                update_post_meta($invitation->get_id(), '_sender_id', $user_id);
-                
-                error_log('Club Manager: Successfully created invitation ID: ' . $invitation->get_id());
+                if ($invitation_id) {
+                    // Store Club Manager specific data
+                    $this->store_cm_invitation_data($invitation_id, $team_ids, $role, $message);
+                    
+                    // Store sender_id for email customization
+                    update_post_meta($invitation_id, '_sender_id', $user_id);
+                    
+                    // Send the invitation email if needed
+                    if (method_exists($invitation, 'send') && is_object($invitation)) {
+                        $invitation->send();
+                    }
+                    
+                    error_log('Club Manager: Successfully created invitation ID: ' . $invitation_id);
+                }
             } else {
                 $error_message = is_wp_error($invitation) ? $invitation->get_error_message() : 'Unknown error creating invitation';
                 $errors[] = $error_message;
                 error_log('Club Manager: Failed to create invitation: ' . $error_message);
             }
+            
         } catch (Exception $e) {
             $errors[] = $e->getMessage();
             error_log('Club Manager: Exception creating invitation: ' . $e->getMessage());
