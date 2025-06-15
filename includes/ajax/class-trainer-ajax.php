@@ -330,9 +330,27 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $body .= "Personal message:\n" . $message . "\n\n";
         }
         
-        $accept_url = add_query_arg([
-            'cm_trainer_invite' => $token
-        ], home_url());
+        // Try to find the page with the accept invitation shortcode
+        global $wpdb;
+        $page_id = $wpdb->get_var(
+            "SELECT ID FROM {$wpdb->posts} 
+             WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
+             AND post_status = 'publish' 
+             AND post_type = 'page' 
+             LIMIT 1"
+        );
+        
+        if ($page_id) {
+            // Use the page with the shortcode
+            $accept_url = add_query_arg([
+                'cm_trainer_invite' => $token
+            ], get_permalink($page_id));
+        } else {
+            // Fallback to home URL with parameter
+            $accept_url = add_query_arg([
+                'cm_trainer_invite' => $token
+            ], home_url());
+        }
         
         $body .= "To accept this invitation, please click the following link:\n";
         $body .= $accept_url . "\n\n";

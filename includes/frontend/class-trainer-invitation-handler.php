@@ -27,15 +27,42 @@ class Club_Manager_Trainer_Invitation_Handler {
             }
             $_SESSION['cm_invitation_token'] = $token;
             
+            // Check if this is the page with the shortcode
+            global $post;
+            if (is_a($post, 'WP_Post') && has_shortcode($post->post_content, 'club_manager_accept_invitation')) {
+                // We're already on the correct page, let the shortcode handle it
+                return;
+            }
+            
             if (!is_user_logged_in()) {
                 // Redirect to registration page with invitation token
                 $redirect_url = add_query_arg('cm_trainer_invite', $token, wc_get_page_permalink('myaccount'));
                 wp_redirect($redirect_url);
                 exit;
             } else {
-                // User is logged in, redirect to invitation acceptance page
-                wp_redirect(home_url('/trainer-invitation/?cm_trainer_invite=' . $token));
-                exit;
+                // User is logged in, try to find the page with the accept invitation shortcode
+                global $wpdb;
+                $page_id = $wpdb->get_var(
+                    "SELECT ID FROM {$wpdb->posts} 
+                     WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
+                     AND post_status = 'publish' 
+                     AND post_type = 'page' 
+                     LIMIT 1"
+                );
+                
+                if ($page_id) {
+                    // Redirect to the page with the shortcode
+                    $redirect_url = add_query_arg('cm_trainer_invite', $token, get_permalink($page_id));
+                    wp_redirect($redirect_url);
+                    exit;
+                } else {
+                    // No page found with shortcode, show message
+                    wp_die(
+                        'Trainer invitation page not found. Please contact the administrator and ask them to create a page with the [club_manager_accept_invitation] shortcode.',
+                        'Page Not Found',
+                        array('response' => 404)
+                    );
+                }
             }
         }
     }
