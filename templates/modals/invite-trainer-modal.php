@@ -41,14 +41,14 @@
                             <span class="label-text-alt text-gray-500">Choose which teams this trainer can access</span>
                         </label>
                         <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-3">
-                            <template x-for="team in managedTeams" :key="team.id">
+                            <template x-for="team in (managedTeams || [])" :key="team.id">
                                 <label class="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
                                     <input type="checkbox" 
                                            :value="team.id"
                                            @change="toggleTeamSelection(team.id)"
                                            class="checkbox checkbox-orange" />
-                                    <span class="text-gray-900" x-text="team.name"></span>
-                                    <span class="text-sm text-gray-500">(<span x-text="team.season"></span>)</span>
+                                    <span class="text-gray-900" x-text="team.name || 'Unknown'"></span>
+                                    <span class="text-sm text-gray-500">(<span x-text="team.season || ''"></span>)</span>
                                 </label>
                             </template>
                         </div>

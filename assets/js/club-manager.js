@@ -171,6 +171,11 @@ window.clubManager = function() {
         init() {
             console.log('Club Manager initializing...');
             console.log('Can view club teams:', this.canViewClubTeams);
+            
+            // Initialize data first
+            this.initializeData();
+            
+            // Then load teams
             this.loadTeams();
             
             // Fix for modals on mobile
@@ -195,458 +200,37 @@ window.clubManager = function() {
             
             // Watch for tab changes
             this.$watch('activeTab', (value) => {
-                if (subEvaluations.length > 0) {
-                    if (this.selectedEvaluationDate !== 'all') {
-                        const sum = subEvaluations.reduce((acc, eval) => acc + parseFloat(eval.score), 0);
-                        scores.push(sum / subEvaluations.length);
-                    } else {
-                        subEvaluations.sort((a, b) => new Date(b.evaluated_at) - new Date(a.evaluated_at));
-                        scores.push(parseFloat(subEvaluations[0].score));
-                    }
-                }
-            });
-            
-            if (scores.length === 0) {
-                return '5.0';
-            }
-            
-            const average = scores.reduce((a, b) => a + b, 0) / scores.length;
-            return average.toFixed(1);
-        },
-        
-        createSpiderChart(isClubView = false) {
-            const canvasId = isClubView ? 'clubPlayerCardSpiderChart' : 'playerCardSpiderChart';
-            const canvas = document.getElementById(canvasId);
-            const viewingPlayer = isClubView ? this.viewingClubPlayer : this.viewingPlayer;
-            
-            if (!canvas || !viewingPlayer) {
-                setTimeout(() => this.createSpiderChart(isClubView), 200);
-                return;
-            }
-            
-            if (canvas.offsetParent === null) {
-                setTimeout(() => this.createSpiderChart(isClubView), 200);
-                return;
-            }
-            
-            if (typeof Chart === 'undefined') {
-                setTimeout(() => this.createSpiderChart(isClubView), 200);
-                return;
-            }
-            
-            const ctx = canvas.getContext('2d');
-            
-            // Always destroy existing chart first
-            if (this.playerCardChart && typeof this.playerCardChart.destroy === 'function') {
-                try {
-                    this.playerCardChart.destroy();
-                    this.playerCardChart = null;
-                } catch (e) {
-                    this.playerCardChart = null;
-                }
-            }
-            
-            const labels = this.evaluationCategories.map(c => c.name);
-            const data = this.evaluationCategories.map(c => {
-                const avg = this.getPlayerCardCategoryAverage(c.key);
-                return parseFloat(avg);
-            });
-            
-            // Determine chart label based on selected date
-            let chartLabel = 'Season Average Performance';
-            if (this.selectedEvaluationDate !== 'all') {
-                const dateObj = new Date(this.selectedEvaluationDate);
-                chartLabel = 'Performance on ' + dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-            }
-            
-            try {
-                this.playerCardChart = new Chart(ctx, {
-                    type: 'radar',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: chartLabel,
-                            data: data,
-                            fill: true,
-                            backgroundColor: 'rgba(249, 115, 22, 0.2)',
-                            borderColor: 'rgb(249, 115, 22)',
-                            pointBackgroundColor: 'rgb(249, 115, 22)',
-                            pointBorderColor: '#fff',
-                            pointHoverBackgroundColor: '#fff',
-                            pointHoverBorderColor: 'rgb(249, 115, 22)',
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        animation: {
-                            duration: 300
-                        },
-                        elements: {
-                            line: {
-                                borderWidth: 3
-                            }
-                        },
-                        scales: {
-                            r: {
-                                angleLines: {
-                                    display: true
-                                },
-                                suggestedMin: 0,
-                                suggestedMax: 10,
-                                ticks: {
-                                    stepSize: 2,
-                                    font: {
-                                        size: 10
-                                    }
-                                },
-                                pointLabels: {
-                                    font: {
-                                        size: 11
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    font: {
-                                        size: 12
-                                    }
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.parsed.r.toFixed(1) + '/10';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-                
-            } catch (error) {
-                console.error('Error creating chart:', error);
-            }
-        },
-        
-        forceUpdateSpiderChart() {
-            if (this.playerCardChart) {
-                this.playerCardChart.destroy();
-                this.playerCardChart = null;
-            }
-            
-            setTimeout(() => {
-                this.createSpiderChart(this.isViewingClubTeam);
-            }, 100);
-        },
-        
-        // AI Advice Methods
-        async loadPlayerAdvice(player, isClubView = false) {
-            this.adviceLoading = true;
-            
-            try {
-                const team = isClubView ? this.selectedClubTeam : this.selectedTeam;
-                const action = isClubView ? 'cm_get_club_player_advice' : 'cm_get_player_advice';
-                
-                const data = await this.apiPost(action, {
-                    player_id: player.id,
-                    team_id: team.id,
-                    season: this.currentSeason
-                });
-                
-                this.playerAdvice = data.advice;
-                this.adviceStatus = data.status || 'no_evaluations';
-                this.lastAdviceTimestamp = data.generated_at || null;
-                
-                // Check if we have evaluations but no advice yet
-                if (!this.playerAdvice && this.evaluations[player.id] && this.evaluations[player.id].length > 0) {
-                    this.adviceStatus = 'no_advice_yet';
-                }
-                
-            } catch (error) {
-                console.error('Error loading advice:', error);
-            }
-            
-            this.adviceLoading = false;
-        },
-        
-        async generatePlayerAdvice(player) {
-            try {
-                await this.apiPost('cm_generate_player_advice', {
-                    player_id: player.id,
-                    team_id: this.selectedTeam.id,
-                    season: this.currentSeason
-                });
-            } catch (error) {
-                console.error('Error generating advice:', error);
-            }
-        },
-        
-        async pollForAdvice(player, attempts = 0) {
-            if (!player || attempts > 15) {
-                this.adviceLoading = false;
-                this.adviceStatus = 'generation_failed';
-                return;
-            }
-            
-            // Check if we're still viewing the same player
-            if (!this.viewingPlayer || this.viewingPlayer.id !== player.id) {
-                return;
-            }
-            
-            try {
-                const data = await this.apiPost('cm_get_player_advice', {
-                    player_id: player.id,
-                    team_id: this.selectedTeam.id,
-                    season: this.currentSeason
-                });
-                
-                if (data.advice) {
-                    // Check if this is new advice
-                    const isNewAdvice = !this.lastAdviceTimestamp || 
-                                       data.generated_at !== this.lastAdviceTimestamp;
-                    
-                    if (isNewAdvice) {
-                        // New advice found!
-                        this.playerAdvice = data.advice;
-                        this.adviceStatus = 'current';
-                        this.adviceLoading = false;
-                        this.lastAdviceTimestamp = data.generated_at;
-                    } else {
-                        // This is still old advice, keep polling
-                        setTimeout(() => {
-                            this.pollForAdvice(player, attempts + 1);
-                        }, 5000);
-                    }
-                } else {
-                    // No advice found, keep polling
-                    setTimeout(() => {
-                        this.pollForAdvice(player, attempts + 1);
-                    }, 5000);
-                }
-            } catch (error) {
-                this.adviceLoading = false;
-                this.adviceStatus = 'error';
-            }
-        },
-        
-        // PDF Download
-        async downloadPlayerCardPDF(event, isClubView = false) {
-            const viewingPlayer = isClubView ? this.viewingClubPlayer : this.viewingPlayer;
-            if (!viewingPlayer) return;
-            
-            let button = null;
-            let originalContent = '';
-            
-            try {
-                // Check if jsPDF is loaded
-                if (typeof window.jspdf === 'undefined') {
-                    alert('PDF library not loaded. Please refresh the page and try again.');
-                    return;
-                }
-                
-                // Get button reference
-                if (event && event.target) {
-                    button = event.target.closest('button');
-                }
-                
-                // Show loading state if button exists
-                if (button) {
-                    originalContent = button.innerHTML;
-                    button.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
-                    button.disabled = true;
-                }
-                
-                // Create PDF
-                const jsPDF = window.jspdf.jsPDF;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                
-                // Colors
-                const orangeColor = [255, 152, 0];
-                const darkGray = [31, 41, 55];
-                const mediumGray = [107, 114, 128];
-                const lightGray = [229, 231, 235];
-                
-                // Dimensions
-                const pageWidth = pdf.internal.pageSize.getWidth();
-                const pageHeight = pdf.internal.pageSize.getHeight();
-                const margin = 20;
-                const contentWidth = pageWidth - (margin * 2);
-                let yPosition = 20;
-                
-                // Title
-                const playerName = viewingPlayer.first_name + ' ' + viewingPlayer.last_name;
-                pdf.setFontSize(24);
-                pdf.setTextColor.apply(pdf, orangeColor);
-                pdf.text(playerName, pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 10;
-                
-                // Subtitle
-                const team = isClubView ? this.selectedClubTeam : this.selectedTeam;
-                pdf.setFontSize(14);
-                pdf.setTextColor.apply(pdf, mediumGray);
-                pdf.text(team.name + ' - ' + this.currentSeason, pageWidth / 2, yPosition, { align: 'center' });
-                yPosition += 15;
-                
-                // Player Info Box
-                pdf.setDrawColor.apply(pdf, lightGray);
-                pdf.setFillColor(255, 243, 224); // Orange-50
-                pdf.roundedRect(margin, yPosition, contentWidth, 25, 3, 3, 'FD');
-                
-                pdf.setFontSize(12);
-                pdf.setTextColor.apply(pdf, darkGray);
-                pdf.text('Position: ' + (viewingPlayer.position || 'Not assigned'), margin + 5, yPosition + 8);
-                pdf.text('Jersey #: ' + (viewingPlayer.jersey_number || '-'), margin + 60, yPosition + 8);
-                pdf.text('Email: ' + viewingPlayer.email, margin + 5, yPosition + 18);
-                pdf.text('Birth Date: ' + viewingPlayer.birth_date, margin + 100, yPosition + 18);
-                yPosition += 35;
-                
-                // Notes if available
-                if (viewingPlayer.notes) {
-                    pdf.setFontSize(12);
-                    pdf.setTextColor.apply(pdf, darkGray);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.text('Notes:', margin, yPosition);
-                    pdf.setFont(undefined, 'normal');
-                    yPosition += 7;
-                    
-                    const splitNotes = pdf.splitTextToSize(viewingPlayer.notes, contentWidth);
-                    pdf.text(splitNotes, margin, yPosition);
-                    yPosition += splitNotes.length * 5 + 10;
-                }
-                
-                // Performance Scores
-                pdf.setFontSize(16);
-                pdf.setTextColor.apply(pdf, orangeColor);
-                pdf.setFont(undefined, 'bold');
-                pdf.text('Performance Evaluation', margin, yPosition);
-                pdf.setFont(undefined, 'normal');
-                yPosition += 10;
-                
-                // Draw evaluation scores
-                const categories = this.evaluationCategories;
-                pdf.setFontSize(11);
-                
-                categories.forEach((category, index) => {
-                    if (yPosition > pageHeight - 40) {
-                        pdf.addPage();
-                        yPosition = 20;
-                    }
-                    
-                    const score = this.getPlayerCardCategoryAverage(category.key);
-                    const scoreFloat = parseFloat(score);
-                    
-                    // Category name
-                    pdf.setTextColor.apply(pdf, darkGray);
-                    pdf.text(category.name, margin, yPosition);
-                    
-                    // Score
-                    pdf.setTextColor.apply(pdf, orangeColor);
-                    pdf.text(score + '/10', margin + 80, yPosition);
-                    
-                    // Progress bar
-                    pdf.setDrawColor.apply(pdf, lightGray);
-                    pdf.setFillColor.apply(pdf, lightGray);
-                    pdf.rect(margin + 110, yPosition - 4, 50, 5, 'F');
-                    
-                    // Fill based on score
-                    if (scoreFloat >= 7) {
-                        pdf.setFillColor(34, 197, 94); // Green
-                    } else if (scoreFloat >= 5) {
-                        pdf.setFillColor.apply(pdf, orangeColor);
-                    } else {
-                        pdf.setFillColor(239, 68, 68); // Red
-                    }
-                    pdf.rect(margin + 110, yPosition - 4, (scoreFloat / 10) * 50, 5, 'F');
-                    
-                    yPosition += 8;
-                });
-                
-                yPosition += 10;
-                
-                // AI Advice
-                if (this.playerAdvice && this.adviceStatus !== 'no_evaluations') {
-                    if (yPosition > pageHeight - 60) {
-                        pdf.addPage();
-                        yPosition = 20;
-                    }
-                    
-                    pdf.setFontSize(16);
-                    pdf.setTextColor.apply(pdf, orangeColor);
-                    pdf.setFont(undefined, 'bold');
-                    pdf.text('AI Coaching Advice', margin, yPosition);
-                    pdf.setFont(undefined, 'normal');
-                    yPosition += 10;
-                    
-                    pdf.setFontSize(10);
-                    pdf.setTextColor.apply(pdf, darkGray);
-                    const splitAdvice = pdf.splitTextToSize(this.playerAdvice, contentWidth);
-                    pdf.text(splitAdvice, margin, yPosition);
-                    yPosition += splitAdvice.length * 4 + 10;
-                }
-                
-                // Footer
-                pdf.setFontSize(8);
-                pdf.setTextColor.apply(pdf, mediumGray);
-                pdf.text('Generated: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString(), pageWidth / 2, pageHeight - 10, { align: 'center' });
-                
-                // Save the PDF
-                const fileName = playerName.replace(/\s+/g, '_') + '_' + this.currentSeason + '_PlayerCard.pdf';
-                pdf.save(fileName);
-                
-                // Restore button if it exists
-                if (button) {
-                    button.innerHTML = originalContent;
-                    button.disabled = false;
-                }
-                
-            } catch (error) {
-                alert('Error generating PDF: ' + error.message);
-                
-                // Restore button if it exists
-                if (button && originalContent) {
-                    button.innerHTML = originalContent;
-                    button.disabled = false;
-                }
-            }
-        },
-        
-        // Season Management
-        async changeSeason() {
-            await this.apiPost('cm_save_season_preference', {
-                season: this.currentSeason
-            });
-            
-            await this.loadTeams();
-            if (this.canViewClubTeams && this.activeTab === 'club-teams') {
-                await this.loadClubTeams();
-            } else if (this.canViewClubTeams && this.activeTab === 'trainer-management') {
-                await this.loadTrainerManagementData();
-            }
-            
-            this.selectedTeam = null;
-            this.teamPlayers = [];
-            this.viewingPlayer = null;
-            this.selectedPlayerCard = null;
-            
-            this.selectedClubTeam = null;
-            this.clubTeamPlayers = [];
-            this.viewingClubPlayer = null;
-            this.selectedClubPlayerCard = null;
-        }
-    };
-};value === 'club-teams' && this.canViewClubTeams) {
+                if (value === 'club-teams' && this.canViewClubTeams) {
                     this.loadClubTeams();
                 } else if (value === 'trainer-management' && this.canViewClubTeams) {
                     this.loadTrainerManagementData();
                 }
             });
+        },
+        
+        // Initialize all data structures
+        initializeData() {
+            // Ensure all arrays are initialized
+            this.teams = this.teams || [];
+            this.clubTeams = this.clubTeams || [];
+            this.teamPlayers = this.teamPlayers || [];
+            this.clubTeamPlayers = this.clubTeamPlayers || [];
+            this.searchResults = this.searchResults || [];
+            this.playerHistory = this.playerHistory || [];
+            this.playerEvaluationHistory = this.playerEvaluationHistory || [];
+            this.availableEvaluationDates = this.availableEvaluationDates || [];
+            this.pendingInvitations = this.pendingInvitations || [];
+            this.activeTrainers = this.activeTrainers || [];
+            this.managedTeams = this.managedTeams || [];
+            
+            // Ensure all objects are initialized
+            this.evaluations = this.evaluations || {};
+            this.currentEvaluationScores = this.currentEvaluationScores || {};
+            
+            // Ensure newTrainerInvite has selectedTeams array
+            if (!this.newTrainerInvite.selectedTeams) {
+                this.newTrainerInvite.selectedTeams = [];
+            }
         },
         
         // API helper
@@ -756,22 +340,32 @@ window.clubManager = function() {
         async loadTrainerManagementData() {
             try {
                 // Load managed teams for the invitation form
-                this.managedTeams = await this.apiPost('cm_get_managed_teams', {
+                const teamsData = await this.apiPost('cm_get_managed_teams', {
                     season: this.currentSeason
                 });
+                this.managedTeams = teamsData || [];
                 
                 // Load pending invitations
-                this.pendingInvitations = await this.apiPost('cm_get_pending_invitations');
+                const invitationsData = await this.apiPost('cm_get_pending_invitations');
+                this.pendingInvitations = invitationsData || [];
                 
                 // Load active trainers
-                this.activeTrainers = await this.apiPost('cm_get_active_trainers');
+                const trainersData = await this.apiPost('cm_get_active_trainers');
+                this.activeTrainers = trainersData || [];
                 
             } catch (error) {
                 console.error('Error loading trainer management data:', error);
+                // Initialize with empty arrays on error
+                this.managedTeams = [];
+                this.pendingInvitations = [];
+                this.activeTrainers = [];
             }
         },
         
         toggleTeamSelection(teamId) {
+            if (!this.newTrainerInvite.selectedTeams) {
+                this.newTrainerInvite.selectedTeams = [];
+            }
             const index = this.newTrainerInvite.selectedTeams.indexOf(teamId);
             if (index > -1) {
                 this.newTrainerInvite.selectedTeams.splice(index, 1);
@@ -781,7 +375,7 @@ window.clubManager = function() {
         },
         
         async inviteTrainer() {
-            if (this.newTrainerInvite.selectedTeams.length === 0) {
+            if (!this.newTrainerInvite.selectedTeams || this.newTrainerInvite.selectedTeams.length === 0) {
                 alert('Please select at least one team for the trainer');
                 return;
             }
@@ -806,7 +400,7 @@ window.clubManager = function() {
                 alert('Invitation sent successfully!');
                 
             } catch (error) {
-                alert('Error sending invitation: ' + error.message);
+                alert('Error sending invitation: ' + (error.message || 'Unknown error'));
             }
         },
         
@@ -1369,4 +963,450 @@ window.clubManager = function() {
                     e.category === categoryKey && e.subcategory === sub.key
                 );
                 
-                if (
+                if (subEvaluations.length > 0) {
+                    if (this.selectedEvaluationDate !== 'all') {
+                        const sum = subEvaluations.reduce((acc, eval) => acc + parseFloat(eval.score), 0);
+                        scores.push(sum / subEvaluations.length);
+                    } else {
+                        subEvaluations.sort((a, b) => new Date(b.evaluated_at) - new Date(a.evaluated_at));
+                        scores.push(parseFloat(subEvaluations[0].score));
+                    }
+                }
+            });
+            
+            if (scores.length === 0) {
+                return '5.0';
+            }
+            
+            const average = scores.reduce((a, b) => a + b, 0) / scores.length;
+            return average.toFixed(1);
+        },
+        
+        createSpiderChart(isClubView = false) {
+            const canvasId = isClubView ? 'clubPlayerCardSpiderChart' : 'playerCardSpiderChart';
+            const canvas = document.getElementById(canvasId);
+            const viewingPlayer = isClubView ? this.viewingClubPlayer : this.viewingPlayer;
+            
+            if (!canvas || !viewingPlayer) {
+                setTimeout(() => this.createSpiderChart(isClubView), 200);
+                return;
+            }
+            
+            if (canvas.offsetParent === null) {
+                setTimeout(() => this.createSpiderChart(isClubView), 200);
+                return;
+            }
+            
+            if (typeof Chart === 'undefined') {
+                setTimeout(() => this.createSpiderChart(isClubView), 200);
+                return;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            
+            // Always destroy existing chart first
+            if (this.playerCardChart && typeof this.playerCardChart.destroy === 'function') {
+                try {
+                    this.playerCardChart.destroy();
+                    this.playerCardChart = null;
+                } catch (e) {
+                    this.playerCardChart = null;
+                }
+            }
+            
+            const labels = this.evaluationCategories.map(c => c.name);
+            const data = this.evaluationCategories.map(c => {
+                const avg = this.getPlayerCardCategoryAverage(c.key);
+                return parseFloat(avg);
+            });
+            
+            // Determine chart label based on selected date
+            let chartLabel = 'Season Average Performance';
+            if (this.selectedEvaluationDate !== 'all') {
+                const dateObj = new Date(this.selectedEvaluationDate);
+                chartLabel = 'Performance on ' + dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+            }
+            
+            try {
+                this.playerCardChart = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: chartLabel,
+                            data: data,
+                            fill: true,
+                            backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                            borderColor: 'rgb(249, 115, 22)',
+                            pointBackgroundColor: 'rgb(249, 115, 22)',
+                            pointBorderColor: '#fff',
+                            pointHoverBackgroundColor: '#fff',
+                            pointHoverBorderColor: 'rgb(249, 115, 22)',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: {
+                            duration: 300
+                        },
+                        elements: {
+                            line: {
+                                borderWidth: 3
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    display: true
+                                },
+                                suggestedMin: 0,
+                                suggestedMax: 10,
+                                ticks: {
+                                    stepSize: 2,
+                                    font: {
+                                        size: 10
+                                    }
+                                },
+                                pointLabels: {
+                                    font: {
+                                        size: 11
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.parsed.r.toFixed(1) + '/10';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error creating chart:', error);
+            }
+        },
+        
+        forceUpdateSpiderChart() {
+            if (this.playerCardChart) {
+                this.playerCardChart.destroy();
+                this.playerCardChart = null;
+            }
+            
+            setTimeout(() => {
+                this.createSpiderChart(this.isViewingClubTeam);
+            }, 100);
+        },
+        
+        // AI Advice Methods
+        async loadPlayerAdvice(player, isClubView = false) {
+            this.adviceLoading = true;
+            
+            try {
+                const team = isClubView ? this.selectedClubTeam : this.selectedTeam;
+                const action = isClubView ? 'cm_get_club_player_advice' : 'cm_get_player_advice';
+                
+                const data = await this.apiPost(action, {
+                    player_id: player.id,
+                    team_id: team.id,
+                    season: this.currentSeason
+                });
+                
+                this.playerAdvice = data.advice;
+                this.adviceStatus = data.status || 'no_evaluations';
+                this.lastAdviceTimestamp = data.generated_at || null;
+                
+                // Check if we have evaluations but no advice yet
+                if (!this.playerAdvice && this.evaluations[player.id] && this.evaluations[player.id].length > 0) {
+                    this.adviceStatus = 'no_advice_yet';
+                }
+                
+            } catch (error) {
+                console.error('Error loading advice:', error);
+            }
+            
+            this.adviceLoading = false;
+        },
+        
+        async generatePlayerAdvice(player) {
+            try {
+                await this.apiPost('cm_generate_player_advice', {
+                    player_id: player.id,
+                    team_id: this.selectedTeam.id,
+                    season: this.currentSeason
+                });
+            } catch (error) {
+                console.error('Error generating advice:', error);
+            }
+        },
+        
+        async pollForAdvice(player, attempts = 0) {
+            if (!player || attempts > 15) {
+                this.adviceLoading = false;
+                this.adviceStatus = 'generation_failed';
+                return;
+            }
+            
+            // Check if we're still viewing the same player
+            if (!this.viewingPlayer || this.viewingPlayer.id !== player.id) {
+                return;
+            }
+            
+            try {
+                const data = await this.apiPost('cm_get_player_advice', {
+                    player_id: player.id,
+                    team_id: this.selectedTeam.id,
+                    season: this.currentSeason
+                });
+                
+                if (data.advice) {
+                    // Check if this is new advice
+                    const isNewAdvice = !this.lastAdviceTimestamp || 
+                                       data.generated_at !== this.lastAdviceTimestamp;
+                    
+                    if (isNewAdvice) {
+                        // New advice found!
+                        this.playerAdvice = data.advice;
+                        this.adviceStatus = 'current';
+                        this.adviceLoading = false;
+                        this.lastAdviceTimestamp = data.generated_at;
+                    } else {
+                        // This is still old advice, keep polling
+                        setTimeout(() => {
+                            this.pollForAdvice(player, attempts + 1);
+                        }, 5000);
+                    }
+                } else {
+                    // No advice found, keep polling
+                    setTimeout(() => {
+                        this.pollForAdvice(player, attempts + 1);
+                    }, 5000);
+                }
+            } catch (error) {
+                this.adviceLoading = false;
+                this.adviceStatus = 'error';
+            }
+        },
+        
+        // PDF Download
+        async downloadPlayerCardPDF(event, isClubView = false) {
+            const viewingPlayer = isClubView ? this.viewingClubPlayer : this.viewingPlayer;
+            if (!viewingPlayer) return;
+            
+            let button = null;
+            let originalContent = '';
+            
+            try {
+                // Check if jsPDF is loaded
+                if (typeof window.jspdf === 'undefined') {
+                    alert('PDF library not loaded. Please refresh the page and try again.');
+                    return;
+                }
+                
+                // Get button reference
+                if (event && event.target) {
+                    button = event.target.closest('button');
+                }
+                
+                // Show loading state if button exists
+                if (button) {
+                    originalContent = button.innerHTML;
+                    button.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                    button.disabled = true;
+                }
+                
+                // Create PDF
+                const jsPDF = window.jspdf.jsPDF;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                // Colors
+                const orangeColor = [255, 152, 0];
+                const darkGray = [31, 41, 55];
+                const mediumGray = [107, 114, 128];
+                const lightGray = [229, 231, 235];
+                
+                // Dimensions
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 20;
+                const contentWidth = pageWidth - (margin * 2);
+                let yPosition = 20;
+                
+                // Title
+                const playerName = viewingPlayer.first_name + ' ' + viewingPlayer.last_name;
+                pdf.setFontSize(24);
+                pdf.setTextColor.apply(pdf, orangeColor);
+                pdf.text(playerName, pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 10;
+                
+                // Subtitle
+                const team = isClubView ? this.selectedClubTeam : this.selectedTeam;
+                pdf.setFontSize(14);
+                pdf.setTextColor.apply(pdf, mediumGray);
+                pdf.text(team.name + ' - ' + this.currentSeason, pageWidth / 2, yPosition, { align: 'center' });
+                yPosition += 15;
+                
+                // Player Info Box
+                pdf.setDrawColor.apply(pdf, lightGray);
+                pdf.setFillColor(255, 243, 224); // Orange-50
+                pdf.roundedRect(margin, yPosition, contentWidth, 25, 3, 3, 'FD');
+                
+                pdf.setFontSize(12);
+                pdf.setTextColor.apply(pdf, darkGray);
+                pdf.text('Position: ' + (viewingPlayer.position || 'Not assigned'), margin + 5, yPosition + 8);
+                pdf.text('Jersey #: ' + (viewingPlayer.jersey_number || '-'), margin + 60, yPosition + 8);
+                pdf.text('Email: ' + viewingPlayer.email, margin + 5, yPosition + 18);
+                pdf.text('Birth Date: ' + viewingPlayer.birth_date, margin + 100, yPosition + 18);
+                yPosition += 35;
+                
+                // Notes if available
+                if (viewingPlayer.notes) {
+                    pdf.setFontSize(12);
+                    pdf.setTextColor.apply(pdf, darkGray);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Notes:', margin, yPosition);
+                    pdf.setFont(undefined, 'normal');
+                    yPosition += 7;
+                    
+                    const splitNotes = pdf.splitTextToSize(viewingPlayer.notes, contentWidth);
+                    pdf.text(splitNotes, margin, yPosition);
+                    yPosition += splitNotes.length * 5 + 10;
+                }
+                
+                // Performance Scores
+                pdf.setFontSize(16);
+                pdf.setTextColor.apply(pdf, orangeColor);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Performance Evaluation', margin, yPosition);
+                pdf.setFont(undefined, 'normal');
+                yPosition += 10;
+                
+                // Draw evaluation scores
+                const categories = this.evaluationCategories;
+                pdf.setFontSize(11);
+                
+                categories.forEach((category, index) => {
+                    if (yPosition > pageHeight - 40) {
+                        pdf.addPage();
+                        yPosition = 20;
+                    }
+                    
+                    const score = this.getPlayerCardCategoryAverage(category.key);
+                    const scoreFloat = parseFloat(score);
+                    
+                    // Category name
+                    pdf.setTextColor.apply(pdf, darkGray);
+                    pdf.text(category.name, margin, yPosition);
+                    
+                    // Score
+                    pdf.setTextColor.apply(pdf, orangeColor);
+                    pdf.text(score + '/10', margin + 80, yPosition);
+                    
+                    // Progress bar
+                    pdf.setDrawColor.apply(pdf, lightGray);
+                    pdf.setFillColor.apply(pdf, lightGray);
+                    pdf.rect(margin + 110, yPosition - 4, 50, 5, 'F');
+                    
+                    // Fill based on score
+                    if (scoreFloat >= 7) {
+                        pdf.setFillColor(34, 197, 94); // Green
+                    } else if (scoreFloat >= 5) {
+                        pdf.setFillColor.apply(pdf, orangeColor);
+                    } else {
+                        pdf.setFillColor(239, 68, 68); // Red
+                    }
+                    pdf.rect(margin + 110, yPosition - 4, (scoreFloat / 10) * 50, 5, 'F');
+                    
+                    yPosition += 8;
+                });
+                
+                yPosition += 10;
+                
+                // AI Advice
+                if (this.playerAdvice && this.adviceStatus !== 'no_evaluations') {
+                    if (yPosition > pageHeight - 60) {
+                        pdf.addPage();
+                        yPosition = 20;
+                    }
+                    
+                    pdf.setFontSize(16);
+                    pdf.setTextColor.apply(pdf, orangeColor);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('AI Coaching Advice', margin, yPosition);
+                    pdf.setFont(undefined, 'normal');
+                    yPosition += 10;
+                    
+                    pdf.setFontSize(10);
+                    pdf.setTextColor.apply(pdf, darkGray);
+                    const splitAdvice = pdf.splitTextToSize(this.playerAdvice, contentWidth);
+                    pdf.text(splitAdvice, margin, yPosition);
+                    yPosition += splitAdvice.length * 4 + 10;
+                }
+                
+                // Footer
+                pdf.setFontSize(8);
+                pdf.setTextColor.apply(pdf, mediumGray);
+                pdf.text('Generated: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString(), pageWidth / 2, pageHeight - 10, { align: 'center' });
+                
+                // Save the PDF
+                const fileName = playerName.replace(/\s+/g, '_') + '_' + this.currentSeason + '_PlayerCard.pdf';
+                pdf.save(fileName);
+                
+                // Restore button if it exists
+                if (button) {
+                    button.innerHTML = originalContent;
+                    button.disabled = false;
+                }
+                
+            } catch (error) {
+                alert('Error generating PDF: ' + error.message);
+                
+                // Restore button if it exists
+                if (button && originalContent) {
+                    button.innerHTML = originalContent;
+                    button.disabled = false;
+                }
+            }
+        },
+        
+        // Season Management
+        async changeSeason() {
+            await this.apiPost('cm_save_season_preference', {
+                season: this.currentSeason
+            });
+            
+            await this.loadTeams();
+            if (this.canViewClubTeams && this.activeTab === 'club-teams') {
+                await this.loadClubTeams();
+            } else if (this.canViewClubTeams && this.activeTab === 'trainer-management') {
+                await this.loadTrainerManagementData();
+            }
+            
+            this.selectedTeam = null;
+            this.teamPlayers = [];
+            this.viewingPlayer = null;
+            this.selectedPlayerCard = null;
+            
+            this.selectedClubTeam = null;
+            this.clubTeamPlayers = [];
+            this.viewingClubPlayer = null;
+            this.selectedClubPlayerCard = null;
+        }
+    };
+};

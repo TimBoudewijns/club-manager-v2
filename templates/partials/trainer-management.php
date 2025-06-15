@@ -23,7 +23,7 @@
     </div>
     
     <!-- Pending Invitations -->
-    <div class="mb-8" x-show="pendingInvitations.length > 0">
+    <div class="mb-8" x-show="pendingInvitations && pendingInvitations.length > 0">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Pending Invitations</h3>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <template x-for="invitation in pendingInvitations" :key="invitation.id">
@@ -37,7 +37,7 @@
                             </div>
                             <div>
                                 <p class="font-medium text-gray-900" x-text="invitation.email"></p>
-                                <p class="text-sm text-gray-500">Invited <span x-text="new Date(invitation.created_at).toLocaleDateString()"></span></p>
+                                <p class="text-sm text-gray-500">Invited <span x-text="invitation.created_at ? new Date(invitation.created_at).toLocaleDateString() : ''"></span></p>
                             </div>
                         </div>
                         <button @click="cancelInvitation(invitation.id)" 
@@ -48,8 +48,8 @@
                         </button>
                     </div>
                     <div class="text-sm text-gray-600">
-                        <p>Team: <span class="font-medium text-gray-900" x-text="invitation.team_name"></span></p>
-                        <p>Role: <span class="font-medium text-gray-900" x-text="invitation.role"></span></p>
+                        <p>Team: <span class="font-medium text-gray-900" x-text="invitation.team_name || 'Unknown'"></span></p>
+                        <p>Role: <span class="font-medium text-gray-900" x-text="invitation.role || 'trainer'"></span></p>
                     </div>
                 </div>
             </template>
@@ -86,13 +86,13 @@
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex flex-wrap gap-1">
-                                    <template x-for="team in trainer.teams" :key="team.id">
-                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800" x-text="team.name"></span>
+                                    <template x-for="team in (trainer.teams || [])" :key="team.id">
+                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800" x-text="team.name || 'Unknown'"></span>
                                     </template>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800" x-text="trainer.role"></span>
+                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800" x-text="trainer.role || 'trainer'"></span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
@@ -125,7 +125,7 @@
         </div>
         
         <!-- Empty State -->
-        <div x-show="activeTrainers.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
+        <div x-show="!activeTrainers || activeTrainers.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
             <div class="bg-gray-50 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
                 <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
