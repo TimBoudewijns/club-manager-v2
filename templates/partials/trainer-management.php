@@ -11,40 +11,130 @@ function cm_get_available_trainer_seats() {
         return false;
     }
     
-    // Get teams where user is owner/manager
-    $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+    // Debug: Check different methods
+    $debug_info = array();
     
-    if (empty($managed_teams)) {
-        return array('available' => 0, 'total' => 0, 'used' => 0);
+    // Method 1: Get user teams directly
+    if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+        $user_teams = wc_memberships_for_teams_get_user_teams($user_id);
+        $debug_info['user_teams_count'] = is_array($user_teams) ? count($user_teams) : 0;
+    }
+    
+    // Method 2: Get managed teams
+    $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+    $debug_info['managed_teams_count'] = count($managed_teams);
+    
+    if (empty($managed_teams) && empty($user_teams)) {
+        // Debug: Check if user has any team posts
+        global $wpdb;
+        $team_count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->posts} 
+             WHERE post_type = 'wc_memberships_team' 
+             AND post_status = 'publish'"
+        ));
+        $debug_info['total_teams_in_db'] = $team_count;
+        
+        return array('available' => 0, 'total' => 0, 'used' => 0, 'debug' => $debug_info);
     }
     
     $total_seats = 0;
     $used_seats = 0;
     
-    foreach ($managed_teams as $team_info) {
-        // Get WC team for this user
-        $args = array(
-            'post_type' => 'wc_memberships_team',
-            'post_status' => 'publish',
-            'author' => $user_id,
-            'posts_per_page' => 1
-        );
-        
-        $wc_teams = get_posts($args);
-        
-        if (!empty($wc_teams)) {
-            $wc_team = wc_memberships_for_teams_get_team($wc_teams[0]->ID);
-            
-            if ($wc_team && is_object($wc_team)) {
-                if (method_exists($wc_team, 'get_seat_count')) {
-                    $total_seats = $wc_team->get_seat_count();
+    // Try multiple methods to find teams
+    // First, try using user teams directly
+    if (isset($user_teams) && !empty($user_teams)) {
+        foreach ($user_teams as $team) {
+            if (is_object($team)) {
+                if (method_exists($team, 'get_seat_count')) {
+                    $team_seats = $team->get_seat_count();
+                    if ($team_seats > $total_seats) {
+                        $total_seats = $team_seats;
+                    }
                 }
                 
-                if (method_exists($wc_team, 'get_used_seat_count')) {
-                    $used_seats = $wc_team->get_used_seat_count();
+                if (method_exists($team, 'get_used_seat_count')) {
+                    $team_used = $team->get_used_seat_count();
+                    if ($team_used > $used_seats) {
+                        $used_seats = $team_used;
+                    }
                 }
+            }
+        }
+    }
+    
+    // If no seats found yet, try through managed teams
+    if ($total_seats == 0 && !empty($managed_teams)) {
+        foreach ($managed_teams as $team_info) {
+            // Get WC team directly by ID
+            if (function_exists('wc_memberships_for_teams_get_team')) {
+                $wc_team = wc_memberships_for_teams_get_team($team_info['team_id']);
                 
-                break; // Use first team found
+                if ($wc_team && is_object($wc_team)) {
+                    if (method_exists($wc_team, 'get_seat_count')) {
+                        $team_seats = $wc_team->get_seat_count();
+                        if ($team_seats > $total_seats) {
+                            $total_seats = $team_seats;
+                        }
+                    }
+                    
+                    if (method_exists($wc_team, 'get_used_seat_count')) {
+                        $team_used = $wc_team->get_used_seat_count();
+                        if ($team_used > $used_seats) {
+                            $used_seats = $team_used;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Last resort: Query database directly for any team where user is a member
+    if ($total_seats == 0) {
+        global $wpdb;
+        
+        // Find teams where user is in the team members
+        $team_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT post_id 
+             FROM {$wpdb->postmeta} 
+             WHERE meta_key = '_member_id' 
+             AND meta_value = %d",
+            $user_id
+        ));
+        
+        $debug_info['found_team_ids'] = $team_ids;
+        
+        if (!empty($team_ids)) {
+            foreach ($team_ids as $team_id) {
+                if (function_exists('wc_memberships_for_teams_get_team')) {
+                    $wc_team = wc_memberships_for_teams_get_team($team_id);
+                    
+                    if ($wc_team && is_object($wc_team)) {
+                        // Check user role in team
+                        if (method_exists($wc_team, 'get_member')) {
+                            $member = $wc_team->get_member($user_id);
+                            if ($member && method_exists($member, 'get_role')) {
+                                $role = $member->get_role();
+                                $debug_info['user_role_in_team_' . $team_id] = $role;
+                                
+                                if (in_array($role, array('owner', 'manager'))) {
+                                    if (method_exists($wc_team, 'get_seat_count')) {
+                                        $team_seats = $wc_team->get_seat_count();
+                                        if ($team_seats > $total_seats) {
+                                            $total_seats = $team_seats;
+                                        }
+                                    }
+                                    
+                                    if (method_exists($wc_team, 'get_used_seat_count')) {
+                                        $team_used = $wc_team->get_used_seat_count();
+                                        if ($team_used > $used_seats) {
+                                            $used_seats = $team_used;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -52,7 +142,8 @@ function cm_get_available_trainer_seats() {
     return array(
         'available' => max(0, $total_seats - $used_seats),
         'total' => $total_seats,
-        'used' => $used_seats
+        'used' => $used_seats,
+        'debug' => $debug_info
     );
 }
 
@@ -88,13 +179,24 @@ $seat_info = cm_get_available_trainer_seats();
                             Trainers count towards your WooCommerce team membership seats
                         </p>
                     </div>
-                <?php elseif ($seat_info === false): ?>
+                <?php elseif ($seat_info !== false): ?>
+                    <div class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p class="text-sm text-yellow-800">
+                            <strong>Team membership configuration needed.</strong>
+                        </p>
+                        <p class="text-xs text-yellow-700 mt-1">
+                            Make sure you are a member of a WooCommerce team with owner or manager role.
+                        </p>
+                        <?php if (isset($seat_info['debug']) && WP_DEBUG): ?>
+                            <details class="mt-2">
+                                <summary class="text-xs text-yellow-600 cursor-pointer">Debug info</summary>
+                                <pre class="text-xs mt-1"><?php echo esc_html(print_r($seat_info['debug'], true)); ?></pre>
+                            </details>
+                        <?php endif; ?>
+                    </div>
+                <?php else: ?>
                     <p class="text-sm text-yellow-600 mt-3">
                         WooCommerce Teams for Memberships is not active. Install it to manage trainer limits.
-                    </p>
-                <?php else: ?>
-                    <p class="text-sm text-red-600 mt-3">
-                        No team membership found. You need an active team membership to invite trainers.
                     </p>
                 <?php endif; ?>
             </div>

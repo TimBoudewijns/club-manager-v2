@@ -376,26 +376,48 @@ class Club_Manager_Trainer_Invitation_Handler {
             return ['success' => false, 'message' => 'Team owner not found'];
         }
         
-        // Find WC teams owned by this user
-        $args = array(
-            'post_type' => 'wc_memberships_team',
-            'post_status' => 'publish',
-            'author' => $team_owner_id,
-            'posts_per_page' => -1
-        );
-        
-        $wc_teams = get_posts($args);
-        
-        if (empty($wc_teams)) {
-            return ['success' => false, 'message' => 'No WooCommerce team found'];
+        // Find the WooCommerce team associated with this Club Manager team
+        // First try to find teams where the owner is a member
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            $owner_teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
+            
+            if (!empty($owner_teams)) {
+                foreach ($owner_teams as $team) {
+                    if (is_object($team)) {
+                        // Check if owner has owner or manager role
+                        if (method_exists($team, 'get_member')) {
+                            $member = $team->get_member($team_owner_id);
+                            if ($member && method_exists($member, 'get_role')) {
+                                $role = $member->get_role();
+                                if (in_array($role, array('owner', 'manager'))) {
+                                    $wc_team = $team;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         
-        // Use the first team found (you might want to add more sophisticated matching)
-        $wc_team_post = $wc_teams[0];
-        $wc_team = wc_memberships_for_teams_get_team($wc_team_post->ID);
+        // Fallback: Find WC teams owned by this user (post author)
+        if (!isset($wc_team)) {
+            $args = array(
+                'post_type' => 'wc_memberships_team',
+                'post_status' => 'publish',
+                'author' => $team_owner_id,
+                'posts_per_page' => 1
+            );
+            
+            $wc_teams = get_posts($args);
+            
+            if (!empty($wc_teams)) {
+                $wc_team = wc_memberships_for_teams_get_team($wc_teams[0]->ID);
+            }
+        }
         
-        if (!$wc_team) {
-            return ['success' => false, 'message' => 'Could not load WooCommerce team'];
+        if (!isset($wc_team) || !$wc_team) {
+            return ['success' => false, 'message' => 'No WooCommerce team found for user'];
         }
         
         // Check if team has available seats

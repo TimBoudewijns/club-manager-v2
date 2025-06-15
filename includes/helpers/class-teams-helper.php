@@ -37,6 +37,26 @@ class Club_Manager_Teams_Helper {
         }
         
         // Method 1: Try the official function if it exists
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            // Get all teams for user
+            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+            
+            if (!empty($teams)) {
+                foreach ($teams as $team) {
+                    if (is_object($team) && method_exists($team, 'get_member')) {
+                        $member = $team->get_member($user_id);
+                        if ($member && method_exists($member, 'get_role')) {
+                            $role = $member->get_role();
+                            if (in_array($role, array('owner', 'manager'))) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Alternative method using different function
         if (function_exists('wc_memberships_for_teams_get_teams')) {
             $teams = wc_memberships_for_teams_get_teams($user_id, array(
                 'role' => 'owner,manager'
@@ -104,7 +124,34 @@ class Club_Manager_Teams_Helper {
         $managed_teams = array();
         
         // Method 1: Try the official function
-        if (function_exists('wc_memberships_for_teams_get_teams')) {
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            // Get all teams for user
+            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+            
+            if (!empty($teams)) {
+                foreach ($teams as $team) {
+                    if (is_object($team)) {
+                        // Get user's member object
+                        if (method_exists($team, 'get_member')) {
+                            $member = $team->get_member($user_id);
+                            if ($member && method_exists($member, 'get_role')) {
+                                $role = $member->get_role();
+                                if (in_array($role, array('owner', 'manager'))) {
+                                    $managed_teams[] = array(
+                                        'team_id' => $team->get_id(),
+                                        'team_name' => $team->get_name(),
+                                        'role' => $role
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Alternative method
+        if (empty($managed_teams) && function_exists('wc_memberships_for_teams_get_teams')) {
             $teams = wc_memberships_for_teams_get_teams($user_id, array(
                 'role' => 'owner,manager'
             ));
