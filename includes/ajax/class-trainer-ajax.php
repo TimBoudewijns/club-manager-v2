@@ -73,56 +73,49 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         
         $invitations = [];
         
-        // Get WC teams for this user
-        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+        // Get WC team for this user
+        $wc_team = $this->get_wc_team_for_cm_team(null, $user_id);
+        
+        if ($wc_team) {
+            global $wpdb;
             
-            foreach ($teams as $team) {
-                if (!is_object($team)) continue;
+            // Query invitations directly
+            $invitation_posts = $wpdb->get_results($wpdb->prepare(
+                "SELECT p.ID, p.post_parent, p.post_date
+                FROM {$wpdb->posts} p
+                WHERE p.post_type = 'wc_team_invitation'
+                AND p.post_status = 'wcm-pending'
+                AND p.post_parent = %d
+                ORDER BY p.post_date DESC",
+                $wc_team->get_id()
+            ));
+            
+            foreach ($invitation_posts as $invitation_post) {
+                $email = get_post_meta($invitation_post->ID, '_email', true);
+                $cm_team_ids = get_post_meta($invitation_post->ID, '_cm_team_ids', true);
+                $team_names = [];
                 
-                // Check if user is owner/manager
-                $member = $team->get_member($user_id);
-                if (!$member || !in_array($member->get_role(), ['owner', 'manager'])) {
-                    continue;
-                }
-                
-                // Get pending invitations for this team
-                if (method_exists($team, 'get_invitations')) {
-                    $team_invitations = $team->get_invitations(array(
-                        'status' => 'pending'
-                    ));
-                    
-                    foreach ($team_invitations as $invitation) {
-                        if (is_object($invitation)) {
-                            // Get CM team names from metadata
-                            $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
-                            $team_names = [];
-                            
-                            if ($cm_team_ids && is_array($cm_team_ids)) {
-                                global $wpdb;
-                                $teams_table = Club_Manager_Database::get_table_name('teams');
-                                foreach ($cm_team_ids as $team_id) {
-                                    $team_name = $wpdb->get_var($wpdb->prepare(
-                                        "SELECT name FROM $teams_table WHERE id = %d",
-                                        $team_id
-                                    ));
-                                    if ($team_name) {
-                                        $team_names[] = $team_name;
-                                    }
-                                }
-                            }
-                            
-                            $invitations[] = array(
-                                'id' => $invitation->get_id(),
-                                'email' => $invitation->get_email(),
-                                'team_name' => !empty($team_names) ? implode(', ', $team_names) : $team->get_name(),
-                                'team_id' => $team->get_id(),
-                                'created_at' => $invitation->get_date_created() ? $invitation->get_date_created()->format('Y-m-d H:i:s') : '',
-                                'role' => get_post_meta($invitation->get_id(), '_cm_role', true) ?: 'trainer'
-                            );
+                if ($cm_team_ids && is_array($cm_team_ids)) {
+                    $teams_table = Club_Manager_Database::get_table_name('teams');
+                    foreach ($cm_team_ids as $team_id) {
+                        $team_name = $wpdb->get_var($wpdb->prepare(
+                            "SELECT name FROM $teams_table WHERE id = %d",
+                            $team_id
+                        ));
+                        if ($team_name) {
+                            $team_names[] = $team_name;
                         }
                     }
                 }
+                
+                $invitations[] = array(
+                    'id' => $invitation_post->ID,
+                    'email' => $email,
+                    'team_name' => !empty($team_names) ? implode(', ', $team_names) : $wc_team->get_name(),
+                    'team_id' => $wc_team->get_id(),
+                    'created_at' => $invitation_post->post_date,
+                    'role' => get_post_meta($invitation_post->ID, '_cm_role', true) ?: 'trainer'
+                );
             }
         }
         
@@ -217,13 +210,12 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
-        // Get the WC Team (the club) once - it's the same for all CM teams
+        // Get the WC Team (the club)
         $wc_team = $this->get_wc_team_for_cm_team(null, $user_id);
         
         if (!$wc_team) {
             $debug_info = $this->debug_wc_team_access($user_id);
-            error_log('Club Manager: No WC team found for user ' . $user_id . '. Debug: ' . $debug_info);
-            wp_send_json_error('No WooCommerce Teams found. ' . $debug_info);
+            wp_send_json_error('Geen WooCommerce Teams gevonden. ' . $debug_info);
             return;
         }
         
@@ -231,145 +223,81 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $errors = [];
         
         try {
-            // Debug what type of object we have
-            error_log('Club Manager: WC Team object class: ' . get_class($wc_team));
-            error_log('Club Manager: Available methods: ' . implode(', ', get_class_methods($wc_team)));
+            // Gebruik de correcte WC Teams API
+            $team_id = $wc_team->get_id();
             
-            // Try different methods to create invitation
-            $invitation = null;
+            // Maak invitation data array
+            $invitation_data = array(
+                'team_id' => $team_id,
+                'email' => $email,
+                'sender_id' => $user_id,
+                'role' => 'member', // WC Teams kent alleen 'member' role
+                'message' => '' // WC Teams standaard message
+            );
             
-            // Method 1: Direct invite_member method
-            if (method_exists($wc_team, 'invite_member')) {
-                error_log('Club Manager: Using invite_member method');
-                $invitation = $wc_team->invite_member($email, array(
-                    'sender_id' => $user_id,
-                    'role' => 'member'
+            // Maak de invitation via de Team class
+            $invitations_handler = $wc_team->get_invitations_instance();
+            
+            if ($invitations_handler) {
+                // Create invitation
+                $invitation = $invitations_handler->create_invitation($invitation_data);
+                
+                if ($invitation && !is_wp_error($invitation)) {
+                    $success_count++;
+                    
+                    // Store Club Manager specific data
+                    $this->store_cm_invitation_data($invitation->get_id(), $team_ids, $role, $message);
+                    
+                    // Store sender_id for email customization
+                    update_post_meta($invitation->get_id(), '_sender_id', $user_id);
+                    
+                    // Send invitation email
+                    $invitations_handler->send_invitation_email($invitation);
+                } else {
+                    $error_message = is_wp_error($invitation) ? $invitation->get_error_message() : 'Kon geen uitnodiging aanmaken';
+                    $errors[] = $error_message;
+                }
+            } else {
+                // Fallback: Direct via post creation
+                $invitation_id = wp_insert_post(array(
+                    'post_type' => 'wc_team_invitation',
+                    'post_status' => 'wcm-pending',
+                    'post_parent' => $team_id,
+                    'post_author' => $user_id,
+                    'post_title' => sprintf(__('Invitation for %s', 'woocommerce-memberships-for-teams'), $email)
                 ));
-            }
-            // Method 2: Create invitation through invitation class
-            elseif (class_exists('WC_Memberships_For_Teams_Team_Invitation')) {
-                error_log('Club Manager: Using WC_Memberships_For_Teams_Team_Invitation class');
                 
-                // Create invitation data
-                $invitation_data = array(
-                    'team_id' => $wc_team->get_id(),
-                    'email' => $email,
-                    'sender_id' => $user_id,
-                    'role' => 'member',
-                    'status' => 'pending'
-                );
-                
-                // Try to create invitation object
-                $invitation = new WC_Memberships_For_Teams_Team_Invitation();
-                
-                // Set properties
-                if (method_exists($invitation, 'set_team_id')) {
-                    $invitation->set_team_id($wc_team->get_id());
-                }
-                if (method_exists($invitation, 'set_email')) {
-                    $invitation->set_email($email);
-                }
-                if (method_exists($invitation, 'set_sender_id')) {
-                    $invitation->set_sender_id($user_id);
-                }
-                if (method_exists($invitation, 'set_role')) {
-                    $invitation->set_role('member');
-                }
-                
-                // Save the invitation
-                if (method_exists($invitation, 'save')) {
-                    $invitation->save();
-                }
-            }
-            // Method 3: Use global function if available
-            elseif (function_exists('wc_memberships_for_teams_create_team_invitation')) {
-                error_log('Club Manager: Using wc_memberships_for_teams_create_team_invitation function');
-                $invitation = wc_memberships_for_teams_create_team_invitation(array(
-                    'team_id' => $wc_team->get_id(),
-                    'email' => $email,
-                    'sender_id' => $user_id,
-                    'role' => 'member'
-                ));
-            }
-            // Method 4: Try through team's invitation handler
-            elseif (method_exists($wc_team, 'get_invitations_handler') || method_exists($wc_team, 'invitations')) {
-                error_log('Club Manager: Trying through team invitations handler');
-                
-                $handler = null;
-                if (method_exists($wc_team, 'get_invitations_handler')) {
-                    $handler = $wc_team->get_invitations_handler();
-                } elseif (method_exists($wc_team, 'invitations')) {
-                    $handler = $wc_team->invitations();
-                }
-                
-                if ($handler && method_exists($handler, 'create') || method_exists($handler, 'invite')) {
-                    if (method_exists($handler, 'invite')) {
-                        $invitation = $handler->invite($email, array(
-                            'sender_id' => $user_id,
-                            'role' => 'member'
-                        ));
-                    } else {
-                        $invitation = $handler->create(array(
-                            'email' => $email,
-                            'sender_id' => $user_id,
-                            'role' => 'member'
-                        ));
-                    }
-                }
-            }
-            else {
-                error_log('Club Manager: No known method to create invitations found');
-                wp_send_json_error('Unable to create invitation. WC Teams API may have changed.');
-                return;
-            }
-            
-            // Check if invitation was created successfully
-            if ($invitation && !is_wp_error($invitation)) {
-                $success_count++;
-                
-                // Get invitation ID
-                $invitation_id = null;
-                if (method_exists($invitation, 'get_id')) {
-                    $invitation_id = $invitation->get_id();
-                } elseif (is_object($invitation) && isset($invitation->id)) {
-                    $invitation_id = $invitation->id;
-                } elseif (is_numeric($invitation)) {
-                    $invitation_id = $invitation;
-                }
-                
-                if ($invitation_id) {
+                if ($invitation_id && !is_wp_error($invitation_id)) {
+                    // Set invitation meta
+                    update_post_meta($invitation_id, '_email', $email);
+                    update_post_meta($invitation_id, '_role', 'member');
+                    update_post_meta($invitation_id, '_sender_id', $user_id);
+                    update_post_meta($invitation_id, '_token', wp_generate_password(32, false));
+                    
                     // Store Club Manager specific data
                     $this->store_cm_invitation_data($invitation_id, $team_ids, $role, $message);
                     
-                    // Store sender_id for email customization
-                    update_post_meta($invitation_id, '_sender_id', $user_id);
+                    // Trigger invitation email
+                    do_action('wc_memberships_for_teams_team_invitation_created', $invitation_id);
                     
-                    // Send the invitation email if needed
-                    if (method_exists($invitation, 'send') && is_object($invitation)) {
-                        $invitation->send();
-                    }
-                    
-                    error_log('Club Manager: Successfully created invitation ID: ' . $invitation_id);
+                    $success_count++;
+                } else {
+                    $errors[] = 'Kon geen uitnodiging aanmaken';
                 }
-            } else {
-                $error_message = is_wp_error($invitation) ? $invitation->get_error_message() : 'Unknown error creating invitation';
-                $errors[] = $error_message;
-                error_log('Club Manager: Failed to create invitation: ' . $error_message);
             }
             
         } catch (Exception $e) {
             $errors[] = $e->getMessage();
-            error_log('Club Manager: Exception creating invitation: ' . $e->getMessage());
         }
         
         if ($success_count === 0) {
-            $error_message = !empty($errors) ? implode(' ', $errors) : 'Failed to create invitation';
+            $error_message = !empty($errors) ? implode(' ', $errors) : 'Uitnodiging mislukt';
             wp_send_json_error($error_message);
             return;
         }
         
         wp_send_json_success([
-            'message' => 'Invitation sent successfully',
+            'message' => 'Uitnodiging succesvol verzonden',
             'invitations_created' => $success_count,
             'errors' => $errors
         ]);
@@ -388,40 +316,31 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         
         $invitation_id = $this->get_post_data('invitation_id', 'int');
         
-        if (!function_exists('wc_memberships_for_teams_get_invitation')) {
-            wp_send_json_error('WooCommerce Teams for Memberships is required');
-            return;
-        }
+        // Verify invitation exists and user has permission
+        $invitation_post = get_post($invitation_id);
         
-        $invitation = wc_memberships_for_teams_get_invitation($invitation_id);
-        
-        if (!$invitation) {
+        if (!$invitation_post || $invitation_post->post_type !== 'wc_team_invitation') {
             wp_send_json_error('Invitation not found');
             return;
         }
         
-        // Verify user has permission
-        $team = $invitation->get_team();
-        if (!$team) {
-            wp_send_json_error('Team not found');
-            return;
-        }
-        
-        $member = $team->get_member($user_id);
-        if (!$member || !in_array($member->get_role(), ['owner', 'manager'])) {
+        // Get the team and verify permission
+        $wc_team = $this->get_wc_team_for_cm_team(null, $user_id);
+        if (!$wc_team || $invitation_post->post_parent != $wc_team->get_id()) {
             wp_send_json_error('Unauthorized access');
             return;
         }
         
         // Delete the invitation
-        try {
-            $invitation->delete();
+        $result = wp_delete_post($invitation_id, true);
+        
+        if ($result) {
             wp_send_json_success(['message' => 'Invitation cancelled']);
-        } catch (Exception $e) {
-            wp_send_json_error('Failed to cancel invitation: ' . $e->getMessage());
+        } else {
+            wp_send_json_error('Failed to cancel invitation');
         }
     }
-    
+
     /**
      * Remove a trainer.
      */
