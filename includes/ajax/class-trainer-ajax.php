@@ -217,51 +217,62 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
-        // Store the custom message and role in user meta temporarily
-        $invitation_data = array(
-            'role' => $role,
-            'message' => $message,
-            'inviter_id' => $user_id
-        );
-        set_transient('cm_invitation_' . md5($email), $invitation_data, DAY_IN_SECONDS);
-        
-        // Process each team
-        $success_count = 0;
-        $errors = [];
-        
         // Get the WC Team (the club) once - it's the same for all CM teams
         $wc_team = $this->get_wc_team_for_cm_team(null, $user_id);
         
         if (!$wc_team) {
-            // Let's provide more helpful debug info
             $debug_info = $this->debug_wc_team_access($user_id);
-            wp_send_json_error('Geen WooCommerce Teams for Memberships team (club) gevonden. ' . $debug_info);
+            error_log('Club Manager: No WC team found for user ' . $user_id . '. Debug: ' . $debug_info);
+            wp_send_json_error('No WooCommerce Teams found. ' . $debug_info);
             return;
         }
         
-        // Create ONE invitation for the WC Team (club)
-        if (method_exists($wc_team, 'invite_member')) {
-            try {
-                $invitation = $wc_team->invite_member($email, array(
-                    'sender_id' => $user_id,
-                    'role' => 'member' // WC Teams doesn't have trainer role
-                ));
+        // Check if the team object has the invite_member method
+        if (!method_exists($wc_team, 'invite_member')) {
+            error_log('Club Manager: WC team object does not have invite_member method');
+            wp_send_json_error('Team invitation method not available. Please check WooCommerce Teams configuration.');
+            return;
+        }
+        
+        $success_count = 0;
+        $errors = [];
+        
+        try {
+            // Debug logging
+            error_log('Club Manager: Attempting to invite ' . $email . ' to team ID: ' . $wc_team->get_id());
+            
+            // Create invitation with proper parameters
+            $invitation_args = array(
+                'sender_id' => $user_id,
+                'role' => 'member' // WC Teams uses 'member' role
+            );
+            
+            // Try to create the invitation
+            $invitation = $wc_team->invite_member($email, $invitation_args);
+            
+            if ($invitation && !is_wp_error($invitation)) {
+                $success_count++;
                 
-                if ($invitation) {
-                    $success_count++;
-                    
-                    // Store Club Manager specific data - including ALL selected teams
-                    $this->store_cm_invitation_data($invitation->get_id(), $team_ids, $role, $message);
-                } else {
-                    $errors[] = "Kon geen uitnodiging maken voor het e-mailadres: " . $email;
-                }
-            } catch (Exception $e) {
-                $errors[] = $e->getMessage();
+                // Store Club Manager specific data
+                $this->store_cm_invitation_data($invitation->get_id(), $team_ids, $role, $message);
+                
+                // Also store sender_id in post meta for email customization
+                update_post_meta($invitation->get_id(), '_sender_id', $user_id);
+                
+                error_log('Club Manager: Successfully created invitation ID: ' . $invitation->get_id());
+            } else {
+                $error_message = is_wp_error($invitation) ? $invitation->get_error_message() : 'Unknown error creating invitation';
+                $errors[] = $error_message;
+                error_log('Club Manager: Failed to create invitation: ' . $error_message);
             }
+        } catch (Exception $e) {
+            $errors[] = $e->getMessage();
+            error_log('Club Manager: Exception creating invitation: ' . $e->getMessage());
         }
         
         if ($success_count === 0) {
-            wp_send_json_error('Failed to create invitations. ' . implode(' ', $errors));
+            $error_message = !empty($errors) ? implode(' ', $errors) : 'Failed to create invitation';
+            wp_send_json_error($error_message);
             return;
         }
         
@@ -366,17 +377,49 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
      * Note: All CM teams belong to the same WC Team (the club)
      */
     private function get_wc_team_for_cm_team($cm_team_id, $user_id) {
-        // In the Club Manager context:
-        // - The WooCommerce "Team" represents the entire hockey CLUB
-        // - Club Manager "teams" are hockey teams within that club (Dames 1, Heren 2, etc.)
-        // - All CM teams share the same WC Team (the club)
+        global $wpdb;
         
         // Debug logging
         error_log('Club Manager: Looking for WC team for user ID: ' . $user_id);
         
-        // Method 1: Check if user is post author of a WC team
-        global $wpdb;
-        $wc_team_id = $wpdb->get_var($wpdb->prepare(
+        // Method 1: Try the official function first
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+            
+            if (!empty($teams)) {
+                foreach ($teams as $team) {
+                    if (!is_object($team)) continue;
+                    
+                    // Check if user can manage this team
+                    $can_manage = false;
+                    
+                    // Check if user is post author
+                    $team_post = get_post($team->get_id());
+                    if ($team_post && $team_post->post_author == $user_id) {
+                        $can_manage = true;
+                    }
+                    
+                    // Check member role
+                    if (!$can_manage && method_exists($team, 'get_member')) {
+                        $member = $team->get_member($user_id);
+                        if ($member && method_exists($member, 'get_role')) {
+                            $role = $member->get_role();
+                            if (in_array($role, ['owner', 'manager'])) {
+                                $can_manage = true;
+                            }
+                        }
+                    }
+                    
+                    if ($can_manage) {
+                        error_log('Club Manager: Found manageable WC team ID: ' . $team->get_id());
+                        return $team;
+                    }
+                }
+            }
+        }
+        
+        // Method 2: Direct database query for teams where user is author
+        $team_id = $wpdb->get_var($wpdb->prepare(
             "SELECT ID 
             FROM {$wpdb->posts}
             WHERE post_type = 'wc_memberships_team'
@@ -387,17 +430,15 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $user_id
         ));
         
-        if ($wc_team_id) {
-            error_log('Club Manager: Found WC team by post author: ' . $wc_team_id);
-            if (function_exists('wc_memberships_for_teams_get_team')) {
-                $team = wc_memberships_for_teams_get_team($wc_team_id);
-                if ($team && is_object($team)) {
-                    return $team;
-                }
+        if ($team_id && function_exists('wc_memberships_for_teams_get_team')) {
+            $team = wc_memberships_for_teams_get_team($team_id);
+            if ($team && is_object($team)) {
+                error_log('Club Manager: Found WC team by post author: ' . $team_id);
+                return $team;
             }
         }
         
-        // Method 2: Check team members with manager/owner role
+        // Method 3: Check for any team where user is owner/manager
         $team_ids = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT p.ID 
             FROM {$wpdb->posts} p
@@ -412,69 +453,17 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $user_id
         ));
         
-        if (!empty($team_ids)) {
-            error_log('Club Manager: Found WC teams where user is owner/manager: ' . implode(', ', $team_ids));
-            if (function_exists('wc_memberships_for_teams_get_team')) {
-                foreach ($team_ids as $team_id) {
-                    $team = wc_memberships_for_teams_get_team($team_id);
-                    if ($team && is_object($team)) {
-                        return $team;
-                    }
-                }
-            }
-        }
-        
-        // Method 3: Try the official function if available
-        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            error_log('Club Manager: Trying wc_memberships_for_teams_get_user_teams');
-            $teams = wc_memberships_for_teams_get_user_teams($user_id);
-            
-            if (!empty($teams)) {
-                error_log('Club Manager: Found ' . count($teams) . ' teams via official function');
-                foreach ($teams as $team) {
-                    if (is_object($team)) {
-                        // Try to get member role
-                        if (method_exists($team, 'get_member')) {
-                            $member = $team->get_member($user_id);
-                            if ($member) {
-                                $role = method_exists($member, 'get_role') ? $member->get_role() : 'unknown';
-                                error_log('Club Manager: User role in team ' . $team->get_id() . ': ' . $role);
-                                if (in_array($role, ['owner', 'manager'])) {
-                                    return $team;
-                                }
-                            }
-                        } else {
-                            // If we can't check the role, assume they have access if they're in the team
-                            error_log('Club Manager: Cannot check role, returning team ' . $team->get_id());
-                            return $team;
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Method 4: Look for any team member record
-        $any_team = $wpdb->get_var($wpdb->prepare(
-            "SELECT post_id 
-            FROM {$wpdb->postmeta}
-            WHERE meta_key = '_member_id'
-            AND meta_value = %d
-            LIMIT 1",
-            $user_id
-        ));
-        
-        if ($any_team) {
-            error_log('Club Manager: Found team membership record: ' . $any_team);
-            if (function_exists('wc_memberships_for_teams_get_team')) {
-                $team = wc_memberships_for_teams_get_team($any_team);
+        if (!empty($team_ids) && function_exists('wc_memberships_for_teams_get_team')) {
+            foreach ($team_ids as $team_id) {
+                $team = wc_memberships_for_teams_get_team($team_id);
                 if ($team && is_object($team)) {
-                    error_log('Club Manager: Returning team from membership record');
+                    error_log('Club Manager: Found WC team where user is owner/manager: ' . $team_id);
                     return $team;
                 }
             }
         }
         
-        error_log('Club Manager: No WC team (club) found for user ID: ' . $user_id);
+        error_log('Club Manager: No WC team found for user ID: ' . $user_id);
         return false;
     }
     
