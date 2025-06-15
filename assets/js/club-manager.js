@@ -25,6 +25,7 @@ window.clubManager = function() {
         pendingInvitations: [],
         activeTrainers: [],
         managedTeams: [],
+        trainerLimit: window.clubManagerAjax?.trainer_limit || null,
         newTrainerInvite: {
             email: '',
             selectedTeams: [],
@@ -372,6 +373,22 @@ window.clubManager = function() {
             } else {
                 this.newTrainerInvite.selectedTeams.push(teamId);
             }
+        },
+        
+        // Check trainer limit
+        canInviteMoreTrainers() {
+            if (!this.trainerLimit) {
+                return true; // No limit set
+            }
+            return this.activeTrainers.length < this.trainerLimit;
+        },
+        
+        checkTrainerLimit() {
+            if (!this.canInviteMoreTrainers()) {
+                alert(`You have reached your trainer limit of ${this.trainerLimit}. Please upgrade your membership to invite more trainers.`);
+                return false;
+            }
+            return true;
         },
         
         async inviteTrainer() {

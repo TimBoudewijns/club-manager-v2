@@ -191,13 +191,51 @@ class Club_Manager_Assets {
             $can_view_club_teams = Club_Manager_Teams_Helper::can_view_club_teams($user_id);
         }
         
+        // Get trainer limit from WooCommerce Teams
+        $trainer_limit = null;
+        if (function_exists('wc_memberships_for_teams')) {
+            // Get managed teams
+            $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+            
+            if (!empty($managed_teams)) {
+                // Get the highest seat limit from all managed teams
+                foreach ($managed_teams as $team_info) {
+                    if (function_exists('wc_memberships_for_teams_get_team')) {
+                        $team = wc_memberships_for_teams_get_team($team_info['team_id']);
+                        
+                        if ($team && is_object($team)) {
+                            // Get team seat count
+                            $seat_count = 0;
+                            if (method_exists($team, 'get_seat_count')) {
+                                $seat_count = $team->get_seat_count();
+                            }
+                            
+                            // Get used seats
+                            $used_seats = 0;
+                            if (method_exists($team, 'get_used_seat_count')) {
+                                $used_seats = $team->get_used_seat_count();
+                            }
+                            
+                            // Calculate available seats
+                            $available_seats = $seat_count - $used_seats;
+                            
+                            if (!$trainer_limit || $available_seats > $trainer_limit) {
+                                $trainer_limit = $available_seats;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         return array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('club_manager_nonce'),
             'user_id' => $user_id,
             'is_logged_in' => is_user_logged_in(),
             'preferred_season' => get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025',
-            'can_view_club_teams' => $can_view_club_teams
+            'can_view_club_teams' => $can_view_club_teams,
+            'trainer_limit' => $trainer_limit
         );
     }
 }

@@ -2,18 +2,106 @@
 /**
  * Trainer Management partial template
  */
+
+// Helper function to get available seats from WooCommerce Teams
+function cm_get_available_trainer_seats() {
+    $user_id = get_current_user_id();
+    
+    if (!function_exists('wc_memberships_for_teams')) {
+        return false;
+    }
+    
+    // Get teams where user is owner/manager
+    $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+    
+    if (empty($managed_teams)) {
+        return array('available' => 0, 'total' => 0, 'used' => 0);
+    }
+    
+    $total_seats = 0;
+    $used_seats = 0;
+    
+    foreach ($managed_teams as $team_info) {
+        // Get WC team for this user
+        $args = array(
+            'post_type' => 'wc_memberships_team',
+            'post_status' => 'publish',
+            'author' => $user_id,
+            'posts_per_page' => 1
+        );
+        
+        $wc_teams = get_posts($args);
+        
+        if (!empty($wc_teams)) {
+            $wc_team = wc_memberships_for_teams_get_team($wc_teams[0]->ID);
+            
+            if ($wc_team && is_object($wc_team)) {
+                if (method_exists($wc_team, 'get_seat_count')) {
+                    $total_seats = $wc_team->get_seat_count();
+                }
+                
+                if (method_exists($wc_team, 'get_used_seat_count')) {
+                    $used_seats = $wc_team->get_used_seat_count();
+                }
+                
+                break; // Use first team found
+            }
+        }
+    }
+    
+    return array(
+        'available' => max(0, $total_seats - $used_seats),
+        'total' => $total_seats,
+        'used' => $used_seats
+    );
+}
+
+$seat_info = cm_get_available_trainer_seats();
 ?>
 
 <div class="w-full">
-    <!-- Trainer Management Header -->
+<div class="w-full">
+    <!-- Trainer Management Header with Limits -->
     <div class="mb-8 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-6">
         <div class="flex items-center justify-between">
             <div>
                 <h2 class="text-2xl font-bold text-gray-900 mb-2">Trainer Management</h2>
                 <p class="text-gray-600">Invite and manage trainers for your club teams</p>
+                <?php if ($seat_info !== false && $seat_info['total'] > 0): ?>
+                    <div class="mt-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm text-gray-600">
+                                Team Seats Used: 
+                                <span class="font-semibold text-orange-600"><?php echo $seat_info['used']; ?></span>
+                                / 
+                                <span class="font-semibold text-gray-900"><?php echo $seat_info['total']; ?></span>
+                            </span>
+                            <span class="text-sm text-green-600 font-medium">
+                                <?php echo $seat_info['available']; ?> seats available
+                            </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-orange-500 h-2 rounded-full transition-all duration-300" 
+                                 style="width: <?php echo min(100, ($seat_info['used'] / $seat_info['total']) * 100); ?>%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Trainers count towards your WooCommerce team membership seats
+                        </p>
+                    </div>
+                <?php elseif ($seat_info === false): ?>
+                    <p class="text-sm text-yellow-600 mt-3">
+                        WooCommerce Teams for Memberships is not active. Install it to manage trainer limits.
+                    </p>
+                <?php else: ?>
+                    <p class="text-sm text-red-600 mt-3">
+                        No team membership found. You need an active team membership to invite trainers.
+                    </p>
+                <?php endif; ?>
             </div>
-            <button @click="showInviteTrainerModal = true" 
-                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 flex items-center space-x-2">
+            <button @click="checkTrainerLimit() && (showInviteTrainerModal = true)" 
+                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+                    :class="{ 'opacity-50 cursor-not-allowed': !canInviteMoreTrainers() }"
+                    <?php echo ($seat_info !== false && $seat_info['available'] <= 0) ? 'disabled' : ''; ?>>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
                 </svg>

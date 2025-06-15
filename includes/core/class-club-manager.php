@@ -79,6 +79,7 @@ class Club_Manager {
         // Frontend
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/frontend/class-shortcode.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/frontend/class-assets.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/frontend/class-trainer-invitation-handler.php';
         
         $this->loader = new Club_Manager_Loader();
     }
@@ -125,6 +126,10 @@ class Club_Manager {
         // AI Manager
         $ai_manager = new Club_Manager_AI_Manager();
         $this->loader->add_action('init', $ai_manager, 'init');
+        
+        // Trainer Invitation Handler
+        $invitation_handler = new Club_Manager_Trainer_Invitation_Handler();
+        $this->loader->add_action('init', $invitation_handler, 'init');
         
         // Check for database updates
         $this->loader->add_action('init', $this, 'check_database_version');
