@@ -21,14 +21,15 @@ class Club_Manager_Trainer_Invitation_Handler {
      * Check if invitation token is present in URL
      */
     public function check_invitation_token() {
-        if (isset($_GET['cm_trainer_invite']) && !isset($_GET['cm_processed'])) {
-            $token = sanitize_text_field($_GET['cm_trainer_invite']);
+        // Check for WC Teams invitation token
+        if (isset($_GET['wc_invite']) && !isset($_GET['cm_processed'])) {
+            $token = sanitize_text_field($_GET['wc_invite']);
             
             // Store token in session
             if (!session_id()) {
                 session_start();
             }
-            $_SESSION['cm_invitation_token'] = $token;
+            $_SESSION['wc_invitation_token'] = $token;
             
             // Find the page with our shortcode
             global $wpdb;
@@ -43,7 +44,7 @@ class Club_Manager_Trainer_Invitation_Handler {
             if ($page_id && !is_page($page_id)) {
                 // Redirect to the invitation page
                 wp_redirect(add_query_arg(array(
-                    'cm_trainer_invite' => $token,
+                    'wc_invite' => $token,
                     'cm_processed' => '1'
                 ), get_permalink($page_id)));
                 exit;
@@ -55,13 +56,13 @@ class Club_Manager_Trainer_Invitation_Handler {
      * Render the invitation acceptance page
      */
     public function render_accept_invitation() {
-        $token = isset($_GET['cm_trainer_invite']) ? sanitize_text_field($_GET['cm_trainer_invite']) : '';
+        $token = isset($_GET['wc_invite']) ? sanitize_text_field($_GET['wc_invite']) : '';
         
         if (empty($token)) {
             if (!session_id()) {
                 session_start();
             }
-            $token = isset($_SESSION['cm_invitation_token']) ? $_SESSION['cm_invitation_token'] : '';
+            $token = isset($_SESSION['wc_invitation_token']) ? $_SESSION['wc_invitation_token'] : '';
         }
         
         if (empty($token)) {
@@ -70,37 +71,44 @@ class Club_Manager_Trainer_Invitation_Handler {
             </div>';
         }
         
-        // Get invitation details
-        global $wpdb;
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-        $teams_table = Club_Manager_Database::get_table_name('teams');
+        // Get WC Teams invitation
+        if (!function_exists('wc_memberships_for_teams_get_invitation_by_token')) {
+            return '<div class="cm-invitation-error">
+                <p>WooCommerce Teams for Memberships is vereist.</p>
+            </div>';
+        }
         
-        $invitation = $wpdb->get_row($wpdb->prepare(
-            "SELECT i.*, t.name as team_name, u.display_name as inviter_name
-            FROM $invitations_table i
-            INNER JOIN $teams_table t ON i.team_id = t.id
-            LEFT JOIN {$wpdb->users} u ON i.invited_by = u.ID
-            WHERE i.token = %s AND i.status = 'pending'
-            LIMIT 1",
-            $token
-        ));
+        $invitation = wc_memberships_for_teams_get_invitation_by_token($token);
         
-        if (!$invitation) {
+        if (!$invitation || $invitation->get_status() !== 'pending') {
             return '<div class="cm-invitation-error">
                 <p>Deze uitnodiging is al geaccepteerd of niet meer geldig.</p>
             </div>';
         }
         
+        // Get team and inviter info
+        $team = $invitation->get_team();
+        $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
+        $inviter = get_user_by('id', $inviter_id);
+        $message = get_post_meta($invitation->get_id(), '_cm_message', true);
+        
+        $invitation_data = (object) array(
+            'email' => $invitation->get_email(),
+            'team_name' => $team ? $team->get_name() : 'Unknown Team',
+            'inviter_name' => $inviter ? $inviter->display_name : 'Someone',
+            'message' => $message
+        );
+        
         // Check if user is already logged in
         if (is_user_logged_in()) {
             $current_user = wp_get_current_user();
-            if ($current_user->user_email === $invitation->email) {
+            if ($current_user->user_email === $invitation->get_email()) {
                 return $this->render_logged_in_acceptance($invitation, $token);
             } else {
                 return '<div class="cm-invitation-error">
                     <p>Je bent ingelogd met een ander e-mailadres (' . esc_html($current_user->user_email) . ').</p>
-                    <p>Deze uitnodiging is verzonden naar: ' . esc_html($invitation->email) . '</p>
-                    <p><a href="' . wp_logout_url(add_query_arg('cm_trainer_invite', $token, get_permalink())) . '">Uitloggen en opnieuw proberen</a></p>
+                    <p>Deze uitnodiging is verzonden naar: ' . esc_html($invitation->get_email()) . '</p>
+                    <p><a href="' . wp_logout_url(add_query_arg('wc_invite', $token, get_permalink())) . '">Uitloggen en opnieuw proberen</a></p>
                 </div>';
             }
         }
@@ -140,9 +148,9 @@ class Club_Manager_Trainer_Invitation_Handler {
                         <h2>Stap 1: Bevestig je e-mailadres</h2>
                         <p>Deze uitnodiging is verzonden naar:</p>
                         <div class="cm-email-display">
-                            <?php echo esc_html($invitation->email); ?>
+                            <?php echo esc_html($invitation_data->email); ?>
                         </div>
-                        <button id="cm-check-email" class="cm-btn cm-btn-primary" data-email="<?php echo esc_attr($invitation->email); ?>">
+                        <button id="cm-check-email" class="cm-btn cm-btn-primary" data-email="<?php echo esc_attr($invitation_data->email); ?>">>
                             Dit is mijn e-mailadres →
                         </button>
                     </div>
@@ -512,6 +520,11 @@ class Club_Manager_Trainer_Invitation_Handler {
      * Render acceptance form for logged in users
      */
     private function render_logged_in_acceptance($invitation, $token) {
+        $team = $invitation->get_team();
+        $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
+        $inviter = get_user_by('id', $inviter_id);
+        $message = get_post_meta($invitation->get_id(), '_cm_message', true);
+        
         ob_start();
         ?>
         <div class="cm-invitation-wrapper">
@@ -521,13 +534,13 @@ class Club_Manager_Trainer_Invitation_Handler {
                 </div>
                 
                 <div style="padding: 30px;">
-                    <p>Je bent uitgenodigd door <strong><?php echo esc_html($invitation->inviter_name); ?></strong> 
-                    om trainer te worden bij <strong><?php echo esc_html($invitation->team_name); ?></strong>.</p>
+                    <p>Je bent uitgenodigd door <strong><?php echo $inviter ? esc_html($inviter->display_name) : 'Someone'; ?></strong> 
+                    om trainer te worden bij <strong><?php echo $team ? esc_html($team->get_name()) : 'Unknown Team'; ?></strong>.</p>
                     
-                    <?php if (!empty($invitation->message)): ?>
+                    <?php if (!empty($message)): ?>
                         <div class="cm-invitation-message" style="margin: 20px 0;">
                             <h3>Persoonlijk bericht:</h3>
-                            <p><?php echo nl2br(esc_html($invitation->message)); ?></p>
+                            <p><?php echo nl2br(esc_html($message)); ?></p>
                         </div>
                     <?php endif; ?>
                     
@@ -551,11 +564,26 @@ class Club_Manager_Trainer_Invitation_Handler {
         
         // Handle form submission
         if (isset($_POST['accept_invitation']) && wp_verify_nonce($_POST['invitation_nonce'], 'accept_trainer_invitation')) {
-            return $this->process_invitation_acceptance(array($invitation), get_current_user_id());
+            $result = $this->process_invitation_for_user(get_current_user_id(), $token);
+            if ($result['success']) {
+                return '<div class="cm-success">
+                    <h3>Gelukt!</h3>
+                    <p>' . esc_html($result['message']) . '</p>
+                    <p style="margin-top: 15px;">
+                        <a href="' . home_url('/club-manager/') . '" class="cm-btn cm-btn-primary">
+                            Ga naar Club Manager Dashboard
+                        </a>
+                    </p>
+                </div>';
+            } else {
+                return '<div class="cm-error">
+                    <p>' . esc_html($result['message']) . '</p>
+                </div>';
+            }
         }
         
         if (isset($_POST['decline_invitation']) && wp_verify_nonce($_POST['invitation_nonce'], 'accept_trainer_invitation')) {
-            return $this->process_invitation_decline($token);
+            return $this->process_invitation_decline($invitation);
         }
         
         return ob_get_clean();
@@ -656,58 +684,55 @@ class Club_Manager_Trainer_Invitation_Handler {
      * Process invitation for a specific user
      */
     private function process_invitation_for_user($user_id, $token) {
-        global $wpdb;
+        if (!function_exists('wc_memberships_for_teams_get_invitation_by_token')) {
+            return array(
+                'success' => false,
+                'message' => 'WooCommerce Teams for Memberships is vereist.'
+            );
+        }
         
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-        $teams_table = Club_Manager_Database::get_table_name('teams');
+        $invitation = wc_memberships_for_teams_get_invitation_by_token($token);
         
-        // Get all invitations with this token
-        $invitations = $wpdb->get_results($wpdb->prepare(
-            "SELECT i.*, t.name as team_name, t.id as team_id
-            FROM $invitations_table i
-            INNER JOIN $teams_table t ON i.team_id = t.id
-            WHERE i.token = %s AND i.status = 'pending'",
-            $token
-        ));
-        
-        if (empty($invitations)) {
+        if (!$invitation || $invitation->get_status() !== 'pending') {
             return array(
                 'success' => false,
                 'message' => 'Uitnodiging niet gevonden of al geaccepteerd.'
             );
         }
         
-        $teams_joined = [];
-        
-        foreach ($invitations as $invitation) {
-            // Add trainer to Club Manager
-            if ($this->add_trainer_to_team($invitation->team_id, $user_id, $invitation->role, $invitation->invited_by)) {
-                $teams_joined[] = $invitation->team_name;
-                
-                // Add to WooCommerce team
-                $this->add_to_wc_team($invitation->team_id, $user_id);
+        // Accept the WC Teams invitation
+        try {
+            $invitation->accept($user_id);
+            
+            // Get team info
+            $team = $invitation->get_team();
+            $team_name = $team ? $team->get_name() : 'Unknown Team';
+            
+            // Add to Club Manager trainer table
+            $cm_team_id = get_post_meta($invitation->get_id(), '_cm_team_id', true);
+            $role = get_post_meta($invitation->get_id(), '_cm_role', true) ?: 'trainer';
+            $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
+            
+            if ($cm_team_id) {
+                $this->add_trainer_to_team($cm_team_id, $user_id, $role, $inviter_id);
             }
+            
+            // Send notification
+            if ($inviter_id) {
+                $this->send_acceptance_notification($inviter_id, $user_id, array($team_name));
+            }
+            
+            return array(
+                'success' => true,
+                'message' => 'Je bent succesvol toegevoegd aan het team!'
+            );
+            
+        } catch (Exception $e) {
+            return array(
+                'success' => false,
+                'message' => 'Er is een fout opgetreden: ' . $e->getMessage()
+            );
         }
-        
-        // Update invitation status
-        $wpdb->update(
-            $invitations_table,
-            [
-                'status' => 'accepted',
-                'accepted_at' => current_time('mysql')
-            ],
-            ['token' => $token],
-            ['%s', '%s'],
-            ['%s']
-        );
-        
-        // Send notification
-        $this->send_acceptance_notification($invitations[0]->invited_by, $user_id, $teams_joined);
-        
-        return array(
-            'success' => true,
-            'message' => 'Je bent succesvol toegevoegd aan de teams!'
-        );
     }
     
     // ... (rest of the methods remain the same)
@@ -778,23 +803,19 @@ class Club_Manager_Trainer_Invitation_Handler {
     /**
      * Process invitation decline
      */
-    private function process_invitation_decline($token) {
-        global $wpdb;
-        
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-        
-        $wpdb->update(
-            $invitations_table,
-            ['status' => 'declined'],
-            ['token' => $token],
-            ['%s'],
-            ['%s']
-        );
-        
-        return '<div class="cm-success">
-            <h3>Uitnodiging geweigerd</h3>
-            <p>Je hebt de uitnodiging om trainer te worden geweigerd.</p>
-        </div>';
+    private function process_invitation_decline($invitation) {
+        try {
+            $invitation->delete();
+            
+            return '<div class="cm-success">
+                <h3>Uitnodiging geweigerd</h3>
+                <p>Je hebt de uitnodiging om trainer te worden geweigerd.</p>
+            </div>';
+        } catch (Exception $e) {
+            return '<div class="cm-error">
+                <p>Er is een fout opgetreden bij het weigeren van de uitnodiging.</p>
+            </div>';
+        }
     }
     
     /**

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Handle trainer-related AJAX requests with WooCommerce Teams synchronization.
+ * Handle trainer-related AJAX requests using official WC Teams invitations.
  */
 class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     
@@ -16,10 +16,9 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         add_action('wp_ajax_cm_cancel_invitation', array($this, 'cancel_invitation'));
         add_action('wp_ajax_cm_remove_trainer', array($this, 'remove_trainer'));
         
-        // Hook into WooCommerce Teams invitation deletion
-        add_action('wc_memberships_for_teams_invitation_deleted', array($this, 'sync_wc_invitation_deletion'), 10, 2);
-        // Hook into WooCommerce Teams invitation status changes
-        add_action('wc_memberships_for_teams_invitation_status_changed', array($this, 'sync_wc_invitation_status'), 10, 3);
+        // Hook into WC Teams invitation emails to customize them
+        add_filter('wc_memberships_for_teams_team_member_invitation_email_subject', array($this, 'customize_invitation_subject'), 10, 3);
+        add_filter('wc_memberships_for_teams_team_member_invitation_email_body', array($this, 'customize_invitation_body'), 10, 3);
     }
     
     /**
@@ -51,7 +50,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Get pending trainer invitations.
+     * Get pending trainer invitations from WC Teams.
      */
     public function get_pending_invitations() {
         $user_id = $this->verify_request();
@@ -61,38 +60,47 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
-        global $wpdb;
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-        $teams_table = Club_Manager_Database::get_table_name('teams');
-        
-        // Check if table exists
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$invitations_table'") === $invitations_table;
-        
-        if (!$table_exists) {
-            // Try to create the tables
-            if (class_exists('Club_Manager_Trainers_Table')) {
-                $charset_collate = $wpdb->get_charset_collate();
-                Club_Manager_Trainers_Table::create_table($charset_collate);
-            }
-            
-            // Check again
-            $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$invitations_table'") === $invitations_table;
-            
-            if (!$table_exists) {
-                wp_send_json_error('Trainer tables not found. Please deactivate and reactivate the plugin.');
-                return;
-            }
+        if (!function_exists('wc_memberships_for_teams')) {
+            wp_send_json_success([]);
+            return;
         }
         
-        // Get pending invitations for teams owned by user
-        $invitations = $wpdb->get_results($wpdb->prepare(
-            "SELECT i.*, t.name as team_name 
-            FROM $invitations_table i
-            INNER JOIN $teams_table t ON i.team_id = t.id
-            WHERE t.created_by = %d AND i.status = 'pending'
-            ORDER BY i.created_at DESC",
-            $user_id
-        ));
+        $invitations = [];
+        
+        // Get WC teams for this user
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+            
+            foreach ($teams as $team) {
+                if (!is_object($team)) continue;
+                
+                // Check if user is owner/manager
+                $member = $team->get_member($user_id);
+                if (!$member || !in_array($member->get_role(), ['owner', 'manager'])) {
+                    continue;
+                }
+                
+                // Get pending invitations for this team
+                if (method_exists($team, 'get_invitations')) {
+                    $team_invitations = $team->get_invitations(array(
+                        'status' => 'pending'
+                    ));
+                    
+                    foreach ($team_invitations as $invitation) {
+                        if (is_object($invitation)) {
+                            $invitations[] = array(
+                                'id' => $invitation->get_id(),
+                                'email' => $invitation->get_email(),
+                                'team_name' => $team->get_name(),
+                                'team_id' => $team->get_id(),
+                                'created_at' => $invitation->get_date_created() ? $invitation->get_date_created()->format('Y-m-d H:i:s') : '',
+                                'role' => 'trainer' // We track this separately in Club Manager
+                            );
+                        }
+                    }
+                }
+            }
+        }
         
         wp_send_json_success($invitations);
     }
@@ -160,13 +168,18 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Invite a trainer.
+     * Invite a trainer using official WC Teams system.
      */
     public function invite_trainer() {
         $user_id = $this->verify_request();
         
         if (!class_exists('Club_Manager_Teams_Helper') || !Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
             wp_send_json_error('Unauthorized access');
+            return;
+        }
+        
+        if (!function_exists('wc_memberships_for_teams')) {
+            wp_send_json_error('WooCommerce Teams for Memberships is required');
             return;
         }
         
@@ -180,89 +193,56 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
-        // Verify all teams belong to user
-        global $wpdb;
-        $teams_table = Club_Manager_Database::get_table_name('teams');
+        // Store the custom message and role in user meta temporarily
+        $invitation_data = array(
+            'role' => $role,
+            'message' => $message,
+            'inviter_id' => $user_id
+        );
+        set_transient('cm_invitation_' . md5($email), $invitation_data, DAY_IN_SECONDS);
         
-        foreach ($team_ids as $team_id) {
-            $owner = $wpdb->get_var($wpdb->prepare(
-                "SELECT created_by FROM $teams_table WHERE id = %d",
-                $team_id
-            ));
-            
-            if ($owner != $user_id) {
-                wp_send_json_error('Unauthorized access to team');
-                return;
-            }
-        }
-        
-        // Create invitation records
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-        
-        // Check if table exists
-        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$invitations_table'") === $invitations_table;
-        
-        if (!$table_exists) {
-            wp_send_json_error('Trainer tables not found. Please deactivate and reactivate the plugin.');
-            return;
-        }
-        
-        $invitation_token = wp_generate_password(32, false);
+        // Process each team
         $success_count = 0;
-        $wc_invitations_created = 0;
-        $wc_invitation_ids = [];
+        $errors = [];
         
-        foreach ($team_ids as $team_id) {
-            // Create Club Manager invitation
-            $result = $wpdb->insert(
-                $invitations_table,
-                [
-                    'team_id' => $team_id,
-                    'email' => $email,
-                    'role' => $role,
-                    'token' => $invitation_token,
-                    'message' => $message,
-                    'status' => 'pending',
-                    'invited_by' => $user_id,
-                    'created_at' => current_time('mysql')
-                ],
-                ['%d', '%s', '%s', '%s', '%s', '%s', '%d', '%s']
-            );
+        foreach ($team_ids as $cm_team_id) {
+            // Find the corresponding WC team
+            $wc_team = $this->get_wc_team_for_cm_team($cm_team_id, $user_id);
             
-            if ($result) {
-                $cm_invitation_id = $wpdb->insert_id;
-                $success_count++;
-                
-                // Also create WooCommerce Team invitation if available
-                $wc_invitation_id = $this->create_wc_team_invitation($team_id, $email, $user_id);
-                if ($wc_invitation_id) {
-                    $wc_invitations_created++;
-                    $wc_invitation_ids[$cm_invitation_id] = $wc_invitation_id;
+            if (!$wc_team) {
+                $errors[] = "Could not find WooCommerce team for team ID: $cm_team_id";
+                continue;
+            }
+            
+            // Create official WC Teams invitation
+            if (method_exists($wc_team, 'invite_member')) {
+                try {
+                    $invitation = $wc_team->invite_member($email, array(
+                        'sender_id' => $user_id,
+                        'role' => 'member' // WC Teams doesn't have trainer role
+                    ));
                     
-                    // Store the WC invitation ID for synchronization
-                    $wpdb->update(
-                        $invitations_table,
-                        ['wc_invitation_id' => $wc_invitation_id],
-                        ['id' => $cm_invitation_id],
-                        ['%d'],
-                        ['%d']
-                    );
+                    if ($invitation) {
+                        $success_count++;
+                        
+                        // Store Club Manager specific data
+                        $this->store_cm_invitation_data($invitation->get_id(), $cm_team_id, $role, $message);
+                    }
+                } catch (Exception $e) {
+                    $errors[] = $e->getMessage();
                 }
             }
         }
         
         if ($success_count === 0) {
-            wp_send_json_error('Failed to create invitations. Database error: ' . $wpdb->last_error);
+            wp_send_json_error('Failed to create invitations. ' . implode(' ', $errors));
             return;
         }
-        
-        // Send invitation email
-        $this->send_invitation_email($email, $invitation_token, $team_ids, $message);
         
         wp_send_json_success([
             'message' => 'Invitation sent successfully',
             'invitations_created' => $success_count,
-            'wc_invitations_created' => $wc_invitations_created
+            'errors' => $errors
         ]);
     }
     
@@ -279,39 +259,38 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         
         $invitation_id = $this->get_post_data('invitation_id', 'int');
         
-        // Verify invitation belongs to user's team
-        global $wpdb;
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-        $teams_table = Club_Manager_Database::get_table_name('teams');
+        if (!function_exists('wc_memberships_for_teams_get_invitation')) {
+            wp_send_json_error('WooCommerce Teams for Memberships is required');
+            return;
+        }
         
-        $invitation = $wpdb->get_row($wpdb->prepare(
-            "SELECT i.*, t.created_by 
-            FROM $invitations_table i
-            INNER JOIN $teams_table t ON i.team_id = t.id
-            WHERE i.id = %d",
-            $invitation_id
-        ));
+        $invitation = wc_memberships_for_teams_get_invitation($invitation_id);
         
-        if (!$invitation || $invitation->created_by != $user_id) {
+        if (!$invitation) {
+            wp_send_json_error('Invitation not found');
+            return;
+        }
+        
+        // Verify user has permission
+        $team = $invitation->get_team();
+        if (!$team) {
+            wp_send_json_error('Team not found');
+            return;
+        }
+        
+        $member = $team->get_member($user_id);
+        if (!$member || !in_array($member->get_role(), ['owner', 'manager'])) {
             wp_send_json_error('Unauthorized access');
             return;
         }
         
-        // Cancel WooCommerce invitation if exists
-        if (!empty($invitation->wc_invitation_id)) {
-            $this->cancel_wc_team_invitation($invitation->wc_invitation_id);
+        // Delete the invitation
+        try {
+            $invitation->delete();
+            wp_send_json_success(['message' => 'Invitation cancelled']);
+        } catch (Exception $e) {
+            wp_send_json_error('Failed to cancel invitation: ' . $e->getMessage());
         }
-        
-        // Cancel Club Manager invitation
-        $wpdb->update(
-            $invitations_table,
-            ['status' => 'cancelled'],
-            ['id' => $invitation_id],
-            ['%s'],
-            ['%d']
-        );
-        
-        wp_send_json_success(['message' => 'Invitation cancelled']);
     }
     
     /**
@@ -345,7 +324,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $this->remove_from_wc_team($trainer_team->team_id, $trainer_id);
         }
         
-        // Remove trainer from all teams owned by user
+        // Remove trainer from Club Manager tables
         $wpdb->query($wpdb->prepare(
             "DELETE tt FROM $trainers_table tt
             INNER JOIN $teams_table t ON tt.team_id = t.id
@@ -357,63 +336,9 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Send invitation email.
+     * Get WC team for a Club Manager team.
      */
-    private function send_invitation_email($email, $token, $team_ids, $message) {
-        $user = wp_get_current_user();
-        $site_name = get_bloginfo('name');
-        
-        $subject = sprintf('[%s] Invitation to join as a trainer', $site_name);
-        
-        $body = sprintf(
-            "Hello,\n\n%s has invited you to join as a trainer at %s.\n\n",
-            $user->display_name,
-            $site_name
-        );
-        
-        if (!empty($message)) {
-            $body .= "Personal message:\n" . $message . "\n\n";
-        }
-        
-        // Try to find the page with the accept invitation shortcode
-        global $wpdb;
-        $page_id = $wpdb->get_var(
-            "SELECT ID FROM {$wpdb->posts} 
-             WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
-             AND post_status = 'publish' 
-             AND post_type = 'page' 
-             LIMIT 1"
-        );
-        
-        if ($page_id) {
-            // Use the page with the shortcode
-            $accept_url = add_query_arg([
-                'cm_trainer_invite' => $token
-            ], get_permalink($page_id));
-        } else {
-            // Fallback to home URL with parameter
-            $accept_url = add_query_arg([
-                'cm_trainer_invite' => $token
-            ], home_url());
-        }
-        
-        $body .= "To accept this invitation, please click the following link:\n";
-        $body .= $accept_url . "\n\n";
-        $body .= "This invitation will expire in 7 days.\n\n";
-        $body .= "Best regards,\n" . $site_name;
-        
-        wp_mail($email, $subject, $body);
-    }
-    
-    /**
-     * Create WooCommerce Team invitation
-     */
-    private function create_wc_team_invitation($cm_team_id, $email, $inviter_id) {
-        if (!function_exists('wc_memberships_for_teams')) {
-            return false;
-        }
-        
-        // Find the WooCommerce team associated with this Club Manager team
+    private function get_wc_team_for_cm_team($cm_team_id, $user_id) {
         global $wpdb;
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
@@ -428,66 +353,51 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         // Find WC team for this owner
-        $wc_team = null;
-        
-        // Try to find teams where owner is a member
         if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            $owner_teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
+            $teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
             
-            if (!empty($owner_teams)) {
-                foreach ($owner_teams as $team) {
-                    if (is_object($team) && method_exists($team, 'get_member')) {
-                        $member = $team->get_member($team_owner_id);
-                        if ($member && method_exists($member, 'get_role')) {
-                            $role = $member->get_role();
-                            if (in_array($role, array('owner', 'manager'))) {
-                                $wc_team = $team;
-                                break;
-                            }
-                        }
+            foreach ($teams as $team) {
+                if (is_object($team)) {
+                    $member = $team->get_member($team_owner_id);
+                    if ($member && in_array($member->get_role(), ['owner', 'manager'])) {
+                        return $team;
                     }
                 }
             }
         }
+        
+        return false;
+    }
+    
+    /**
+     * Store Club Manager specific invitation data.
+     */
+    private function store_cm_invitation_data($wc_invitation_id, $cm_team_id, $role, $message) {
+        global $wpdb;
+        
+        // Store in post meta of the WC invitation
+        update_post_meta($wc_invitation_id, '_cm_team_id', $cm_team_id);
+        update_post_meta($wc_invitation_id, '_cm_role', $role);
+        update_post_meta($wc_invitation_id, '_cm_message', $message);
+    }
+    
+    /**
+     * Remove user from WooCommerce team.
+     */
+    private function remove_from_wc_team($cm_team_id, $user_id) {
+        $wc_team = $this->get_wc_team_for_cm_team($cm_team_id, get_current_user_id());
         
         if (!$wc_team) {
             return false;
         }
         
-        // Create WooCommerce Team invitation
-        if (method_exists($wc_team, 'invite_member')) {
+        $member = $wc_team->get_member($user_id);
+        if ($member && method_exists($member, 'delete')) {
             try {
-                $invitation = $wc_team->invite_member($email, array(
-                    'sender_id' => $inviter_id,
-                    'role' => 'member' // WC Teams doesn't have trainer role, so use member
-                ));
-                
-                return $invitation ? $invitation->get_id() : false;
-            } catch (Exception $e) {
-                error_log('Club Manager: Failed to create WC Team invitation: ' . $e->getMessage());
-                return false;
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Cancel WooCommerce Team invitation
-     */
-    private function cancel_wc_team_invitation($wc_invitation_id) {
-        if (!function_exists('wc_memberships_for_teams_get_invitation')) {
-            return false;
-        }
-        
-        $invitation = wc_memberships_for_teams_get_invitation($wc_invitation_id);
-        
-        if ($invitation && is_object($invitation) && method_exists($invitation, 'delete')) {
-            try {
-                $invitation->delete();
+                $member->delete();
                 return true;
             } catch (Exception $e) {
-                error_log('Club Manager: Failed to cancel WC Team invitation: ' . $e->getMessage());
+                error_log('Club Manager: Failed to remove member from WC Team: ' . $e->getMessage());
             }
         }
         
@@ -495,97 +405,68 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Remove user from WooCommerce team
+     * Customize invitation email subject.
      */
-    private function remove_from_wc_team($cm_team_id, $user_id) {
-        if (!function_exists('wc_memberships_for_teams')) {
-            return false;
+    public function customize_invitation_subject($subject, $invitation, $team) {
+        // Get our custom data
+        $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
+        $inviter = get_user_by('id', $inviter_id);
+        
+        if ($inviter) {
+            $subject = sprintf('[%s] %s heeft je uitgenodigd als trainer', get_bloginfo('name'), $inviter->display_name);
         }
         
-        // Find the WooCommerce team
-        global $wpdb;
-        $teams_table = Club_Manager_Database::get_table_name('teams');
-        
-        $team_owner_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT created_by FROM $teams_table WHERE id = %d",
-            $cm_team_id
-        ));
-        
-        if (!$team_owner_id) {
-            return false;
-        }
-        
-        // Find WC team
-        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            $owner_teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
-            
-            foreach ($owner_teams as $team) {
-                if (is_object($team) && method_exists($team, 'get_member')) {
-                    $member = $team->get_member($user_id);
-                    if ($member && method_exists($member, 'delete')) {
-                        try {
-                            $member->delete();
-                            return true;
-                        } catch (Exception $e) {
-                            error_log('Club Manager: Failed to remove member from WC Team: ' . $e->getMessage());
-                        }
-                    }
-                }
-            }
-        }
-        
-        return false;
+        return $subject;
     }
     
     /**
-     * Sync WooCommerce invitation deletion with Club Manager
+     * Customize invitation email body.
      */
-    public function sync_wc_invitation_deletion($invitation_id, $invitation) {
-        global $wpdb;
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
+    public function customize_invitation_body($body, $invitation, $team) {
+        // Get our custom data
+        $message = get_post_meta($invitation->get_id(), '_cm_message', true);
+        $role = get_post_meta($invitation->get_id(), '_cm_role', true);
+        $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
+        $inviter = get_user_by('id', $inviter_id);
         
-        // Find and cancel the corresponding Club Manager invitation
-        $wpdb->update(
-            $invitations_table,
-            ['status' => 'cancelled'],
-            ['wc_invitation_id' => $invitation_id],
-            ['%s'],
-            ['%d']
+        // Get our custom accept URL
+        global $wpdb;
+        $page_id = $wpdb->get_var(
+            "SELECT ID FROM {$wpdb->posts} 
+             WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
+             AND post_status = 'publish' 
+             AND post_type = 'page' 
+             LIMIT 1"
         );
-    }
-    
-    /**
-     * Sync WooCommerce invitation status changes with Club Manager
-     */
-    public function sync_wc_invitation_status($invitation, $new_status, $old_status) {
-        global $wpdb;
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
         
-        $invitation_id = $invitation->get_id();
-        
-        // Map WC Teams status to Club Manager status
-        $status_map = [
-            'pending' => 'pending',
-            'accepted' => 'accepted',
-            'cancelled' => 'cancelled',
-            'expired' => 'expired'
-        ];
-        
-        $cm_status = isset($status_map[$new_status]) ? $status_map[$new_status] : 'cancelled';
-        
-        // Update Club Manager invitation status
-        $update_data = ['status' => $cm_status];
-        
-        if ($new_status === 'accepted') {
-            $update_data['accepted_at'] = current_time('mysql');
+        if ($page_id) {
+            $accept_url = add_query_arg([
+                'wc_invite' => $invitation->get_token()
+            ], get_permalink($page_id));
+        } else {
+            // Fallback to original URL
+            $accept_url = $invitation->get_accept_url();
         }
         
-        $wpdb->update(
-            $invitations_table,
-            $update_data,
-            ['wc_invitation_id' => $invitation_id],
-            array_merge(['%s'], ($new_status === 'accepted' ? ['%s'] : [])),
-            ['%d']
-        );
+        // Build custom email body
+        $body = "Hallo,\n\n";
+        
+        if ($inviter) {
+            $body .= sprintf("%s heeft je uitgenodigd om trainer te worden bij %s.\n\n", 
+                $inviter->display_name, 
+                $team->get_name()
+            );
+        }
+        
+        if (!empty($message)) {
+            $body .= "Persoonlijk bericht:\n" . $message . "\n\n";
+        }
+        
+        $body .= "Klik op de onderstaande link om de uitnodiging te accepteren:\n";
+        $body .= $accept_url . "\n\n";
+        $body .= "Deze uitnodiging verloopt over 7 dagen.\n\n";
+        $body .= "Met vriendelijke groet,\n" . get_bloginfo('name');
+        
+        return $body;
     }
 }
