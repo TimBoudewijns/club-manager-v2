@@ -24,8 +24,11 @@ class Club_Manager_Database {
         // Create evaluations table
         Club_Manager_Evaluations_Table::create_table($charset_collate);
         
+        // Create trainers table
+        Club_Manager_Trainers_Table::create_table($charset_collate);
+        
         // Update database version
-        update_option('club_manager_db_version', '1.0.0');
+        update_option('club_manager_db_version', '1.1.0');
     }
     
     /**
@@ -47,7 +50,9 @@ class Club_Manager_Database {
             self::get_table_name('players'),
             self::get_table_name('team_players'),
             self::get_table_name('player_evaluations'),
-            self::get_table_name('player_advice')
+            self::get_table_name('player_advice'),
+            self::get_table_name('team_trainers'),
+            self::get_table_name('trainer_invitations')
         );
         
         foreach ($tables as $table) {
@@ -58,4 +63,4 @@ class Club_Manager_Database {
         
         return true;
     }
-} 
+}

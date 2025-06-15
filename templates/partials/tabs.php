@@ -1,7 +1,7 @@
 <?php
 /**
  * Tabs partial template
- * Only show Club Teams tab if user has permission (controlled by Alpine.js)
+ * Only show Club Teams and Trainer Management tabs if user has permission (controlled by Alpine.js)
  */
 ?>
 <!-- Tabs Section -->
@@ -30,6 +30,20 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                     </svg>
                     <span>Club Teams</span>
+                </span>
+            </button>
+            
+            <!-- Trainer Management tab - only show if user has permission -->
+            <button x-show="canViewClubTeams"
+                    x-cloak
+                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
+                    :class="activeTab === 'trainer-management' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
+                    @click="activeTab = 'trainer-management'">
+                <span class="flex items-center justify-center space-x-1 md:space-x-2">
+                    <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                    <span>Trainer Management</span>
                 </span>
             </button>
         </div>

@@ -65,6 +65,15 @@
             <?php include 'partials/club-teams.php'; ?>
         </div>
         
+        <!-- Trainer Management Tab - Only show if user has permission (controlled by Alpine.js) -->
+        <div x-show="activeTab === 'trainer-management' && canViewClubTeams" 
+             x-cloak
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform scale-95"
+             x-transition:enter-end="opacity-100 transform scale-100">
+            <?php include 'partials/trainer-management.php'; ?>
+        </div>
+        
         <!-- Include Modals -->
         <?php 
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/create-team-modal.php';
@@ -72,6 +81,7 @@
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/add-existing-player-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/evaluation-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/player-history-modal.php';
+        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/invite-trainer-modal.php';
         ?>
     </div>
 </div>
