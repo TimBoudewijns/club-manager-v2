@@ -44,6 +44,8 @@ class Club_Manager {
         $helpers_file = CLUB_MANAGER_PLUGIN_DIR . 'includes/helpers/class-teams-helper.php';
         if (file_exists($helpers_file)) {
             require_once $helpers_file;
+        } else {
+            error_log('Club Manager: Teams helper file missing at ' . $helpers_file);
         }
         
         // Database
@@ -56,6 +58,8 @@ class Club_Manager {
         $trainers_table_file = CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-trainers-table.php';
         if (file_exists($trainers_table_file)) {
             require_once $trainers_table_file;
+        } else {
+            error_log('Club Manager: Trainers table file missing at ' . $trainers_table_file);
         }
         
         // Models
@@ -113,7 +117,6 @@ class Club_Manager {
         $evaluation_ajax = new Club_Manager_Evaluation_Ajax();
         $ai_ajax = new Club_Manager_AI_Ajax();
         $club_ajax = new Club_Manager_Club_Ajax();
-        $trainer_ajax = new Club_Manager_Trainer_Ajax();
         
         // Initialize AJAX handlers
         $this->loader->add_action('init', $team_ajax, 'init');
@@ -121,6 +124,9 @@ class Club_Manager {
         $this->loader->add_action('init', $evaluation_ajax, 'init');
         $this->loader->add_action('init', $ai_ajax, 'init');
         $this->loader->add_action('init', $club_ajax, 'init');
+        
+        // Trainer AJAX - special handling to ensure email hooks are registered early
+        $trainer_ajax = new Club_Manager_Trainer_Ajax();
         $this->loader->add_action('init', $trainer_ajax, 'init');
         
         // AI Manager
@@ -141,9 +147,10 @@ class Club_Manager {
     public function check_database_version() {
         $current_db_version = get_option('club_manager_db_version', '1.0.0');
         
-        // If database version is less than 1.1.0, we need to create trainer tables
-        if (version_compare($current_db_version, '1.1.0', '<')) {
+        // If database version is less than 2.0.0, we need to update
+        if (version_compare($current_db_version, '2.0.0', '<')) {
             Club_Manager_Database::create_tables();
+            error_log('Club Manager: Database updated to version 2.0.0');
         }
     }
     
