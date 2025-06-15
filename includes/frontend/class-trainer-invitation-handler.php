@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Handle trainer invitation acceptance
+ * Handle trainer invitation acceptance with integrated login/register
  */
 class Club_Manager_Trainer_Invitation_Handler {
     
@@ -11,153 +11,26 @@ class Club_Manager_Trainer_Invitation_Handler {
     public function init() {
         add_action('init', array($this, 'check_invitation_token'));
         add_shortcode('club_manager_accept_invitation', array($this, 'render_accept_invitation'));
-        add_action('woocommerce_created_customer', array($this, 'handle_new_trainer_registration'), 10, 3);
-        add_action('woocommerce_before_customer_login_form', array($this, 'show_invitation_message'));
-        add_action('woocommerce_login_form_end', array($this, 'add_invitation_token_field'));
-        add_action('woocommerce_register_form_end', array($this, 'add_invitation_token_field'));
-        add_action('wp_login', array($this, 'handle_login_with_invitation'), 10, 2);
+        add_action('wp_ajax_nopriv_cm_check_email', array($this, 'ajax_check_email'));
+        add_action('wp_ajax_nopriv_cm_login_trainer', array($this, 'ajax_login_trainer'));
+        add_action('wp_ajax_nopriv_cm_register_trainer', array($this, 'ajax_register_trainer'));
+        add_action('wp_ajax_cm_accept_trainer_invitation', array($this, 'ajax_accept_invitation'));
     }
     
     /**
      * Check if invitation token is present in URL
      */
     public function check_invitation_token() {
-        if (isset($_GET['cm_trainer_invite'])) {
+        if (isset($_GET['cm_trainer_invite']) && !isset($_GET['cm_processed'])) {
             $token = sanitize_text_field($_GET['cm_trainer_invite']);
             
-            // Store token in session for registration process
+            // Store token in session
             if (!session_id()) {
                 session_start();
             }
             $_SESSION['cm_invitation_token'] = $token;
             
-            // Check if this is the page with the shortcode
-            global $post;
-            if (is_a($post, 'WP_Post') && has_shortcode($post->post_content, 'club_manager_accept_invitation')) {
-                // We're already on the correct page, let the shortcode handle it
-                return;
-            }
-            
-            if (!is_user_logged_in()) {
-                // Get invitation details to check email
-                global $wpdb;
-                $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-                
-                $invitation = $wpdb->get_row($wpdb->prepare(
-                    "SELECT email FROM $invitations_table WHERE token = %s AND status = 'pending' LIMIT 1",
-                    $token
-                ));
-                
-                if ($invitation) {
-                    // Check if user exists with this email
-                    $user = get_user_by('email', $invitation->email);
-                    
-                    if ($user) {
-                        // User exists - redirect to login with message
-                        $redirect_url = add_query_arg(array(
-                            'cm_trainer_invite' => $token,
-                            'cm_action' => 'login'
-                        ), wc_get_page_permalink('myaccount'));
-                    } else {
-                        // User doesn't exist - redirect to registration
-                        $redirect_url = add_query_arg(array(
-                            'cm_trainer_invite' => $token,
-                            'cm_action' => 'register'
-                        ), wc_get_page_permalink('myaccount'));
-                    }
-                } else {
-                    // Invalid token - redirect to my account page
-                    $redirect_url = wc_get_page_permalink('myaccount');
-                }
-                
-                wp_redirect($redirect_url);
-                exit;
-            } else {
-                // User is logged in, try to find the page with the accept invitation shortcode
-                global $wpdb;
-                $page_id = $wpdb->get_var(
-                    "SELECT ID FROM {$wpdb->posts} 
-                     WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
-                     AND post_status = 'publish' 
-                     AND post_type = 'page' 
-                     LIMIT 1"
-                );
-                
-                if ($page_id) {
-                    // Redirect to the page with the shortcode
-                    $redirect_url = add_query_arg('cm_trainer_invite', $token, get_permalink($page_id));
-                    wp_redirect($redirect_url);
-                    exit;
-                } else {
-                    // No page found with shortcode, show message
-                    wp_die(
-                        'Trainer invitation page not found. Please contact the administrator and ask them to create a page with the [club_manager_accept_invitation] shortcode.',
-                        'Page Not Found',
-                        array('response' => 404)
-                    );
-                }
-            }
-        }
-    }
-    
-    /**
-     * Handle new trainer registration
-     */
-    public function handle_new_trainer_registration($customer_id, $new_customer_data, $password_generated) {
-        if (!session_id()) {
-            session_start();
-        }
-        
-        // Check if we have an invitation token
-        $token = null;
-        if (isset($_SESSION['cm_invitation_token'])) {
-            $token = $_SESSION['cm_invitation_token'];
-        } elseif (isset($_POST['cm_trainer_invite'])) {
-            $token = sanitize_text_field($_POST['cm_trainer_invite']);
-        }
-        
-        if ($token) {
-            // Get invitation details
-            global $wpdb;
-            $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-            
-            $invitation = $wpdb->get_row($wpdb->prepare(
-                "SELECT * FROM $invitations_table WHERE token = %s AND status = 'pending' LIMIT 1",
-                $token
-            ));
-            
-            if ($invitation && $invitation->email === $new_customer_data['user_email']) {
-                // Process the invitation automatically
-                $this->auto_accept_invitation($customer_id, $token);
-                
-                // Redirect to the accept invitation page after registration
-                $page_id = $wpdb->get_var(
-                    "SELECT ID FROM {$wpdb->posts} 
-                     WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
-                     AND post_status = 'publish' 
-                     AND post_type = 'page' 
-                     LIMIT 1"
-                );
-                
-                if ($page_id) {
-                    wp_safe_redirect(add_query_arg('cm_trainer_invite', $token, get_permalink($page_id)));
-                    exit;
-                }
-            }
-            
-            // Clear the session token
-            unset($_SESSION['cm_invitation_token']);
-        }
-    }
-    
-    /**
-     * Handle login with invitation token
-     */
-    public function handle_login_with_invitation($user_login, $user) {
-        if (isset($_POST['cm_trainer_invite'])) {
-            $token = sanitize_text_field($_POST['cm_trainer_invite']);
-            
-            // Find the accept invitation page and redirect
+            // Find the page with our shortcode
             global $wpdb;
             $page_id = $wpdb->get_var(
                 "SELECT ID FROM {$wpdb->posts} 
@@ -167,36 +40,653 @@ class Club_Manager_Trainer_Invitation_Handler {
                  LIMIT 1"
             );
             
-            if ($page_id) {
-                wp_safe_redirect(add_query_arg('cm_trainer_invite', $token, get_permalink($page_id)));
+            if ($page_id && !is_page($page_id)) {
+                // Redirect to the invitation page
+                wp_redirect(add_query_arg(array(
+                    'cm_trainer_invite' => $token,
+                    'cm_processed' => '1'
+                ), get_permalink($page_id)));
                 exit;
             }
         }
     }
     
     /**
-     * Auto-accept invitation after registration
+     * Render the invitation acceptance page
      */
-    private function auto_accept_invitation($user_id, $token) {
+    public function render_accept_invitation() {
+        $token = isset($_GET['cm_trainer_invite']) ? sanitize_text_field($_GET['cm_trainer_invite']) : '';
+        
+        if (empty($token)) {
+            if (!session_id()) {
+                session_start();
+            }
+            $token = isset($_SESSION['cm_invitation_token']) ? $_SESSION['cm_invitation_token'] : '';
+        }
+        
+        if (empty($token)) {
+            return '<div class="cm-invitation-error">
+                <p>Geen geldige uitnodigingslink gevonden.</p>
+            </div>';
+        }
+        
+        // Get invitation details
+        global $wpdb;
+        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        
+        $invitation = $wpdb->get_row($wpdb->prepare(
+            "SELECT i.*, t.name as team_name, u.display_name as inviter_name
+            FROM $invitations_table i
+            INNER JOIN $teams_table t ON i.team_id = t.id
+            LEFT JOIN {$wpdb->users} u ON i.invited_by = u.ID
+            WHERE i.token = %s AND i.status = 'pending'
+            LIMIT 1",
+            $token
+        ));
+        
+        if (!$invitation) {
+            return '<div class="cm-invitation-error">
+                <p>Deze uitnodiging is al geaccepteerd of niet meer geldig.</p>
+            </div>';
+        }
+        
+        // Check if user is already logged in
+        if (is_user_logged_in()) {
+            $current_user = wp_get_current_user();
+            if ($current_user->user_email === $invitation->email) {
+                return $this->render_logged_in_acceptance($invitation, $token);
+            } else {
+                return '<div class="cm-invitation-error">
+                    <p>Je bent ingelogd met een ander e-mailadres (' . esc_html($current_user->user_email) . ').</p>
+                    <p>Deze uitnodiging is verzonden naar: ' . esc_html($invitation->email) . '</p>
+                    <p><a href="' . wp_logout_url(add_query_arg('cm_trainer_invite', $token, get_permalink())) . '">Uitloggen en opnieuw proberen</a></p>
+                </div>';
+            }
+        }
+        
+        // Enqueue scripts
+        wp_enqueue_script('cm-invitation', CLUB_MANAGER_PLUGIN_URL . 'assets/js/invitation.js', array('jquery'), CLUB_MANAGER_VERSION, true);
+        wp_localize_script('cm-invitation', 'cm_invitation', array(
+            'ajax_url' => admin_url('admin-ajax.php'),
+            'nonce' => wp_create_nonce('cm_invitation_nonce'),
+            'token' => $token
+        ));
+        
+        ob_start();
+        ?>
+        <div class="cm-invitation-wrapper">
+            <div class="cm-invitation-container">
+                <!-- Header -->
+                <div class="cm-invitation-header">
+                    <h1>Uitnodiging voor Trainer</h1>
+                    <p class="cm-invitation-subtitle">
+                        Je bent uitgenodigd door <strong><?php echo esc_html($invitation->inviter_name); ?></strong> 
+                        om trainer te worden bij <strong><?php echo esc_html($invitation->team_name); ?></strong>
+                    </p>
+                </div>
+                
+                <?php if (!empty($invitation->message)): ?>
+                    <div class="cm-invitation-message">
+                        <h3>Persoonlijk bericht:</h3>
+                        <p><?php echo nl2br(esc_html($invitation->message)); ?></p>
+                    </div>
+                <?php endif; ?>
+                
+                <!-- Dynamic content area -->
+                <div id="cm-invitation-content">
+                    <!-- Step 1: Email check -->
+                    <div id="cm-step-email" class="cm-step active">
+                        <h2>Stap 1: Bevestig je e-mailadres</h2>
+                        <p>Deze uitnodiging is verzonden naar:</p>
+                        <div class="cm-email-display">
+                            <?php echo esc_html($invitation->email); ?>
+                        </div>
+                        <button id="cm-check-email" class="cm-btn cm-btn-primary" data-email="<?php echo esc_attr($invitation->email); ?>">
+                            Dit is mijn e-mailadres →
+                        </button>
+                    </div>
+                    
+                    <!-- Step 2: Login -->
+                    <div id="cm-step-login" class="cm-step" style="display: none;">
+                        <h2>Stap 2: Inloggen</h2>
+                        <p>We hebben een account gevonden met dit e-mailadres. Log in om door te gaan.</p>
+                        
+                        <form id="cm-login-form" class="cm-form">
+                            <div class="cm-form-group">
+                                <label for="cm-login-email">E-mailadres</label>
+                                <input type="email" id="cm-login-email" value="<?php echo esc_attr($invitation->email); ?>" readonly>
+                            </div>
+                            
+                            <div class="cm-form-group">
+                                <label for="cm-login-password">Wachtwoord</label>
+                                <input type="password" id="cm-login-password" required>
+                            </div>
+                            
+                            <div class="cm-form-actions">
+                                <button type="submit" class="cm-btn cm-btn-primary">Inloggen</button>
+                                <a href="<?php echo wp_lostpassword_url(); ?>" class="cm-link">Wachtwoord vergeten?</a>
+                            </div>
+                        </form>
+                        
+                        <div class="cm-form-footer">
+                            <button class="cm-btn-link" onclick="location.reload()">← Terug</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Register -->
+                    <div id="cm-step-register" class="cm-step" style="display: none;">
+                        <h2>Stap 2: Account aanmaken</h2>
+                        <p>Je hebt nog geen account. Maak een account aan om de uitnodiging te accepteren.</p>
+                        
+                        <form id="cm-register-form" class="cm-form">
+                            <div class="cm-form-row">
+                                <div class="cm-form-group">
+                                    <label for="cm-register-firstname">Voornaam</label>
+                                    <input type="text" id="cm-register-firstname" required>
+                                </div>
+                                
+                                <div class="cm-form-group">
+                                    <label for="cm-register-lastname">Achternaam</label>
+                                    <input type="text" id="cm-register-lastname" required>
+                                </div>
+                            </div>
+                            
+                            <div class="cm-form-group">
+                                <label for="cm-register-email">E-mailadres</label>
+                                <input type="email" id="cm-register-email" value="<?php echo esc_attr($invitation->email); ?>" readonly>
+                            </div>
+                            
+                            <div class="cm-form-group">
+                                <label for="cm-register-password">Wachtwoord</label>
+                                <input type="password" id="cm-register-password" required minlength="8">
+                                <small>Minimaal 8 karakters</small>
+                            </div>
+                            
+                            <div class="cm-form-group">
+                                <label for="cm-register-password-confirm">Bevestig wachtwoord</label>
+                                <input type="password" id="cm-register-password-confirm" required>
+                            </div>
+                            
+                            <div class="cm-form-actions">
+                                <button type="submit" class="cm-btn cm-btn-primary">Account aanmaken</button>
+                            </div>
+                        </form>
+                        
+                        <div class="cm-form-footer">
+                            <button class="cm-btn-link" onclick="location.reload()">← Terug</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Loading state -->
+                    <div id="cm-loading" class="cm-loading" style="display: none;">
+                        <div class="cm-spinner"></div>
+                        <p>Even geduld...</p>
+                    </div>
+                    
+                    <!-- Error messages -->
+                    <div id="cm-error" class="cm-error" style="display: none;"></div>
+                    
+                    <!-- Success message -->
+                    <div id="cm-success" class="cm-success" style="display: none;"></div>
+                </div>
+                
+                <!-- Info box -->
+                <div class="cm-info-box">
+                    <h3>Wat gebeurt er na acceptatie?</h3>
+                    <ul>
+                        <li>Je wordt toegevoegd als trainer aan het team</li>
+                        <li>Je krijgt toegang tot het Club Manager dashboard</li>
+                        <li>Je kunt spelers bekijken en evalueren</li>
+                        <li>Je ontvangt team lidmaatschap voordelen</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+        .cm-invitation-wrapper {
+            max-width: 600px;
+            margin: 40px auto;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        .cm-invitation-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .cm-invitation-header {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .cm-invitation-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .cm-invitation-subtitle {
+            margin: 0;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        
+        .cm-invitation-message {
+            background: #fef3c7;
+            padding: 20px 30px;
+            border-bottom: 1px solid #fcd34d;
+        }
+        
+        .cm-invitation-message h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #92400e;
+        }
+        
+        .cm-invitation-message p {
+            margin: 0;
+            color: #78350f;
+        }
+        
+        #cm-invitation-content {
+            padding: 30px;
+        }
+        
+        .cm-step h2 {
+            margin: 0 0 15px 0;
+            font-size: 22px;
+            color: #1f2937;
+        }
+        
+        .cm-email-display {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+            margin: 20px 0;
+            color: #1f2937;
+        }
+        
+        .cm-btn {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        
+        .cm-btn-primary {
+            background: #f97316;
+            color: white;
+        }
+        
+        .cm-btn-primary:hover {
+            background: #ea580c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
+        }
+        
+        .cm-btn-link {
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            text-decoration: underline;
+            font-size: 14px;
+            padding: 0;
+        }
+        
+        .cm-form {
+            margin-top: 20px;
+        }
+        
+        .cm-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .cm-form-group {
+            margin-bottom: 20px;
+        }
+        
+        .cm-form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+        
+        .cm-form-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        .cm-form-group input:focus {
+            outline: none;
+            border-color: #f97316;
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+        }
+        
+        .cm-form-group input[readonly] {
+            background: #f9fafb;
+            color: #6b7280;
+        }
+        
+        .cm-form-group small {
+            display: block;
+            margin-top: 4px;
+            color: #6b7280;
+            font-size: 13px;
+        }
+        
+        .cm-form-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 25px;
+        }
+        
+        .cm-form-footer {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        
+        .cm-link {
+            color: #f97316;
+            text-decoration: none;
+            font-size: 14px;
+        }
+        
+        .cm-link:hover {
+            text-decoration: underline;
+        }
+        
+        .cm-info-box {
+            background: #f9fafb;
+            padding: 25px 30px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .cm-info-box h3 {
+            margin: 0 0 15px 0;
+            font-size: 18px;
+            color: #1f2937;
+        }
+        
+        .cm-info-box ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .cm-info-box li {
+            margin-bottom: 8px;
+            color: #4b5563;
+        }
+        
+        .cm-loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .cm-spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f4f6;
+            border-top-color: #f97316;
+            border-radius: 50%;
+            animation: cm-spin 0.8s linear infinite;
+        }
+        
+        @keyframes cm-spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .cm-error {
+            background: #fee;
+            color: #c00;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        
+        .cm-success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .cm-success h3 {
+            margin: 0 0 10px 0;
+            font-size: 20px;
+        }
+        
+        @media (max-width: 640px) {
+            .cm-invitation-wrapper {
+                margin: 20px;
+            }
+            
+            .cm-form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .cm-form-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .cm-btn {
+                width: 100%;
+                text-align: center;
+            }
+        }
+        </style>
+        <?php
+        
+        return ob_get_clean();
+    }
+    
+    /**
+     * Render acceptance form for logged in users
+     */
+    private function render_logged_in_acceptance($invitation, $token) {
+        ob_start();
+        ?>
+        <div class="cm-invitation-wrapper">
+            <div class="cm-invitation-container">
+                <div class="cm-invitation-header">
+                    <h1>Uitnodiging Accepteren</h1>
+                </div>
+                
+                <div style="padding: 30px;">
+                    <p>Je bent uitgenodigd door <strong><?php echo esc_html($invitation->inviter_name); ?></strong> 
+                    om trainer te worden bij <strong><?php echo esc_html($invitation->team_name); ?></strong>.</p>
+                    
+                    <?php if (!empty($invitation->message)): ?>
+                        <div class="cm-invitation-message" style="margin: 20px 0;">
+                            <h3>Persoonlijk bericht:</h3>
+                            <p><?php echo nl2br(esc_html($invitation->message)); ?></p>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <form method="post" style="margin-top: 30px;">
+                        <?php wp_nonce_field('accept_trainer_invitation', 'invitation_nonce'); ?>
+                        <input type="hidden" name="token" value="<?php echo esc_attr($token); ?>">
+                        
+                        <div style="display: flex; gap: 15px;">
+                            <button type="submit" name="accept_invitation" value="1" class="cm-btn cm-btn-primary">
+                                Accepteren
+                            </button>
+                            <button type="submit" name="decline_invitation" value="1" class="cm-btn" style="background: #dc2626; color: white;">
+                                Weigeren
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <?php
+        
+        // Handle form submission
+        if (isset($_POST['accept_invitation']) && wp_verify_nonce($_POST['invitation_nonce'], 'accept_trainer_invitation')) {
+            return $this->process_invitation_acceptance(array($invitation), get_current_user_id());
+        }
+        
+        if (isset($_POST['decline_invitation']) && wp_verify_nonce($_POST['invitation_nonce'], 'accept_trainer_invitation')) {
+            return $this->process_invitation_decline($token);
+        }
+        
+        return ob_get_clean();
+    }
+    
+    /**
+     * AJAX: Check if email exists
+     */
+    public function ajax_check_email() {
+        check_ajax_referer('cm_invitation_nonce', 'nonce');
+        
+        $email = sanitize_email($_POST['email']);
+        $user = get_user_by('email', $email);
+        
+        wp_send_json_success(array(
+            'exists' => $user ? true : false
+        ));
+    }
+    
+    /**
+     * AJAX: Login trainer
+     */
+    public function ajax_login_trainer() {
+        check_ajax_referer('cm_invitation_nonce', 'nonce');
+        
+        $email = sanitize_email($_POST['email']);
+        $password = $_POST['password'];
+        $token = sanitize_text_field($_POST['token']);
+        
+        $user = wp_authenticate($email, $password);
+        
+        if (is_wp_error($user)) {
+            wp_send_json_error('Onjuist wachtwoord. Probeer het opnieuw.');
+        }
+        
+        // Log the user in
+        wp_set_current_user($user->ID);
+        wp_set_auth_cookie($user->ID);
+        
+        // Process invitation
+        $result = $this->process_invitation_for_user($user->ID, $token);
+        
+        if ($result['success']) {
+            wp_send_json_success(array(
+                'message' => $result['message'],
+                'redirect' => home_url('/club-manager/')
+            ));
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+    
+    /**
+     * AJAX: Register trainer
+     */
+    public function ajax_register_trainer() {
+        check_ajax_referer('cm_invitation_nonce', 'nonce');
+        
+        $email = sanitize_email($_POST['email']);
+        $password = $_POST['password'];
+        $firstname = sanitize_text_field($_POST['firstname']);
+        $lastname = sanitize_text_field($_POST['lastname']);
+        $token = sanitize_text_field($_POST['token']);
+        
+        // Create user
+        $user_id = wp_create_user($email, $password, $email);
+        
+        if (is_wp_error($user_id)) {
+            wp_send_json_error('Kon geen account aanmaken. ' . $user_id->get_error_message());
+        }
+        
+        // Update user meta
+        update_user_meta($user_id, 'first_name', $firstname);
+        update_user_meta($user_id, 'last_name', $lastname);
+        wp_update_user(array(
+            'ID' => $user_id,
+            'display_name' => $firstname . ' ' . $lastname
+        ));
+        
+        // Log the user in
+        wp_set_current_user($user_id);
+        wp_set_auth_cookie($user_id);
+        
+        // Process invitation
+        $result = $this->process_invitation_for_user($user_id, $token);
+        
+        if ($result['success']) {
+            wp_send_json_success(array(
+                'message' => $result['message'],
+                'redirect' => home_url('/club-manager/')
+            ));
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+    
+    /**
+     * Process invitation for a specific user
+     */
+    private function process_invitation_for_user($user_id, $token) {
         global $wpdb;
         
         $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
+        // Get all invitations with this token
         $invitations = $wpdb->get_results($wpdb->prepare(
-            "SELECT i.*, t.id as team_id
+            "SELECT i.*, t.name as team_name, t.id as team_id
             FROM $invitations_table i
             INNER JOIN $teams_table t ON i.team_id = t.id
             WHERE i.token = %s AND i.status = 'pending'",
             $token
         ));
         
+        if (empty($invitations)) {
+            return array(
+                'success' => false,
+                'message' => 'Uitnodiging niet gevonden of al geaccepteerd.'
+            );
+        }
+        
+        $teams_joined = [];
+        
         foreach ($invitations as $invitation) {
             // Add trainer to Club Manager
-            $this->add_trainer_to_team($invitation->team_id, $user_id, $invitation->role, $invitation->invited_by);
-            
-            // Add to WooCommerce team
-            $this->add_to_wc_team($invitation->team_id, $user_id);
+            if ($this->add_trainer_to_team($invitation->team_id, $user_id, $invitation->role, $invitation->invited_by)) {
+                $teams_joined[] = $invitation->team_name;
+                
+                // Add to WooCommerce team
+                $this->add_to_wc_team($invitation->team_id, $user_id);
+            }
         }
         
         // Update invitation status
@@ -210,130 +700,17 @@ class Club_Manager_Trainer_Invitation_Handler {
             ['%s', '%s'],
             ['%s']
         );
+        
+        // Send notification
+        $this->send_acceptance_notification($invitations[0]->invited_by, $user_id, $teams_joined);
+        
+        return array(
+            'success' => true,
+            'message' => 'Je bent succesvol toegevoegd aan de teams!'
+        );
     }
     
-    /**
-     * Render the invitation acceptance form
-     */
-    public function render_accept_invitation() {
-        if (!is_user_logged_in()) {
-            $token = isset($_GET['cm_trainer_invite']) ? sanitize_text_field($_GET['cm_trainer_invite']) : '';
-            return '<p>Please <a href="' . add_query_arg('cm_trainer_invite', $token, wc_get_page_permalink('myaccount')) . '">log in or register</a> to accept the trainer invitation.</p>';
-        }
-        
-        $token = isset($_GET['cm_trainer_invite']) ? sanitize_text_field($_GET['cm_trainer_invite']) : '';
-        
-        if (empty($token)) {
-            return '<p>Invalid invitation link.</p>';
-        }
-        
-        // Get invitation details
-        global $wpdb;
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-        $teams_table = Club_Manager_Database::get_table_name('teams');
-        
-        $invitations = $wpdb->get_results($wpdb->prepare(
-            "SELECT i.*, t.name as team_name, t.id as team_id, u.display_name as inviter_name
-            FROM $invitations_table i
-            INNER JOIN $teams_table t ON i.team_id = t.id
-            LEFT JOIN {$wpdb->users} u ON i.invited_by = u.ID
-            WHERE i.token = %s AND i.status = 'pending'",
-            $token
-        ));
-        
-        if (empty($invitations)) {
-            return '<p>This invitation has already been accepted or is no longer valid.</p>';
-        }
-        
-        $current_user = wp_get_current_user();
-        
-        // Check if email matches
-        $email_match = false;
-        foreach ($invitations as $invitation) {
-            if ($invitation->email === $current_user->user_email) {
-                $email_match = true;
-                break;
-            }
-        }
-        
-        if (!$email_match) {
-            return '<p>This invitation was sent to a different email address (' . esc_html($invitations[0]->email) . '). Please log in with the correct account.</p>';
-        }
-        
-        // Handle form submission
-        if (isset($_POST['accept_invitation']) && wp_verify_nonce($_POST['invitation_nonce'], 'accept_trainer_invitation')) {
-            return $this->process_invitation_acceptance($invitations, $current_user->ID);
-        }
-        
-        if (isset($_POST['decline_invitation']) && wp_verify_nonce($_POST['invitation_nonce'], 'accept_trainer_invitation')) {
-            return $this->process_invitation_decline($token);
-        }
-        
-        // Render the form
-        ob_start();
-        ?>
-        <div class="club-manager-invitation-wrapper max-w-2xl mx-auto p-6">
-            <div class="bg-white rounded-lg shadow-lg p-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6">Trainer Invitation</h2>
-                
-                <p class="text-gray-600 mb-6">
-                    You have been invited by <strong><?php echo esc_html($invitations[0]->inviter_name); ?></strong> 
-                    to join as a trainer for the following teams:
-                </p>
-                
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Teams:</h3>
-                    <ul class="list-disc list-inside space-y-2">
-                        <?php foreach ($invitations as $invitation): ?>
-                            <li class="text-gray-700">
-                                <?php echo esc_html($invitation->team_name); ?> 
-                                <span class="text-sm text-gray-500">(Role: <?php echo esc_html(ucfirst($invitation->role)); ?>)</span>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-                
-                <?php if (!empty($invitations[0]->message)): ?>
-                    <div class="mb-6 bg-gray-50 rounded-lg p-4">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Personal Message:</h3>
-                        <p class="text-gray-700"><?php echo nl2br(esc_html($invitations[0]->message)); ?></p>
-                    </div>
-                <?php endif; ?>
-                
-                <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 class="text-lg font-semibold text-blue-800 mb-2">What happens next?</h3>
-                    <p class="text-blue-700">
-                        By accepting this invitation, you will:
-                    </p>
-                    <ul class="list-disc list-inside mt-2 space-y-1 text-blue-700">
-                        <li>Be added as a trainer to the teams listed above</li>
-                        <li>Gain access to the Club Manager dashboard</li>
-                        <li>Be able to view and evaluate players in these teams</li>
-                        <li>Receive team membership benefits through the club</li>
-                    </ul>
-                </div>
-                
-                <form method="post" class="mt-6">
-                    <?php wp_nonce_field('accept_trainer_invitation', 'invitation_nonce'); ?>
-                    <input type="hidden" name="token" value="<?php echo esc_attr($token); ?>">
-                    
-                    <div class="flex space-x-4">
-                        <button type="submit" name="accept_invitation" value="1" 
-                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg">
-                            Accept Invitation
-                        </button>
-                        <button type="submit" name="decline_invitation" value="1" 
-                                class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg">
-                            Decline Invitation
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <?php
-        
-        return ob_get_clean();
-    }
+    // ... (rest of the methods remain the same)
     
     /**
      * Process the invitation acceptance
@@ -380,25 +757,20 @@ class Club_Manager_Trainer_Invitation_Handler {
             // Send notification to inviter
             $this->send_acceptance_notification($invitations[0]->invited_by, $user_id, $teams_joined);
             
-            $message = '<div class="bg-green-50 border border-green-200 rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-green-800 mb-2">Success!</h3>
-                <p class="text-green-700">You have been added as a trainer to the following teams: ' . 
-                implode(', ', $teams_joined) . '</p>';
-                
-            if (!empty($wc_teams_joined)) {
-                $message .= '<p class="text-green-700 mt-2">You have also been added to the WooCommerce team memberships.</p>';
-            }
-                
-            $message .= '<p class="mt-4"><a href="' . home_url('/club-manager/') . '" class="text-blue-600 hover:underline">
-                    Go to Club Manager Dashboard
-                </a></p>
+            $message = '<div class="cm-success">
+                <h3>Gelukt!</h3>
+                <p>Je bent toegevoegd als trainer aan: ' . implode(', ', $teams_joined) . '</p>
+                <p style="margin-top: 15px;">
+                    <a href="' . home_url('/club-manager/') . '" class="cm-btn cm-btn-primary">
+                        Ga naar Club Manager Dashboard
+                    </a>
+                </p>
             </div>';
             
             return $message;
         } else {
-            return '<div class="bg-red-50 border border-red-200 rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-red-800 mb-2">Error</h3>
-                <p class="text-red-700">There was an error accepting the invitation. Please try again or contact support.</p>
+            return '<div class="cm-error">
+                <p>Er is een fout opgetreden bij het accepteren van de uitnodiging. Probeer het opnieuw of neem contact op.</p>
             </div>';
         }
     }
@@ -419,9 +791,9 @@ class Club_Manager_Trainer_Invitation_Handler {
             ['%s']
         );
         
-        return '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h3 class="text-lg font-semibold text-yellow-800 mb-2">Invitation Declined</h3>
-            <p class="text-yellow-700">You have declined the trainer invitation.</p>
+        return '<div class="cm-success">
+            <h3>Uitnodiging geweigerd</h3>
+            <p>Je hebt de uitnodiging om trainer te worden geweigerd.</p>
         </div>';
     }
     
@@ -466,7 +838,6 @@ class Club_Manager_Trainer_Invitation_Handler {
         }
         
         // Find the WooCommerce team associated with this Club Manager team
-        // This assumes team owners in Club Manager are also team owners in WC Teams
         global $wpdb;
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
@@ -480,8 +851,9 @@ class Club_Manager_Trainer_Invitation_Handler {
             return ['success' => false, 'message' => 'Team owner not found'];
         }
         
-        // Find the WooCommerce team associated with this Club Manager team
-        // First try to find teams where the owner is a member
+        // Find the WooCommerce team
+        $wc_team = null;
+        
         if (function_exists('wc_memberships_for_teams_get_user_teams')) {
             $owner_teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
             
@@ -504,29 +876,8 @@ class Club_Manager_Trainer_Invitation_Handler {
             }
         }
         
-        // Fallback: Find WC teams owned by this user (post author)
-        if (!isset($wc_team)) {
-            $args = array(
-                'post_type' => 'wc_memberships_team',
-                'post_status' => 'publish',
-                'author' => $team_owner_id,
-                'posts_per_page' => 1
-            );
-            
-            $wc_teams = get_posts($args);
-            
-            if (!empty($wc_teams)) {
-                $wc_team = wc_memberships_for_teams_get_team($wc_teams[0]->ID);
-            }
-        }
-        
-        if (!isset($wc_team) || !$wc_team) {
-            return ['success' => false, 'message' => 'No WooCommerce team found for user'];
-        }
-        
-        // Check if team has available seats
-        if (method_exists($wc_team, 'has_available_seats') && !$wc_team->has_available_seats()) {
-            return ['success' => false, 'message' => 'No available seats in team'];
+        if (!$wc_team) {
+            return ['success' => false, 'message' => 'No WooCommerce team found'];
         }
         
         // Add member to team
@@ -560,10 +911,10 @@ class Club_Manager_Trainer_Invitation_Handler {
             return;
         }
         
-        $subject = sprintf('[%s] Trainer invitation accepted', get_bloginfo('name'));
+        $subject = sprintf('[%s] Trainer uitnodiging geaccepteerd', get_bloginfo('name'));
         
         $message = sprintf(
-            "Hello %s,\n\n%s has accepted your invitation to become a trainer for the following teams:\n\n%s\n\nThey now have access to the Club Manager dashboard and can view/evaluate players in these teams.\n\nBest regards,\n%s",
+            "Hallo %s,\n\n%s heeft jouw uitnodiging geaccepteerd om trainer te worden voor de volgende teams:\n\n%s\n\nZe hebben nu toegang tot het Club Manager dashboard en kunnen spelers bekijken/evalueren in deze teams.\n\nMet vriendelijke groet,\n%s",
             $inviter->display_name,
             $trainer->display_name,
             implode("\n", array_map(function($team) { return "- " . $team; }, $teams)),
@@ -571,56 +922,5 @@ class Club_Manager_Trainer_Invitation_Handler {
         );
         
         wp_mail($inviter->user_email, $subject, $message);
-    }
-    
-    /**
-     * Show invitation message on login/register page
-     */
-    public function show_invitation_message() {
-        if (isset($_GET['cm_trainer_invite'])) {
-            $token = sanitize_text_field($_GET['cm_trainer_invite']);
-            $action = isset($_GET['cm_action']) ? sanitize_text_field($_GET['cm_action']) : '';
-            
-            // Get invitation details
-            global $wpdb;
-            $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-            $teams_table = Club_Manager_Database::get_table_name('teams');
-            
-            $invitation = $wpdb->get_row($wpdb->prepare(
-                "SELECT i.*, t.name as team_name, u.display_name as inviter_name
-                FROM $invitations_table i
-                INNER JOIN $teams_table t ON i.team_id = t.id
-                LEFT JOIN {$wpdb->users} u ON i.invited_by = u.ID
-                WHERE i.token = %s AND i.status = 'pending'
-                LIMIT 1",
-                $token
-            ));
-            
-            if ($invitation) {
-                if ($action === 'login') {
-                    echo '<div class="woocommerce-info">
-                        <strong>Welcome back!</strong> You have been invited by ' . esc_html($invitation->inviter_name) . 
-                        ' to join as a trainer for ' . esc_html($invitation->team_name) . 
-                        '. Please log in with your existing account to accept the invitation.
-                    </div>';
-                } elseif ($action === 'register') {
-                    echo '<div class="woocommerce-info">
-                        <strong>Welcome!</strong> You have been invited by ' . esc_html($invitation->inviter_name) . 
-                        ' to join as a trainer for ' . esc_html($invitation->team_name) . 
-                        '. Please create an account to accept the invitation.
-                    </div>';
-                }
-            }
-        }
-    }
-    
-    /**
-     * Add hidden invitation token field to login/register forms
-     */
-    public function add_invitation_token_field() {
-        if (isset($_GET['cm_trainer_invite'])) {
-            $token = sanitize_text_field($_GET['cm_trainer_invite']);
-            echo '<input type="hidden" name="cm_trainer_invite" value="' . esc_attr($token) . '" />';
-        }
     }
 }
