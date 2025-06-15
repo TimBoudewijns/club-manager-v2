@@ -1,4 +1,123 @@
-<?php
+/**
+     * Test function to debug WC team access.
+     */
+    public function test_wc_team_access() {
+        $user_id = $this->verify_request();
+        
+        global $wpdb;
+        $debug_info = array();
+        
+        // Test 1: Check if plugin is active
+        $debug_info['plugin_active'] = function_exists('wc_memberships_for_teams');
+        
+        // Test 2: Check teams by post author
+        $authored_teams = $wpdb->get_results($wpdb->prepare(
+            "SELECT ID, post_title, post_status 
+             FROM {$wpdb->posts} 
+             WHERE post_type = 'wc_memberships_team' 
+             AND post_author = %d",
+            $user_id
+        ));
+        $debug_info['authored_teams'] = $authored_teams;
+        
+        // Test 3: Check team memberships
+        $memberships = $wpdb->get_results($wpdb->prepare(
+            "SELECT post_id, meta_key, meta_value 
+             FROM {$wpdb->postmeta} 
+             WHERE meta_key IN ('_member_id', '_role') 
+             AND (meta_value = %d OR post_id IN (
+                 SELECT post_id FROM {$wpdb->postmeta} 
+                 WHERE meta_key = '_member_id' AND meta_value = %d
+             ))
+             ORDER BY post_id",
+            $user_id, $user_id
+        ));
+        $debug_info['memberships'] = $memberships;
+        
+        // Test 4: Try official function
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+            $debug_info['official_function_count'] = count($teams);
+            $debug_info['official_function_teams'] = array();
+            
+            foreach ($teams as $team) {
+                if (is_object($team)) {
+                    $team_info = array(
+                        'id' => method_exists($team, 'get_id') ? $team->get_id() : 'unknown',
+                        'name' => method_exists($team, 'get_name') ? $team->get_name() : 'unknown'
+                    );
+                    
+                    if (method_exists($team, 'get_member')) {
+                        $member = $team->get_member($user_id);
+                        if ($member && method_exists($member, 'get_role')) {
+                            $team_info['role'] = $member->get_role();
+                        }
+                    }
+                    
+                    $debug_info['official_function_teams'][] = $team_info;
+                }
+            }
+        }
+        
+        // Test 5: Can view club teams
+        $debug_info['can_view_club_teams'] = Club_Manager_Teams_Helper::can_view_club_teams($user_id);
+        
+        // Test 6: Try to get WC team
+        $wc_team = $this->get_wc_team_for_cm_team(null, $user_id);
+        $debug_info['wc_team_found'] = $wc_team ? true : false;
+        
+        wp_send_json_success($debug_info);
+    }    /**
+     * Debug helper to understand why WC team is not found.
+     */
+    private function debug_wc_team_access($user_id) {
+        global $wpdb;
+        
+        $debug_messages = [];
+        
+        // Check if WC Teams plugin is active
+        if (!function_exists('wc_memberships_for_teams')) {
+            return "WooCommerce Teams for Memberships plugin is niet actief.";
+        }
+        
+        // Check if any WC teams exist
+        $team_count = $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$wpdb->posts} 
+             WHERE post_type = 'wc_memberships_team' 
+             AND post_status = 'publish'"
+        );
+        
+        if ($team_count == 0) {
+            return "Er zijn geen WooCommerce Teams aangemaakt. Maak eerst een Team aan in WooCommerce > Teams.";
+        }
+        
+        // Check if user is author of any team
+        $authored_teams = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->posts} 
+             WHERE post_type = 'wc_memberships_team' 
+             AND post_status = 'publish'
+             AND post_author = %d",
+            $user_id
+        ));
+        
+        if ($authored_teams > 0) {
+            return "Debug: User is author of $authored_teams teams but function failed to retrieve them.";
+        }
+        
+        // Check if user is member of any team
+        $member_records = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$wpdb->postmeta} 
+             WHERE meta_key = '_member_id' 
+             AND meta_value = %d",
+            $user_id
+        ));
+        
+        if ($member_records > 0) {
+            return "Debug: User has $member_records membership records but is not owner/manager.";
+        }
+        
+        return "Je bent geen lid van een WooCommerce Team. Vraag de clubeigenaar om je toe te voegen aan het Team.";
+    }<?php
 
 /**
  * Handle trainer-related AJAX requests using official WC Teams invitations.
@@ -15,6 +134,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         add_action('wp_ajax_cm_invite_trainer', array($this, 'invite_trainer'));
         add_action('wp_ajax_cm_cancel_invitation', array($this, 'cancel_invitation'));
         add_action('wp_ajax_cm_remove_trainer', array($this, 'remove_trainer'));
+        add_action('wp_ajax_cm_test_wc_team_access', array($this, 'test_wc_team_access'));
         
         // Hook into WC Teams invitation emails to customize them
         add_filter('wc_memberships_for_teams_team_member_invitation_email_subject', array($this, 'customize_invitation_subject'), 10, 3);
@@ -227,7 +347,9 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $wc_team = $this->get_wc_team_for_cm_team(null, $user_id);
         
         if (!$wc_team) {
-            wp_send_json_error('Geen WooCommerce Teams for Memberships team (club) gevonden. Zorg ervoor dat je eerst een Team hebt aangemaakt in WooCommerce Teams for Memberships die je hockeyclub representeert.');
+            // Let's provide more helpful debug info
+            $debug_info = $this->debug_wc_team_access($user_id);
+            wp_send_json_error('Geen WooCommerce Teams for Memberships team (club) gevonden. ' . $debug_info);
             return;
         }
         
@@ -363,28 +485,10 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         // - Club Manager "teams" are hockey teams within that club (Dames 1, Heren 2, etc.)
         // - All CM teams share the same WC Team (the club)
         
-        // Simply get the WC Team that the current user has access to
-        if (!function_exists('wc_memberships_for_teams_get_user_teams')) {
-            error_log('Club Manager: WooCommerce Teams for Memberships function not available');
-            return false;
-        }
+        // Debug logging
+        error_log('Club Manager: Looking for WC team for user ID: ' . $user_id);
         
-        // Get all WC teams where user is owner/manager
-        $teams = wc_memberships_for_teams_get_user_teams($user_id);
-        
-        if (!empty($teams)) {
-            foreach ($teams as $team) {
-                if (is_object($team)) {
-                    $member = $team->get_member($user_id);
-                    if ($member && in_array($member->get_role(), ['owner', 'manager'])) {
-                        // Found the club - this is THE WooCommerce Team for all CM teams
-                        return $team;
-                    }
-                }
-            }
-        }
-        
-        // Alternative: Find by post author
+        // Method 1: Check if user is post author of a WC team
         global $wpdb;
         $wc_team_id = $wpdb->get_var($wpdb->prepare(
             "SELECT ID 
@@ -397,8 +501,91 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $user_id
         ));
         
-        if ($wc_team_id && function_exists('wc_memberships_for_teams_get_team')) {
-            return wc_memberships_for_teams_get_team($wc_team_id);
+        if ($wc_team_id) {
+            error_log('Club Manager: Found WC team by post author: ' . $wc_team_id);
+            if (function_exists('wc_memberships_for_teams_get_team')) {
+                $team = wc_memberships_for_teams_get_team($wc_team_id);
+                if ($team && is_object($team)) {
+                    return $team;
+                }
+            }
+        }
+        
+        // Method 2: Check team members with manager/owner role
+        $team_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT p.ID 
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm1 ON p.ID = pm1.post_id 
+            INNER JOIN {$wpdb->postmeta} pm2 ON p.ID = pm2.post_id
+            WHERE p.post_type = 'wc_memberships_team'
+            AND p.post_status = 'publish'
+            AND pm1.meta_key = '_member_id' 
+            AND pm1.meta_value = %d
+            AND pm2.meta_key = '_role'
+            AND pm2.meta_value IN ('owner', 'manager')",
+            $user_id
+        ));
+        
+        if (!empty($team_ids)) {
+            error_log('Club Manager: Found WC teams where user is owner/manager: ' . implode(', ', $team_ids));
+            if (function_exists('wc_memberships_for_teams_get_team')) {
+                foreach ($team_ids as $team_id) {
+                    $team = wc_memberships_for_teams_get_team($team_id);
+                    if ($team && is_object($team)) {
+                        return $team;
+                    }
+                }
+            }
+        }
+        
+        // Method 3: Try the official function if available
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            error_log('Club Manager: Trying wc_memberships_for_teams_get_user_teams');
+            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+            
+            if (!empty($teams)) {
+                error_log('Club Manager: Found ' . count($teams) . ' teams via official function');
+                foreach ($teams as $team) {
+                    if (is_object($team)) {
+                        // Try to get member role
+                        if (method_exists($team, 'get_member')) {
+                            $member = $team->get_member($user_id);
+                            if ($member) {
+                                $role = method_exists($member, 'get_role') ? $member->get_role() : 'unknown';
+                                error_log('Club Manager: User role in team ' . $team->get_id() . ': ' . $role);
+                                if (in_array($role, ['owner', 'manager'])) {
+                                    return $team;
+                                }
+                            }
+                        } else {
+                            // If we can't check the role, assume they have access if they're in the team
+                            error_log('Club Manager: Cannot check role, returning team ' . $team->get_id());
+                            return $team;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Method 4: Look for any team member record
+        $any_team = $wpdb->get_var($wpdb->prepare(
+            "SELECT post_id 
+            FROM {$wpdb->postmeta}
+            WHERE meta_key = '_member_id'
+            AND meta_value = %d
+            LIMIT 1",
+            $user_id
+        ));
+        
+        if ($any_team) {
+            error_log('Club Manager: Found team membership record: ' . $any_team);
+            if (function_exists('wc_memberships_for_teams_get_team')) {
+                $team = wc_memberships_for_teams_get_team($any_team);
+                if ($team && is_object($team)) {
+                    error_log('Club Manager: Returning team from membership record');
+                    return $team;
+                }
+            }
         }
         
         error_log('Club Manager: No WC team (club) found for user ID: ' . $user_id);

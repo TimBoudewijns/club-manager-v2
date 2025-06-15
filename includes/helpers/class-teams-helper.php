@@ -43,11 +43,25 @@ class Club_Manager_Teams_Helper {
             
             if (!empty($teams)) {
                 foreach ($teams as $team) {
-                    if (is_object($team) && method_exists($team, 'get_member')) {
-                        $member = $team->get_member($user_id);
-                        if ($member && method_exists($member, 'get_role')) {
-                            $role = $member->get_role();
-                            if (in_array($role, array('owner', 'manager'))) {
+                    if (is_object($team)) {
+                        // Try multiple ways to check member role
+                        $is_owner_or_manager = false;
+                        
+                        // Check method 1: get_member
+                        if (method_exists($team, 'get_member')) {
+                            $member = $team->get_member($user_id);
+                            if ($member && method_exists($member, 'get_role')) {
+                                $role = $member->get_role();
+                                if (in_array($role, array('owner', 'manager'))) {
+                                    return true;
+                                }
+                            }
+                        }
+                        
+                        // Check method 2: Post author
+                        if (method_exists($team, 'get_id')) {
+                            $team_post = get_post($team->get_id());
+                            if ($team_post && $team_post->post_author == $user_id) {
                                 return true;
                             }
                         }
@@ -176,8 +190,10 @@ class Club_Manager_Teams_Helper {
                     }
                 }
             }
-        } else {
-            // Method 2: Direct database query
+        }
+        
+        // Method 2: Direct database query if nothing found yet
+        if (empty($managed_teams)) {
             global $wpdb;
             
             // Get teams where user is owner
@@ -269,6 +285,65 @@ class Club_Manager_Teams_Helper {
             return 'owner';
         }
         
-        return false;
+        // Method 3: Check postmeta for role
+        $role = $wpdb->get_var($wpdb->prepare(
+            "SELECT pm2.meta_value 
+             FROM {$wpdb->postmeta} pm1
+             INNER JOIN {$wpdb->postmeta} pm2 
+                ON pm1.post_id = pm2.post_id 
+                AND pm2.meta_key = '_role'
+             WHERE pm1.post_id = %d 
+             AND pm1.meta_key = '_member_id' 
+             AND pm1.meta_value = %d",
+            $team_id, $user_id
+        ));
+        
+        return $role ?: false;
+    }
+    
+    /**
+     * Check if user is member of any WC team
+     * 
+     * @param int $user_id User ID
+     * @return bool
+     */
+    public static function is_team_member($user_id = null) {
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+        
+        if (!$user_id) {
+            return false;
+        }
+        
+        // Try official function first
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+            return !empty($teams);
+        }
+        
+        // Fallback to database check
+        global $wpdb;
+        
+        $is_member = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) 
+             FROM {$wpdb->postmeta} 
+             WHERE meta_key = '_member_id' 
+             AND meta_value = %d",
+            $user_id
+        ));
+        
+        return $is_member > 0;
+    }
+    
+    /**
+     * Get all team IDs where user is owner or manager
+     * 
+     * @param int $user_id User ID
+     * @return array Array of team IDs
+     */
+    public static function get_managed_team_ids($user_id = null) {
+        $managed_teams = self::get_user_managed_teams($user_id);
+        return array_column($managed_teams, 'team_id');
     }
 }
