@@ -12,6 +12,10 @@ class Club_Manager_Trainer_Invitation_Handler {
         add_action('init', array($this, 'check_invitation_token'));
         add_shortcode('club_manager_accept_invitation', array($this, 'render_accept_invitation'));
         add_action('woocommerce_created_customer', array($this, 'handle_new_trainer_registration'), 10, 3);
+        add_action('woocommerce_before_customer_login_form', array($this, 'show_invitation_message'));
+        add_action('woocommerce_login_form_end', array($this, 'add_invitation_token_field'));
+        add_action('woocommerce_register_form_end', array($this, 'add_invitation_token_field'));
+        add_action('wp_login', array($this, 'handle_login_with_invitation'), 10, 2);
     }
     
     /**
@@ -35,8 +39,37 @@ class Club_Manager_Trainer_Invitation_Handler {
             }
             
             if (!is_user_logged_in()) {
-                // Redirect to registration page with invitation token
-                $redirect_url = add_query_arg('cm_trainer_invite', $token, wc_get_page_permalink('myaccount'));
+                // Get invitation details to check email
+                global $wpdb;
+                $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
+                
+                $invitation = $wpdb->get_row($wpdb->prepare(
+                    "SELECT email FROM $invitations_table WHERE token = %s AND status = 'pending' LIMIT 1",
+                    $token
+                ));
+                
+                if ($invitation) {
+                    // Check if user exists with this email
+                    $user = get_user_by('email', $invitation->email);
+                    
+                    if ($user) {
+                        // User exists - redirect to login with message
+                        $redirect_url = add_query_arg(array(
+                            'cm_trainer_invite' => $token,
+                            'cm_action' => 'login'
+                        ), wc_get_page_permalink('myaccount'));
+                    } else {
+                        // User doesn't exist - redirect to registration
+                        $redirect_url = add_query_arg(array(
+                            'cm_trainer_invite' => $token,
+                            'cm_action' => 'register'
+                        ), wc_get_page_permalink('myaccount'));
+                    }
+                } else {
+                    // Invalid token - redirect to my account page
+                    $redirect_url = wc_get_page_permalink('myaccount');
+                }
+                
                 wp_redirect($redirect_url);
                 exit;
             } else {
@@ -76,9 +109,14 @@ class Club_Manager_Trainer_Invitation_Handler {
         }
         
         // Check if we have an invitation token
+        $token = null;
         if (isset($_SESSION['cm_invitation_token'])) {
             $token = $_SESSION['cm_invitation_token'];
-            
+        } elseif (isset($_POST['cm_trainer_invite'])) {
+            $token = sanitize_text_field($_POST['cm_trainer_invite']);
+        }
+        
+        if ($token) {
             // Get invitation details
             global $wpdb;
             $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
@@ -91,10 +129,48 @@ class Club_Manager_Trainer_Invitation_Handler {
             if ($invitation && $invitation->email === $new_customer_data['user_email']) {
                 // Process the invitation automatically
                 $this->auto_accept_invitation($customer_id, $token);
+                
+                // Redirect to the accept invitation page after registration
+                $page_id = $wpdb->get_var(
+                    "SELECT ID FROM {$wpdb->posts} 
+                     WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
+                     AND post_status = 'publish' 
+                     AND post_type = 'page' 
+                     LIMIT 1"
+                );
+                
+                if ($page_id) {
+                    wp_safe_redirect(add_query_arg('cm_trainer_invite', $token, get_permalink($page_id)));
+                    exit;
+                }
             }
             
             // Clear the session token
             unset($_SESSION['cm_invitation_token']);
+        }
+    }
+    
+    /**
+     * Handle login with invitation token
+     */
+    public function handle_login_with_invitation($user_login, $user) {
+        if (isset($_POST['cm_trainer_invite'])) {
+            $token = sanitize_text_field($_POST['cm_trainer_invite']);
+            
+            // Find the accept invitation page and redirect
+            global $wpdb;
+            $page_id = $wpdb->get_var(
+                "SELECT ID FROM {$wpdb->posts} 
+                 WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
+                 AND post_status = 'publish' 
+                 AND post_type = 'page' 
+                 LIMIT 1"
+            );
+            
+            if ($page_id) {
+                wp_safe_redirect(add_query_arg('cm_trainer_invite', $token, get_permalink($page_id)));
+                exit;
+            }
         }
     }
     
@@ -141,7 +217,8 @@ class Club_Manager_Trainer_Invitation_Handler {
      */
     public function render_accept_invitation() {
         if (!is_user_logged_in()) {
-            return '<p>Please <a href="' . wc_get_page_permalink('myaccount') . '">log in or register</a> to accept the trainer invitation.</p>';
+            $token = isset($_GET['cm_trainer_invite']) ? sanitize_text_field($_GET['cm_trainer_invite']) : '';
+            return '<p>Please <a href="' . add_query_arg('cm_trainer_invite', $token, wc_get_page_permalink('myaccount')) . '">log in or register</a> to accept the trainer invitation.</p>';
         }
         
         $token = isset($_GET['cm_trainer_invite']) ? sanitize_text_field($_GET['cm_trainer_invite']) : '';
@@ -494,5 +571,56 @@ class Club_Manager_Trainer_Invitation_Handler {
         );
         
         wp_mail($inviter->user_email, $subject, $message);
+    }
+    
+    /**
+     * Show invitation message on login/register page
+     */
+    public function show_invitation_message() {
+        if (isset($_GET['cm_trainer_invite'])) {
+            $token = sanitize_text_field($_GET['cm_trainer_invite']);
+            $action = isset($_GET['cm_action']) ? sanitize_text_field($_GET['cm_action']) : '';
+            
+            // Get invitation details
+            global $wpdb;
+            $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            
+            $invitation = $wpdb->get_row($wpdb->prepare(
+                "SELECT i.*, t.name as team_name, u.display_name as inviter_name
+                FROM $invitations_table i
+                INNER JOIN $teams_table t ON i.team_id = t.id
+                LEFT JOIN {$wpdb->users} u ON i.invited_by = u.ID
+                WHERE i.token = %s AND i.status = 'pending'
+                LIMIT 1",
+                $token
+            ));
+            
+            if ($invitation) {
+                if ($action === 'login') {
+                    echo '<div class="woocommerce-info">
+                        <strong>Welcome back!</strong> You have been invited by ' . esc_html($invitation->inviter_name) . 
+                        ' to join as a trainer for ' . esc_html($invitation->team_name) . 
+                        '. Please log in with your existing account to accept the invitation.
+                    </div>';
+                } elseif ($action === 'register') {
+                    echo '<div class="woocommerce-info">
+                        <strong>Welcome!</strong> You have been invited by ' . esc_html($invitation->inviter_name) . 
+                        ' to join as a trainer for ' . esc_html($invitation->team_name) . 
+                        '. Please create an account to accept the invitation.
+                    </div>';
+                }
+            }
+        }
+    }
+    
+    /**
+     * Add hidden invitation token field to login/register forms
+     */
+    public function add_invitation_token_field() {
+        if (isset($_GET['cm_trainer_invite'])) {
+            $token = sanitize_text_field($_GET['cm_trainer_invite']);
+            echo '<input type="hidden" name="cm_trainer_invite" value="' . esc_attr($token) . '" />';
+        }
     }
 }
