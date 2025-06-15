@@ -55,8 +55,8 @@ class Club_Manager_Database {
             self::get_table_name('team_players'),
             self::get_table_name('player_evaluations'),
             self::get_table_name('player_advice'),
-            self::get_table_name('team_trainers'),
-            self::get_table_name('team_wc_mapping')
+            self::get_table_name('team_trainers')
+            // Note: team_wc_mapping table removed - not needed
             // Note: trainer_invitations table removed - we use WC Teams invitations
         );
         
@@ -89,9 +89,15 @@ class Club_Manager_Database {
             $wpdb->query("DROP TABLE IF EXISTS $table");
         }
         
-        // Also drop old invitations table if it exists
-        $invitations_table = self::get_table_name('trainer_invitations');
-        $wpdb->query("DROP TABLE IF EXISTS $invitations_table");
+        // Also drop old tables if they exist
+        $old_tables = array(
+            self::get_table_name('trainer_invitations'),
+            self::get_table_name('team_wc_mapping')
+        );
+        
+        foreach ($old_tables as $table) {
+            $wpdb->query("DROP TABLE IF EXISTS $table");
+        }
         
         // Remove options
         delete_option('club_manager_version');
@@ -104,93 +110,32 @@ class Club_Manager_Database {
     public static function upgrade() {
         $current_db_version = get_option('club_manager_db_version', '1.0.0');
         
-        // Upgrade to 2.0.0 - Remove invitations table, use WC Teams
+        // Upgrade to 2.0.0 - Remove mapping and invitations tables, use WC Teams
         if (version_compare($current_db_version, '2.0.0', '<')) {
             self::create_tables();
             
-            // Migrate any pending invitations to WC Teams if needed
-            self::migrate_invitations_to_wc_teams();
+            // Cleanup old tables
+            self::cleanup_old_tables();
         }
     }
     
     /**
-     * Migrate old invitations to WC Teams (if any exist).
+     * Cleanup old tables that are no longer needed.
      */
-    private static function migrate_invitations_to_wc_teams() {
+    private static function cleanup_old_tables() {
         global $wpdb;
         
-        $invitations_table = self::get_table_name('trainer_invitations');
+        // Tables that are no longer needed
+        $old_tables = array(
+            self::get_table_name('trainer_invitations'),
+            self::get_table_name('team_wc_mapping')
+        );
         
-        // Check if old table exists
-        if ($wpdb->get_var("SHOW TABLES LIKE '$invitations_table'") !== $invitations_table) {
-            return;
-        }
-        
-        // Get pending invitations
-        $old_invitations = $wpdb->get_results("
-            SELECT * FROM $invitations_table 
-            WHERE status = 'pending'
-        ");
-        
-        if (empty($old_invitations) || !function_exists('wc_memberships_for_teams')) {
-            return;
-        }
-        
-        // Migrate each invitation
-        foreach ($old_invitations as $old_inv) {
-            // Find WC team for this Club Manager team
-            $wc_team = self::find_wc_team_for_cm_team($old_inv->team_id);
-            
-            if ($wc_team && method_exists($wc_team, 'invite_member')) {
-                try {
-                    $invitation = $wc_team->invite_member($old_inv->email, array(
-                        'sender_id' => $old_inv->invited_by,
-                        'role' => 'member'
-                    ));
-                    
-                    if ($invitation) {
-                        // Store Club Manager data
-                        update_post_meta($invitation->get_id(), '_cm_team_id', $old_inv->team_id);
-                        update_post_meta($invitation->get_id(), '_cm_role', $old_inv->role);
-                        update_post_meta($invitation->get_id(), '_cm_message', $old_inv->message);
-                    }
-                } catch (Exception $e) {
-                    error_log('Club Manager: Failed to migrate invitation: ' . $e->getMessage());
-                }
+        foreach ($old_tables as $table) {
+            if ($wpdb->get_var("SHOW TABLES LIKE '$table'") === $table) {
+                $wpdb->query("DROP TABLE $table");
             }
         }
-    }
-    
-    /**
-     * Helper to find WC team for Club Manager team.
-     */
-    private static function find_wc_team_for_cm_team($cm_team_id) {
-        global $wpdb;
-        $teams_table = self::get_table_name('teams');
-        
-        // Get team owner
-        $team_owner_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT created_by FROM $teams_table WHERE id = %d",
-            $cm_team_id
-        ));
-        
-        if (!$team_owner_id || !function_exists('wc_memberships_for_teams_get_user_teams')) {
-            return false;
-        }
-        
-        // Find WC team
-        $teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
-        
-        foreach ($teams as $team) {
-            if (is_object($team)) {
-                $member = $team->get_member($team_owner_id);
-                if ($member && in_array($member->get_role(), ['owner', 'manager'])) {
-                    return $team;
-                }
-            }
-        }
-        
-        return false;
     }
     
     /**

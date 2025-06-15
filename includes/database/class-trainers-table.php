@@ -33,20 +33,8 @@ class Club_Manager_Trainers_Table {
         
         dbDelta($sql_trainers);
         
-        // Team mapping table - maps Club Manager teams to WC Teams
-        $mapping_table = Club_Manager_Database::get_table_name('team_wc_mapping');
-        
-        $sql_mapping = "CREATE TABLE $mapping_table (
-            id mediumint(9) NOT NULL AUTO_INCREMENT,
-            cm_team_id mediumint(9) NOT NULL,
-            wc_team_id bigint(20) NOT NULL,
-            created_at datetime DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id),
-            UNIQUE KEY cm_team (cm_team_id),
-            KEY wc_team (wc_team_id)
-        ) $charset_collate;";
-        
-        dbDelta($sql_mapping);
+        // Note: We don't need a team mapping table anymore
+        // All Club Manager teams belong to the same WooCommerce Team (the club)
     }
     
     /**
@@ -68,6 +56,10 @@ class Club_Manager_Trainers_Table {
         $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
         $wpdb->query("DROP TABLE IF EXISTS $invitations_table");
         
+        // Drop old mapping table if it exists
+        $mapping_table = Club_Manager_Database::get_table_name('team_wc_mapping');
+        $wpdb->query("DROP TABLE IF EXISTS $mapping_table");
+        
         // Drop trainers table
         $wpdb->query("DROP TABLE IF EXISTS $trainers_table");
     }
@@ -84,7 +76,7 @@ class Club_Manager_Trainers_Table {
     }
     
     /**
-     * Cleanup old invitations table if exists.
+     * Cleanup old tables if exists.
      */
     public static function cleanup_old_tables() {
         global $wpdb;
@@ -93,6 +85,12 @@ class Club_Manager_Trainers_Table {
         $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
         if ($wpdb->get_var("SHOW TABLES LIKE '$invitations_table'") === $invitations_table) {
             $wpdb->query("DROP TABLE $invitations_table");
+        }
+        
+        // Remove old mapping table if it exists
+        $mapping_table = Club_Manager_Database::get_table_name('team_wc_mapping');
+        if ($wpdb->get_var("SHOW TABLES LIKE '$mapping_table'") === $mapping_table) {
+            $wpdb->query("DROP TABLE $mapping_table");
         }
     }
 }

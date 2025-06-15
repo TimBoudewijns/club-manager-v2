@@ -88,13 +88,31 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                     
                     foreach ($team_invitations as $invitation) {
                         if (is_object($invitation)) {
+                            // Get CM team names from metadata
+                            $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
+                            $team_names = [];
+                            
+                            if ($cm_team_ids && is_array($cm_team_ids)) {
+                                global $wpdb;
+                                $teams_table = Club_Manager_Database::get_table_name('teams');
+                                foreach ($cm_team_ids as $team_id) {
+                                    $team_name = $wpdb->get_var($wpdb->prepare(
+                                        "SELECT name FROM $teams_table WHERE id = %d",
+                                        $team_id
+                                    ));
+                                    if ($team_name) {
+                                        $team_names[] = $team_name;
+                                    }
+                                }
+                            }
+                            
                             $invitations[] = array(
                                 'id' => $invitation->get_id(),
                                 'email' => $invitation->get_email(),
-                                'team_name' => $team->get_name(),
+                                'team_name' => !empty($team_names) ? implode(', ', $team_names) : $team->get_name(),
                                 'team_id' => $team->get_id(),
                                 'created_at' => $invitation->get_date_created() ? $invitation->get_date_created()->format('Y-m-d H:i:s') : '',
-                                'role' => 'trainer' // We track this separately in Club Manager
+                                'role' => get_post_meta($invitation->get_id(), '_cm_role', true) ?: 'trainer'
                             );
                         }
                     }
@@ -205,41 +223,32 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $success_count = 0;
         $errors = [];
         
-        foreach ($team_ids as $cm_team_id) {
-            // Find the corresponding WC team
-            $wc_team = $this->get_wc_team_for_cm_team($cm_team_id, $user_id);
-            
-            if (!$wc_team) {
-                // Get team name for better error message
-                global $wpdb;
-                $teams_table = Club_Manager_Database::get_table_name('teams');
-                $team_name = $wpdb->get_var($wpdb->prepare(
-                    "SELECT name FROM $teams_table WHERE id = %d",
-                    $cm_team_id
+        // Get the WC Team (the club) once - it's the same for all CM teams
+        $wc_team = $this->get_wc_team_for_cm_team(null, $user_id);
+        
+        if (!$wc_team) {
+            wp_send_json_error('Geen WooCommerce Teams for Memberships team (club) gevonden. Zorg ervoor dat je eerst een Team hebt aangemaakt in WooCommerce Teams for Memberships die je hockeyclub representeert.');
+            return;
+        }
+        
+        // Create ONE invitation for the WC Team (club)
+        if (method_exists($wc_team, 'invite_member')) {
+            try {
+                $invitation = $wc_team->invite_member($email, array(
+                    'sender_id' => $user_id,
+                    'role' => 'member' // WC Teams doesn't have trainer role
                 ));
                 
-                $errors[] = "Kan geen WooCommerce team vinden voor: " . ($team_name ?: "Team ID $cm_team_id") . 
-                           ". Zorg ervoor dat je een Teams for Memberships team hebt aangemaakt.";
-                continue;
-            }
-            
-            // Create official WC Teams invitation
-            if (method_exists($wc_team, 'invite_member')) {
-                try {
-                    $invitation = $wc_team->invite_member($email, array(
-                        'sender_id' => $user_id,
-                        'role' => 'member' // WC Teams doesn't have trainer role
-                    ));
+                if ($invitation) {
+                    $success_count++;
                     
-                    if ($invitation) {
-                        $success_count++;
-                        
-                        // Store Club Manager specific data
-                        $this->store_cm_invitation_data($invitation->get_id(), $cm_team_id, $role, $message);
-                    }
-                } catch (Exception $e) {
-                    $errors[] = $e->getMessage();
+                    // Store Club Manager specific data - including ALL selected teams
+                    $this->store_cm_invitation_data($invitation->get_id(), $team_ids, $role, $message);
+                } else {
+                    $errors[] = "Kon geen uitnodiging maken voor het e-mailadres: " . $email;
                 }
+            } catch (Exception $e) {
+                $errors[] = $e->getMessage();
             }
         }
         
@@ -328,9 +337,9 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $trainer_id, $user_id
         ));
         
-        // Remove from WooCommerce teams
-        foreach ($trainer_teams as $trainer_team) {
-            $this->remove_from_wc_team($trainer_team->team_id, $trainer_id);
+        // Remove from WooCommerce team (once - same team for all)
+        if (!empty($trainer_teams)) {
+            $this->remove_from_wc_team($trainer_id, $user_id);
         }
         
         // Remove trainer from Club Manager tables
@@ -346,102 +355,64 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     
     /**
      * Get WC team for a Club Manager team.
+     * Note: All CM teams belong to the same WC Team (the club)
      */
     private function get_wc_team_for_cm_team($cm_team_id, $user_id) {
-        global $wpdb;
+        // In the Club Manager context:
+        // - The WooCommerce "Team" represents the entire hockey CLUB
+        // - Club Manager "teams" are hockey teams within that club (Dames 1, Heren 2, etc.)
+        // - All CM teams share the same WC Team (the club)
         
-        // First check if we have a mapping
-        $mapping_table = Club_Manager_Database::get_table_name('team_wc_mapping');
-        $wc_team_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT wc_team_id FROM $mapping_table WHERE cm_team_id = %d",
-            $cm_team_id
-        ));
-        
-        if ($wc_team_id && function_exists('wc_memberships_for_teams_get_team')) {
-            $team = wc_memberships_for_teams_get_team($wc_team_id);
-            if ($team && $team->post && $team->post->post_status === 'publish') {
-                return $team;
-            }
-        }
-        
-        // If no mapping exists, try to find and create one
-        $teams_table = Club_Manager_Database::get_table_name('teams');
-        
-        // Get the team owner
-        $team_owner_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT created_by FROM $teams_table WHERE id = %d",
-            $cm_team_id
-        ));
-        
-        if (!$team_owner_id) {
-            error_log('Club Manager: No owner found for team ID: ' . $cm_team_id);
+        // Simply get the WC Team that the current user has access to
+        if (!function_exists('wc_memberships_for_teams_get_user_teams')) {
+            error_log('Club Manager: WooCommerce Teams for Memberships function not available');
             return false;
         }
         
-        // Find WC team for this owner
-        $wc_team = null;
+        // Get all WC teams where user is owner/manager
+        $teams = wc_memberships_for_teams_get_user_teams($user_id);
         
-        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            // Method 1: Get all teams where owner is a member with owner/manager role
-            $teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
-            
-            if (!empty($teams)) {
-                foreach ($teams as $team) {
-                    if (is_object($team)) {
-                        $member = $team->get_member($team_owner_id);
-                        if ($member && in_array($member->get_role(), ['owner', 'manager'])) {
-                            $wc_team = $team;
-                            break;
-                        }
+        if (!empty($teams)) {
+            foreach ($teams as $team) {
+                if (is_object($team)) {
+                    $member = $team->get_member($user_id);
+                    if ($member && in_array($member->get_role(), ['owner', 'manager'])) {
+                        // Found the club - this is THE WooCommerce Team for all CM teams
+                        return $team;
                     }
                 }
             }
-            
-            // Method 2: Find teams by post author
-            if (!$wc_team) {
-                $wc_team_id = $wpdb->get_var($wpdb->prepare(
-                    "SELECT ID 
-                    FROM {$wpdb->posts}
-                    WHERE post_type = 'wc_memberships_team'
-                    AND post_status = 'publish'
-                    AND post_author = %d
-                    ORDER BY ID DESC
-                    LIMIT 1",
-                    $team_owner_id
-                ));
-                
-                if ($wc_team_id) {
-                    $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
-                }
-            }
         }
         
-        // If we found a team, save the mapping
-        if ($wc_team) {
-            $wpdb->insert(
-                $mapping_table,
-                [
-                    'cm_team_id' => $cm_team_id,
-                    'wc_team_id' => $wc_team->get_id()
-                ],
-                ['%d', '%d']
-            );
-            
-            return $wc_team;
+        // Alternative: Find by post author
+        global $wpdb;
+        $wc_team_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT ID 
+            FROM {$wpdb->posts}
+            WHERE post_type = 'wc_memberships_team'
+            AND post_status = 'publish'
+            AND post_author = %d
+            ORDER BY ID DESC
+            LIMIT 1",
+            $user_id
+        ));
+        
+        if ($wc_team_id && function_exists('wc_memberships_for_teams_get_team')) {
+            return wc_memberships_for_teams_get_team($wc_team_id);
         }
         
-        error_log('Club Manager: No WC team found for CM team ID: ' . $cm_team_id . ' (owner: ' . $team_owner_id . ')');
+        error_log('Club Manager: No WC team (club) found for user ID: ' . $user_id);
         return false;
     }
     
     /**
      * Store Club Manager specific invitation data.
      */
-    private function store_cm_invitation_data($wc_invitation_id, $cm_team_id, $role, $message) {
+    private function store_cm_invitation_data($wc_invitation_id, $cm_team_ids, $role, $message) {
         global $wpdb;
         
         // Store in post meta of the WC invitation
-        update_post_meta($wc_invitation_id, '_cm_team_id', $cm_team_id);
+        update_post_meta($wc_invitation_id, '_cm_team_ids', $cm_team_ids); // Array of team IDs
         update_post_meta($wc_invitation_id, '_cm_role', $role);
         update_post_meta($wc_invitation_id, '_cm_message', $message);
     }
@@ -449,14 +420,14 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     /**
      * Remove user from WooCommerce team.
      */
-    private function remove_from_wc_team($cm_team_id, $user_id) {
-        $wc_team = $this->get_wc_team_for_cm_team($cm_team_id, get_current_user_id());
+    private function remove_from_wc_team($trainer_id, $owner_id) {
+        $wc_team = $this->get_wc_team_for_cm_team(null, $owner_id);
         
         if (!$wc_team) {
             return false;
         }
         
-        $member = $wc_team->get_member($user_id);
+        $member = $wc_team->get_member($trainer_id);
         if ($member && method_exists($member, 'delete')) {
             try {
                 $member->delete();
@@ -493,6 +464,23 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $role = get_post_meta($invitation->get_id(), '_cm_role', true);
         $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
         $inviter = get_user_by('id', $inviter_id);
+        $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
+        
+        // Get team names
+        $team_names = [];
+        if ($cm_team_ids && is_array($cm_team_ids)) {
+            global $wpdb;
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            foreach ($cm_team_ids as $team_id) {
+                $team_name = $wpdb->get_var($wpdb->prepare(
+                    "SELECT name FROM $teams_table WHERE id = %d",
+                    $team_id
+                ));
+                if ($team_name) {
+                    $team_names[] = $team_name;
+                }
+            }
+        }
         
         // Get our custom accept URL
         global $wpdb;
@@ -521,6 +509,14 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 $inviter->display_name, 
                 $team->get_name()
             );
+        }
+        
+        if (!empty($team_names)) {
+            $body .= "Je krijgt toegang tot de volgende teams:\n";
+            foreach ($team_names as $team_name) {
+                $body .= "- " . $team_name . "\n";
+            }
+            $body .= "\n";
         }
         
         if (!empty($message)) {

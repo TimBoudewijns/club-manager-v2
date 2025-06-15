@@ -91,10 +91,28 @@ class Club_Manager_Trainer_Invitation_Handler {
         $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
         $inviter = get_user_by('id', $inviter_id);
         $message = get_post_meta($invitation->get_id(), '_cm_message', true);
+        $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
+        
+        // Get CM team names
+        $team_names = [];
+        if ($cm_team_ids && is_array($cm_team_ids)) {
+            global $wpdb;
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            foreach ($cm_team_ids as $team_id) {
+                $team_name = $wpdb->get_var($wpdb->prepare(
+                    "SELECT name FROM $teams_table WHERE id = %d",
+                    $team_id
+                ));
+                if ($team_name) {
+                    $team_names[] = $team_name;
+                }
+            }
+        }
         
         $invitation_data = (object) array(
             'email' => $invitation->get_email(),
-            'team_name' => $team ? $team->get_name() : 'Unknown Team',
+            'team_name' => !empty($team_names) ? implode(', ', $team_names) : ($team ? $team->get_name() : 'Unknown Team'),
+            'team_names' => $team_names,
             'inviter_name' => $inviter ? $inviter->display_name : 'Someone',
             'message' => $message
         );
@@ -129,15 +147,26 @@ class Club_Manager_Trainer_Invitation_Handler {
                 <div class="cm-invitation-header">
                     <h1>Uitnodiging voor Trainer</h1>
                     <p class="cm-invitation-subtitle">
-                        Je bent uitgenodigd door <strong><?php echo esc_html($invitation->inviter_name); ?></strong> 
-                        om trainer te worden bij <strong><?php echo esc_html($invitation->team_name); ?></strong>
+                        Je bent uitgenodigd door <strong><?php echo esc_html($invitation_data->inviter_name); ?></strong> 
+                        om trainer te worden bij <strong><?php echo esc_html($team ? $team->get_name() : 'de club'); ?></strong>
                     </p>
                 </div>
                 
-                <?php if (!empty($invitation->message)): ?>
+                <?php if (!empty($team_names)): ?>
+                    <div class="cm-invitation-teams">
+                        <h3>Je krijgt toegang tot de volgende teams:</h3>
+                        <ul>
+                            <?php foreach ($team_names as $team_name): ?>
+                                <li><?php echo esc_html($team_name); ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($invitation_data->message)): ?>
                     <div class="cm-invitation-message">
                         <h3>Persoonlijk bericht:</h3>
-                        <p><?php echo nl2br(esc_html($invitation->message)); ?></p>
+                        <p><?php echo nl2br(esc_html($invitation_data->message)); ?></p>
                     </div>
                 <?php endif; ?>
                 
@@ -150,7 +179,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                         <div class="cm-email-display">
                             <?php echo esc_html($invitation_data->email); ?>
                         </div>
-                        <button id="cm-check-email" class="cm-btn cm-btn-primary" data-email="<?php echo esc_attr($invitation_data->email); ?>">>
+                        <button id="cm-check-email" class="cm-btn cm-btn-primary" data-email="<?php echo esc_attr($invitation_data->email); ?>">
                             Dit is mijn e-mailadres →
                         </button>
                     </div>
@@ -163,7 +192,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                         <form id="cm-login-form" class="cm-form">
                             <div class="cm-form-group">
                                 <label for="cm-login-email">E-mailadres</label>
-                                <input type="email" id="cm-login-email" value="<?php echo esc_attr($invitation->email); ?>" readonly>
+                                <input type="email" id="cm-login-email" value="<?php echo esc_attr($invitation->get_email()); ?>" readonly>
                             </div>
                             
                             <div class="cm-form-group">
@@ -202,7 +231,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                             
                             <div class="cm-form-group">
                                 <label for="cm-register-email">E-mailadres</label>
-                                <input type="email" id="cm-register-email" value="<?php echo esc_attr($invitation->email); ?>" readonly>
+                                <input type="email" id="cm-register-email" value="<?php echo esc_attr($invitation->get_email()); ?>" readonly>
                             </div>
                             
                             <div class="cm-form-group">
@@ -243,7 +272,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                 <div class="cm-info-box">
                     <h3>Wat gebeurt er na acceptatie?</h3>
                     <ul>
-                        <li>Je wordt toegevoegd als trainer aan het team</li>
+                        <li>Je wordt toegevoegd als trainer aan de geselecteerde teams</li>
                         <li>Je krijgt toegang tot het Club Manager dashboard</li>
                         <li>Je kunt spelers bekijken en evalueren</li>
                         <li>Je ontvangt team lidmaatschap voordelen</li>
@@ -283,6 +312,28 @@ class Club_Manager_Trainer_Invitation_Handler {
             margin: 0;
             font-size: 16px;
             opacity: 0.95;
+        }
+        
+        .cm-invitation-teams {
+            background: #fef3c7;
+            padding: 20px 30px;
+            border-bottom: 1px solid #fcd34d;
+        }
+        
+        .cm-invitation-teams h3 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #92400e;
+        }
+        
+        .cm-invitation-teams ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .cm-invitation-teams li {
+            color: #78350f;
+            margin-bottom: 5px;
         }
         
         .cm-invitation-message {
@@ -524,6 +575,23 @@ class Club_Manager_Trainer_Invitation_Handler {
         $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
         $inviter = get_user_by('id', $inviter_id);
         $message = get_post_meta($invitation->get_id(), '_cm_message', true);
+        $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
+        
+        // Get CM team names
+        $team_names = [];
+        if ($cm_team_ids && is_array($cm_team_ids)) {
+            global $wpdb;
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            foreach ($cm_team_ids as $team_id) {
+                $team_name = $wpdb->get_var($wpdb->prepare(
+                    "SELECT name FROM $teams_table WHERE id = %d",
+                    $team_id
+                ));
+                if ($team_name) {
+                    $team_names[] = $team_name;
+                }
+            }
+        }
         
         ob_start();
         ?>
@@ -535,7 +603,18 @@ class Club_Manager_Trainer_Invitation_Handler {
                 
                 <div style="padding: 30px;">
                     <p>Je bent uitgenodigd door <strong><?php echo $inviter ? esc_html($inviter->display_name) : 'Someone'; ?></strong> 
-                    om trainer te worden bij <strong><?php echo $team ? esc_html($team->get_name()) : 'Unknown Team'; ?></strong>.</p>
+                    om trainer te worden bij <strong><?php echo $team ? esc_html($team->get_name()) : 'de club'; ?></strong>.</p>
+                    
+                    <?php if (!empty($team_names)): ?>
+                        <div style="margin: 20px 0;">
+                            <h3>Je krijgt toegang tot de volgende teams:</h3>
+                            <ul>
+                                <?php foreach ($team_names as $team_name): ?>
+                                    <li><?php echo esc_html($team_name); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                    <?php endif; ?>
                     
                     <?php if (!empty($message)): ?>
                         <div class="cm-invitation-message" style="margin: 20px 0;">
@@ -708,18 +787,32 @@ class Club_Manager_Trainer_Invitation_Handler {
             $team = $invitation->get_team();
             $team_name = $team ? $team->get_name() : 'Unknown Team';
             
-            // Add to Club Manager trainer table
-            $cm_team_id = get_post_meta($invitation->get_id(), '_cm_team_id', true);
+            // Add to Club Manager trainer table for each selected team
+            $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
             $role = get_post_meta($invitation->get_id(), '_cm_role', true) ?: 'trainer';
             $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
             
-            if ($cm_team_id) {
-                $this->add_trainer_to_team($cm_team_id, $user_id, $role, $inviter_id);
-            }
-            
-            // Send notification
-            if ($inviter_id) {
-                $this->send_acceptance_notification($inviter_id, $user_id, array($team_name));
+            if ($cm_team_ids && is_array($cm_team_ids)) {
+                $teams_added = [];
+                foreach ($cm_team_ids as $cm_team_id) {
+                    if ($this->add_trainer_to_team($cm_team_id, $user_id, $role, $inviter_id)) {
+                        // Get team name for the notification
+                        global $wpdb;
+                        $teams_table = Club_Manager_Database::get_table_name('teams');
+                        $team_name = $wpdb->get_var($wpdb->prepare(
+                            "SELECT name FROM $teams_table WHERE id = %d",
+                            $cm_team_id
+                        ));
+                        if ($team_name) {
+                            $teams_added[] = $team_name;
+                        }
+                    }
+                }
+                
+                // Send notification with all teams
+                if (!empty($teams_added) && $inviter_id) {
+                    $this->send_acceptance_notification($inviter_id, $user_id, $teams_added);
+                }
             }
             
             return array(
@@ -732,71 +825,6 @@ class Club_Manager_Trainer_Invitation_Handler {
                 'success' => false,
                 'message' => 'Er is een fout opgetreden: ' . $e->getMessage()
             );
-        }
-    }
-    
-    // ... (rest of the methods remain the same)
-    
-    /**
-     * Process the invitation acceptance
-     */
-    private function process_invitation_acceptance($invitations, $user_id) {
-        global $wpdb;
-        
-        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
-        $invitations_table = Club_Manager_Database::get_table_name('trainer_invitations');
-        
-        $success = true;
-        $teams_joined = [];
-        $wc_teams_joined = [];
-        
-        // Add trainer to each team
-        foreach ($invitations as $invitation) {
-            // Add to Club Manager
-            if ($this->add_trainer_to_team($invitation->team_id, $user_id, $invitation->role, $invitation->invited_by)) {
-                $teams_joined[] = $invitation->team_name;
-                
-                // Add to WooCommerce team
-                $wc_result = $this->add_to_wc_team($invitation->team_id, $user_id);
-                if ($wc_result['success']) {
-                    $wc_teams_joined[] = $wc_result['team_name'];
-                }
-            } else {
-                $success = false;
-            }
-        }
-        
-        // Update invitation status
-        if ($success) {
-            $wpdb->update(
-                $invitations_table,
-                [
-                    'status' => 'accepted',
-                    'accepted_at' => current_time('mysql')
-                ],
-                ['token' => $invitations[0]->token],
-                ['%s', '%s'],
-                ['%s']
-            );
-            
-            // Send notification to inviter
-            $this->send_acceptance_notification($invitations[0]->invited_by, $user_id, $teams_joined);
-            
-            $message = '<div class="cm-success">
-                <h3>Gelukt!</h3>
-                <p>Je bent toegevoegd als trainer aan: ' . implode(', ', $teams_joined) . '</p>
-                <p style="margin-top: 15px;">
-                    <a href="' . home_url('/club-manager/') . '" class="cm-btn cm-btn-primary">
-                        Ga naar Club Manager Dashboard
-                    </a>
-                </p>
-            </div>';
-            
-            return $message;
-        } else {
-            return '<div class="cm-error">
-                <p>Er is een fout opgetreden bij het accepteren van de uitnodiging. Probeer het opnieuw of neem contact op.</p>
-            </div>';
         }
     }
     
@@ -848,77 +876,6 @@ class Club_Manager_Trainer_Invitation_Handler {
         }
         
         return true;
-    }
-    
-    /**
-     * Add user to WooCommerce team
-     */
-    private function add_to_wc_team($cm_team_id, $user_id) {
-        if (!function_exists('wc_memberships_for_teams')) {
-            return ['success' => false, 'message' => 'Teams for Memberships not active'];
-        }
-        
-        // Find the WooCommerce team associated with this Club Manager team
-        global $wpdb;
-        $teams_table = Club_Manager_Database::get_table_name('teams');
-        
-        // Get the team owner
-        $team_owner_id = $wpdb->get_var($wpdb->prepare(
-            "SELECT created_by FROM $teams_table WHERE id = %d",
-            $cm_team_id
-        ));
-        
-        if (!$team_owner_id) {
-            return ['success' => false, 'message' => 'Team owner not found'];
-        }
-        
-        // Find the WooCommerce team
-        $wc_team = null;
-        
-        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            $owner_teams = wc_memberships_for_teams_get_user_teams($team_owner_id);
-            
-            if (!empty($owner_teams)) {
-                foreach ($owner_teams as $team) {
-                    if (is_object($team)) {
-                        // Check if owner has owner or manager role
-                        if (method_exists($team, 'get_member')) {
-                            $member = $team->get_member($team_owner_id);
-                            if ($member && method_exists($member, 'get_role')) {
-                                $role = $member->get_role();
-                                if (in_array($role, array('owner', 'manager'))) {
-                                    $wc_team = $team;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        if (!$wc_team) {
-            return ['success' => false, 'message' => 'No WooCommerce team found'];
-        }
-        
-        // Add member to team
-        try {
-            if (method_exists($wc_team, 'add_member')) {
-                $member = $wc_team->add_member($user_id);
-                
-                if ($member) {
-                    return [
-                        'success' => true,
-                        'team_name' => $wc_team->get_name(),
-                        'member_id' => $member->get_id()
-                    ];
-                }
-            }
-        } catch (Exception $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
-        }
-        
-        return ['success' => false, 'message' => 'Could not add member to team'];
     }
     
     /**
