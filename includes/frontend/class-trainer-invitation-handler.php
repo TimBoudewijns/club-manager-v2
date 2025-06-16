@@ -78,36 +78,12 @@ class Club_Manager_Trainer_Invitation_Handler {
             </div>';
         }
         
-        // Get the invitations instance
-        $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
+        // Get invitation by token
+        $invitation = $this->get_invitation_by_token($token);
         
-        if (!$invitations_instance) {
+        if (!$invitation) {
             return '<div class="cm-invitation-error">
-                <p>Kon toegang tot uitnodigingssysteem niet krijgen.</p>
-            </div>';
-        }
-        
-        // Get invitation by token - looking through all invitations
-        $invitation = null;
-        global $wpdb;
-        
-        // First try to find the invitation post by token
-        $invitation_post = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$wpdb->posts} 
-            WHERE post_type = 'wc_team_invitation' 
-            AND post_password = %s 
-            AND post_status = 'wcmti-pending'
-            LIMIT 1",
-            $token
-        ));
-        
-        if ($invitation_post && method_exists($invitations_instance, 'get_invitation')) {
-            $invitation = $invitations_instance->get_invitation($invitation_post->ID);
-        }
-        
-        if (!$invitation || !is_object($invitation) || $invitation->get_status() !== 'pending') {
-            return '<div class="cm-invitation-error">
-                <p>Deze uitnodiging is al geaccepteerd of niet meer geldig.</p>
+                <p>Deze uitnodiging is niet geldig of al gebruikt.</p>
             </div>';
         }
         
@@ -173,7 +149,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                     <h1>Uitnodiging voor Trainer</h1>
                     <p class="cm-invitation-subtitle">
                         Je bent uitgenodigd door <strong><?php echo esc_html($invitation_data->inviter_name); ?></strong> 
-                        om trainer te worden bij <strong><?php echo esc_html($team ? $team->get_name() : 'de club'); ?></strong>
+                        om trainer te worden bij <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>
                     </p>
                 </div>
                 
@@ -593,6 +569,36 @@ class Club_Manager_Trainer_Invitation_Handler {
     }
     
     /**
+     * Get invitation by token
+     */
+    private function get_invitation_by_token($token) {
+        global $wpdb;
+        
+        // Find invitation post by token
+        $invitation_post = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->posts} 
+            WHERE post_type = 'wc_team_invitation' 
+            AND post_password = %s 
+            AND post_status = 'wcmti-pending'
+            LIMIT 1",
+            $token
+        ));
+        
+        if (!$invitation_post) {
+            return false;
+        }
+        
+        // Get the invitations instance
+        $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
+        
+        if (!$invitations_instance || !method_exists($invitations_instance, 'get_invitation')) {
+            return false;
+        }
+        
+        return $invitations_instance->get_invitation($invitation_post->ID);
+    }
+    
+    /**
      * Render acceptance form for logged in users
      */
     private function render_logged_in_acceptance($invitation, $token) {
@@ -628,7 +634,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                 
                 <div style="padding: 30px;">
                     <p>Je bent uitgenodigd door <strong><?php echo $inviter ? esc_html($inviter->display_name) : 'Someone'; ?></strong> 
-                    om trainer te worden bij <strong><?php echo $team ? esc_html($team->get_name()) : 'de club'; ?></strong>.</p>
+                    om trainer te worden bij <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>.</p>
                     
                     <?php if (!empty($team_names)): ?>
                         <div style="margin: 20px 0;">
@@ -795,35 +801,10 @@ class Club_Manager_Trainer_Invitation_Handler {
             );
         }
         
-        // Get the invitations instance
-        $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
+        // Get invitation
+        $invitation = $this->get_invitation_by_token($token);
         
-        if (!$invitations_instance) {
-            return array(
-                'success' => false,
-                'message' => 'Kon toegang tot uitnodigingssysteem niet krijgen.'
-            );
-        }
-        
-        // Get invitation by token - looking through all invitations
-        $invitation = null;
-        global $wpdb;
-        
-        // First try to find the invitation post by token
-        $invitation_post = $wpdb->get_row($wpdb->prepare(
-            "SELECT * FROM {$wpdb->posts} 
-            WHERE post_type = 'wc_team_invitation' 
-            AND post_password = %s 
-            AND post_status = 'wcmti-pending'
-            LIMIT 1",
-            $token
-        ));
-        
-        if ($invitation_post && method_exists($invitations_instance, 'get_invitation')) {
-            $invitation = $invitations_instance->get_invitation($invitation_post->ID);
-        }
-        
-        if (!$invitation || !is_object($invitation)) {
+        if (!$invitation) {
             return array(
                 'success' => false,
                 'message' => 'Uitnodiging niet gevonden.'
