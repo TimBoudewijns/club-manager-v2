@@ -11,7 +11,11 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     public function __construct() {
         // Hook into WC Teams invitation emails with higher priority
         add_filter('woocommerce_email_enabled_wc_memberships_for_teams_team_invitation', array($this, 'disable_default_invitation_email'), 999, 2);
+        
+        // Try multiple hooks to catch the invitation creation
         add_action('wc_memberships_for_teams_team_invitation_created', array($this, 'send_custom_invitation_email'), 10, 1);
+        add_action('wc_memberships_for_teams_after_invitation_created', array($this, 'send_custom_invitation_email'), 10, 1);
+        add_action('transition_post_status', array($this, 'check_invitation_created'), 10, 3);
     }
     
     /**
@@ -38,14 +42,53 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
+     * Check if invitation was created via post status transition
+     */
+    public function check_invitation_created($new_status, $old_status, $post) {
+        if ($post->post_type !== 'wc_team_invitation') {
+            return;
+        }
+        
+        if ($new_status === 'wcmti-pending' && $old_status !== 'wcmti-pending') {
+            // Check if this is a Club Manager invitation
+            $cm_team_ids = get_post_meta($post->ID, '_cm_team_ids', true);
+            if ($cm_team_ids) {
+                // Get invitation object
+                $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
+                if ($invitations_instance && method_exists($invitations_instance, 'get_invitation')) {
+                    $invitation = $invitations_instance->get_invitation($post->ID);
+                    if ($invitation) {
+                        $this->send_custom_invitation_email($invitation);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
      * Send custom invitation email
      */
     public function send_custom_invitation_email($invitation) {
+        // Handle both invitation object and ID
+        if (is_numeric($invitation)) {
+            $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
+            if ($invitations_instance && method_exists($invitations_instance, 'get_invitation')) {
+                $invitation = $invitations_instance->get_invitation($invitation);
+            }
+        }
+        
+        if (!is_object($invitation)) {
+            error_log('Club Manager: Invalid invitation object in send_custom_invitation_email');
+            return;
+        }
+        
         // Check if this is a Club Manager invitation
         $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
         if (!$cm_team_ids) {
             return;
         }
+        
+        error_log('Club Manager: Sending custom invitation email for invitation ID: ' . $invitation->get_id());
         
         $email = $invitation->get_email();
         $token = $invitation->get_token();
@@ -118,7 +161,13 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $body .= "Met vriendelijke groet,\n" . get_bloginfo('name');
         
         // Send email
-        wp_mail($email, $subject, $body);
+        $sent = wp_mail($email, $subject, $body);
+        
+        if ($sent) {
+            error_log('Club Manager: Email successfully sent to ' . $email);
+        } else {
+            error_log('Club Manager: Failed to send email to ' . $email);
+        }
     }
     
     /**
