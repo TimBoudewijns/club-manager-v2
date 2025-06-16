@@ -72,15 +72,40 @@ class Club_Manager_Trainer_Invitation_Handler {
         }
         
         // Get WC Teams invitation
-        if (!function_exists('wc_memberships_for_teams_get_invitation_by_token')) {
+        if (!function_exists('wc_memberships_for_teams')) {
             return '<div class="cm-invitation-error">
                 <p>WooCommerce Teams for Memberships is vereist.</p>
             </div>';
         }
         
-        $invitation = wc_memberships_for_teams_get_invitation_by_token($token);
+        // Get the invitations instance
+        $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
         
-        if (!$invitation || $invitation->get_status() !== 'pending') {
+        if (!$invitations_instance) {
+            return '<div class="cm-invitation-error">
+                <p>Kon toegang tot uitnodigingssysteem niet krijgen.</p>
+            </div>';
+        }
+        
+        // Get invitation by token - looking through all invitations
+        $invitation = null;
+        global $wpdb;
+        
+        // First try to find the invitation post by token
+        $invitation_post = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->posts} 
+            WHERE post_type = 'wc_team_invitation' 
+            AND post_password = %s 
+            AND post_status = 'wcmti-pending'
+            LIMIT 1",
+            $token
+        ));
+        
+        if ($invitation_post && method_exists($invitations_instance, 'get_invitation')) {
+            $invitation = $invitations_instance->get_invitation($invitation_post->ID);
+        }
+        
+        if (!$invitation || !is_object($invitation) || $invitation->get_status() !== 'pending') {
             return '<div class="cm-invitation-error">
                 <p>Deze uitnodiging is al geaccepteerd of niet meer geldig.</p>
             </div>';
@@ -88,7 +113,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         
         // Get team and inviter info
         $team = $invitation->get_team();
-        $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
+        $inviter_id = $invitation->get_sender_id();
         $inviter = get_user_by('id', $inviter_id);
         $message = get_post_meta($invitation->get_id(), '_cm_message', true);
         $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
@@ -572,7 +597,7 @@ class Club_Manager_Trainer_Invitation_Handler {
      */
     private function render_logged_in_acceptance($invitation, $token) {
         $team = $invitation->get_team();
-        $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
+        $inviter_id = $invitation->get_sender_id();
         $inviter = get_user_by('id', $inviter_id);
         $message = get_post_meta($invitation->get_id(), '_cm_message', true);
         $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
@@ -763,25 +788,62 @@ class Club_Manager_Trainer_Invitation_Handler {
      * Process invitation for a specific user
      */
     private function process_invitation_for_user($user_id, $token) {
-        if (!function_exists('wc_memberships_for_teams_get_invitation_by_token')) {
+        if (!function_exists('wc_memberships_for_teams')) {
             return array(
                 'success' => false,
                 'message' => 'WooCommerce Teams for Memberships is vereist.'
             );
         }
         
-        $invitation = wc_memberships_for_teams_get_invitation_by_token($token);
+        // Get the invitations instance
+        $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
         
-        if (!$invitation || $invitation->get_status() !== 'pending') {
+        if (!$invitations_instance) {
             return array(
                 'success' => false,
-                'message' => 'Uitnodiging niet gevonden of al geaccepteerd.'
+                'message' => 'Kon toegang tot uitnodigingssysteem niet krijgen.'
+            );
+        }
+        
+        // Get invitation by token - looking through all invitations
+        $invitation = null;
+        global $wpdb;
+        
+        // First try to find the invitation post by token
+        $invitation_post = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM {$wpdb->posts} 
+            WHERE post_type = 'wc_team_invitation' 
+            AND post_password = %s 
+            AND post_status = 'wcmti-pending'
+            LIMIT 1",
+            $token
+        ));
+        
+        if ($invitation_post && method_exists($invitations_instance, 'get_invitation')) {
+            $invitation = $invitations_instance->get_invitation($invitation_post->ID);
+        }
+        
+        if (!$invitation || !is_object($invitation)) {
+            return array(
+                'success' => false,
+                'message' => 'Uitnodiging niet gevonden.'
+            );
+        }
+        
+        if ($invitation->get_status() !== 'pending') {
+            return array(
+                'success' => false,
+                'message' => 'Deze uitnodiging is al geaccepteerd of geannuleerd.'
             );
         }
         
         // Accept the WC Teams invitation
         try {
-            $invitation->accept($user_id);
+            $team_member = $invitation->accept($user_id, true); // true = add member
+            
+            if (!$team_member) {
+                throw new Exception('Kon geen teamlid aanmaken');
+            }
             
             // Get team info
             $team = $invitation->get_team();
@@ -790,7 +852,7 @@ class Club_Manager_Trainer_Invitation_Handler {
             // Add to Club Manager trainer table for each selected team
             $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
             $role = get_post_meta($invitation->get_id(), '_cm_role', true) ?: 'trainer';
-            $inviter_id = get_post_meta($invitation->get_id(), '_sender_id', true);
+            $inviter_id = $invitation->get_sender_id();
             
             if ($cm_team_ids && is_array($cm_team_ids)) {
                 $teams_added = [];
@@ -833,7 +895,7 @@ class Club_Manager_Trainer_Invitation_Handler {
      */
     private function process_invitation_decline($invitation) {
         try {
-            $invitation->delete();
+            $invitation->cancel();
             
             return '<div class="cm-success">
                 <h3>Uitnodiging geweigerd</h3>
@@ -892,13 +954,13 @@ class Club_Manager_Trainer_Invitation_Handler {
         $subject = sprintf('[%s] Trainer uitnodiging geaccepteerd', get_bloginfo('name'));
         
         $message = sprintf(
-            "Hallo %s,\n\n%s heeft jouw uitnodiging geaccepteerd om trainer te worden voor de volgende teams:\n\n%s\n\nZe hebben nu toegang tot het Club Manager dashboard en kunnen spelers bekijken/evalueren in deze teams.\n\nMet vriendelijke groet,\n%s",
-            $inviter->display_name,
-            $trainer->display_name,
-            implode("\n", array_map(function($team) { return "- " . $team; }, $teams)),
-            get_bloginfo('name')
-        );
-        
-        wp_mail($inviter->user_email, $subject, $message);
-    }
+           "Hallo %s,\n\n%s heeft jouw uitnodiging geaccepteerd om trainer te worden voor de volgende teams:\n\n%s\n\nZe hebben nu toegang tot het Club Manager dashboard en kunnen spelers bekijken/evalueren in deze teams.\n\nMet vriendelijke groet,\n%s",
+           $inviter->display_name,
+           $trainer->display_name,
+           implode("\n", array_map(function($team) { return "- " . $team; }, $teams)),
+           get_bloginfo('name')
+       );
+       
+       wp_mail($inviter->user_email, $subject, $message);
+   }
 }
