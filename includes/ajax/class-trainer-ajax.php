@@ -6,19 +6,6 @@
 class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     
     /**
-     * Constructor
-     */
-    public function __construct() {
-        // Hook into WC Teams invitation emails with higher priority
-        add_filter('woocommerce_email_enabled_wc_memberships_for_teams_team_invitation', array($this, 'disable_default_invitation_email'), 999, 2);
-        
-        // Try multiple hooks to catch the invitation creation
-        add_action('wc_memberships_for_teams_team_invitation_created', array($this, 'send_custom_invitation_email'), 10, 1);
-        add_action('wc_memberships_for_teams_after_invitation_created', array($this, 'send_custom_invitation_email'), 10, 1);
-        add_action('transition_post_status', array($this, 'check_invitation_created'), 10, 3);
-    }
-    
-    /**
      * Initialize AJAX actions.
      */
     public function init() {
@@ -28,146 +15,6 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         add_action('wp_ajax_cm_invite_trainer', array($this, 'invite_trainer'));
         add_action('wp_ajax_cm_cancel_invitation', array($this, 'cancel_invitation'));
         add_action('wp_ajax_cm_remove_trainer', array($this, 'remove_trainer'));
-    }
-    
-    /**
-     * Disable default WC Teams invitation email
-     */
-    public function disable_default_invitation_email($enabled, $invitation) {
-        // Check if this is a Club Manager invitation
-        if (get_post_meta($invitation->get_id(), '_cm_team_ids', true)) {
-            return false; // Disable default email
-        }
-        return $enabled;
-    }
-    
-    /**
-     * Check if invitation was created via post status transition
-     */
-    public function check_invitation_created($new_status, $old_status, $post) {
-        if ($post->post_type !== 'wc_team_invitation') {
-            return;
-        }
-        
-        if ($new_status === 'wcmti-pending' && $old_status !== 'wcmti-pending') {
-            // Check if this is a Club Manager invitation
-            $cm_team_ids = get_post_meta($post->ID, '_cm_team_ids', true);
-            if ($cm_team_ids) {
-                // Get invitation object
-                $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
-                if ($invitations_instance && method_exists($invitations_instance, 'get_invitation')) {
-                    $invitation = $invitations_instance->get_invitation($post->ID);
-                    if ($invitation) {
-                        $this->send_custom_invitation_email($invitation);
-                    }
-                }
-            }
-        }
-    }
-    
-    /**
-     * Send custom invitation email
-     */
-    public function send_custom_invitation_email($invitation) {
-        // Handle both invitation object and ID
-        if (is_numeric($invitation)) {
-            $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
-            if ($invitations_instance && method_exists($invitations_instance, 'get_invitation')) {
-                $invitation = $invitations_instance->get_invitation($invitation);
-            }
-        }
-        
-        if (!is_object($invitation)) {
-            error_log('Club Manager: Invalid invitation object in send_custom_invitation_email');
-            return;
-        }
-        
-        // Check if this is a Club Manager invitation
-        $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
-        if (!$cm_team_ids) {
-            return;
-        }
-        
-        error_log('Club Manager: Sending custom invitation email for invitation ID: ' . $invitation->get_id());
-        
-        $email = $invitation->get_email();
-        $token = $invitation->get_token();
-        $inviter_id = $invitation->get_sender_id();
-        $inviter = get_user_by('id', $inviter_id);
-        $message = get_post_meta($invitation->get_id(), '_cm_message', true);
-        
-        // Get team names
-        $team_names = [];
-        if ($cm_team_ids && is_array($cm_team_ids)) {
-            global $wpdb;
-            $teams_table = Club_Manager_Database::get_table_name('teams');
-            foreach ($cm_team_ids as $team_id) {
-                $team_name = $wpdb->get_var($wpdb->prepare(
-                    "SELECT name FROM $teams_table WHERE id = %d",
-                    $team_id
-                ));
-                if ($team_name) {
-                    $team_names[] = $team_name;
-                }
-            }
-        }
-        
-        // Get accept URL
-        global $wpdb;
-        $page_id = $wpdb->get_var(
-            "SELECT ID FROM {$wpdb->posts} 
-             WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
-             AND post_status = 'publish' 
-             AND post_type = 'page' 
-             LIMIT 1"
-        );
-        
-        if ($page_id && $token) {
-            $accept_url = add_query_arg([
-                'wc_invite' => $token
-            ], get_permalink($page_id));
-        } else {
-            // Fallback
-            $accept_url = home_url('/invitation/?wc_invite=' . $token);
-        }
-        
-        // Build email
-        $subject = sprintf('[%s] %s heeft je uitgenodigd als trainer', get_bloginfo('name'), $inviter->display_name);
-        
-        $body = "Hallo,\n\n";
-        
-        if ($inviter) {
-            $body .= sprintf("%s heeft je uitgenodigd om trainer te worden bij %s.\n\n", 
-                $inviter->display_name, 
-                get_bloginfo('name')
-            );
-        }
-        
-        if (!empty($team_names)) {
-            $body .= "Je krijgt toegang tot de volgende teams:\n";
-            foreach ($team_names as $tn) {
-                $body .= "- " . $tn . "\n";
-            }
-            $body .= "\n";
-        }
-        
-        if (!empty($message)) {
-            $body .= "Persoonlijk bericht:\n" . $message . "\n\n";
-        }
-        
-        $body .= "Klik op de onderstaande link om de uitnodiging te accepteren:\n";
-        $body .= $accept_url . "\n\n";
-        $body .= "Deze uitnodiging verloopt over 7 dagen.\n\n";
-        $body .= "Met vriendelijke groet,\n" . get_bloginfo('name');
-        
-        // Send email
-        $sent = wp_mail($email, $subject, $body);
-        
-        if ($sent) {
-            error_log('Club Manager: Email successfully sent to ' . $email);
-        } else {
-            error_log('Club Manager: Failed to send email to ' . $email);
-        }
     }
     
     /**
@@ -409,7 +256,28 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             update_post_meta($invitation->get_id(), '_cm_role', $role);
             update_post_meta($invitation->get_id(), '_cm_message', $message);
             
-            // The custom email will be sent via our hook
+            // Get team names for email
+            $team_names = [];
+            global $wpdb;
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            foreach ($team_ids as $team_id) {
+                $team_name = $wpdb->get_var($wpdb->prepare(
+                    "SELECT name FROM $teams_table WHERE id = %d",
+                    $team_id
+                ));
+                if ($team_name) {
+                    $team_names[] = $team_name;
+                }
+            }
+            
+            // Send custom email
+            $this->send_trainer_invitation_email(
+                $email,
+                $invitation->get_token(),
+                $user_id,
+                $team_names,
+                $message
+            );
             
             wp_send_json_success([
                 'message' => 'Uitnodiging succesvol verzonden',
@@ -419,6 +287,79 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         } catch (Exception $e) {
             wp_send_json_error('Error creating invitation: ' . $e->getMessage());
         }
+    }
+    
+    /**
+     * Send custom trainer invitation email
+     */
+    private function send_trainer_invitation_email($email, $token, $inviter_id, $team_names, $message) {
+        $inviter = get_user_by('id', $inviter_id);
+        
+        // Get accept URL
+        global $wpdb;
+        $page_id = $wpdb->get_var(
+            "SELECT ID FROM {$wpdb->posts} 
+             WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
+             AND post_status = 'publish' 
+             AND post_type = 'page' 
+             LIMIT 1"
+        );
+        
+        if ($page_id && $token) {
+            $accept_url = add_query_arg([
+                'wc_invite' => $token
+            ], get_permalink($page_id));
+        } else {
+            // Fallback
+            $accept_url = home_url('/invitation/?wc_invite=' . $token);
+        }
+        
+        // Build email
+        $subject = sprintf('[%s] %s heeft je uitgenodigd als trainer', 
+            get_bloginfo('name'), 
+            $inviter ? $inviter->display_name : 'Een beheerder'
+        );
+        
+        $body = "Hallo,\n\n";
+        
+        if ($inviter) {
+            $body .= sprintf("%s heeft je uitgenodigd om trainer te worden bij %s.\n\n", 
+                $inviter->display_name, 
+                get_bloginfo('name')
+            );
+        }
+        
+        if (!empty($team_names)) {
+            $body .= "Je krijgt toegang tot de volgende teams:\n";
+            foreach ($team_names as $tn) {
+                $body .= "- " . $tn . "\n";
+            }
+            $body .= "\n";
+        }
+        
+        if (!empty($message)) {
+            $body .= "Persoonlijk bericht:\n" . $message . "\n\n";
+        }
+        
+        $body .= "Klik op de onderstaande link om de uitnodiging te accepteren:\n";
+        $body .= $accept_url . "\n\n";
+        $body .= "Deze uitnodiging verloopt over 7 dagen.\n\n";
+        $body .= "Met vriendelijke groet,\n" . get_bloginfo('name');
+        
+        // Add headers for better deliverability
+        $headers = array(
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>'
+        );
+        
+        // Send email
+        $sent = wp_mail($email, $subject, $body, $headers);
+        
+        if (!$sent) {
+            error_log('Club Manager: Failed to send invitation email to ' . $email);
+        }
+        
+        return $sent;
     }
     
     /**
