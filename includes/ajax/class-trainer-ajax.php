@@ -354,46 +354,9 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
      * Note: All CM teams belong to the same WC Team (the club)
      */
     private function get_wc_team_for_cm_team($cm_team_id, $user_id) {
-        if (!function_exists('wc_memberships_for_teams_get_user_teams')) {
-            return false;
-        }
-        
-        // Get all teams for the user
-        $teams = wc_memberships_for_teams_get_user_teams($user_id);
-        
-        if (!empty($teams)) {
-            foreach ($teams as $team) {
-                if (!is_object($team)) continue;
-                
-                // Check if user can manage this team
-                $can_manage = false;
-                
-                // Check if user is post author
-                $team_post = get_post($team->get_id());
-                if ($team_post && $team_post->post_author == $user_id) {
-                    $can_manage = true;
-                }
-                
-                // Check member role
-                if (!$can_manage && method_exists($team, 'get_member')) {
-                    $member = $team->get_member($user_id);
-                    if ($member && method_exists($member, 'get_role')) {
-                        $role = $member->get_role();
-                        if (in_array($role, ['owner', 'manager'])) {
-                            $can_manage = true;
-                        }
-                    }
-                }
-                
-                if ($can_manage) {
-                    return $team;
-                }
-            }
-        }
-        
-        // Fallback: try direct database query
         global $wpdb;
         
+        // Direct approach: Get the team ID where user is post author
         $team_id = $wpdb->get_var($wpdb->prepare(
             "SELECT ID 
             FROM {$wpdb->posts}
@@ -409,6 +372,79 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $team = wc_memberships_for_teams_get_team($team_id);
             if ($team && is_object($team)) {
                 return $team;
+            }
+        }
+        
+        // Alternative: Check if user is member with owner/manager role
+        $team_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT p.ID 
+            FROM {$wpdb->posts} p
+            INNER JOIN {$wpdb->postmeta} pm1 ON p.ID = pm1.post_id 
+            INNER JOIN {$wpdb->postmeta} pm2 ON p.ID = pm2.post_id
+            WHERE p.post_type = 'wc_memberships_team'
+            AND p.post_status = 'publish'
+            AND pm1.meta_key = '_member_id' 
+            AND pm1.meta_value = %d
+            AND pm2.meta_key = '_role'
+            AND pm2.meta_value IN ('owner', 'manager')
+            LIMIT 1",
+            $user_id
+        ));
+        
+        if (!empty($team_ids) && function_exists('wc_memberships_for_teams_get_team')) {
+            $team = wc_memberships_for_teams_get_team($team_ids[0]);
+            if ($team && is_object($team)) {
+                return $team;
+            }
+        }
+        
+        // Last resort: Try the API function with direct team object creation
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            $teams = wc_memberships_for_teams_get_user_teams($user_id);
+            
+            // If teams is empty but we know the user has a team, try to instantiate it directly
+            if (empty($teams) && $team_id) {
+                try {
+                    // Try to create team object directly using the Teams class
+                    if (class_exists('\\SkyVerge\\WooCommerce\\Memberships\\Teams\\Team')) {
+                        $team = new \SkyVerge\WooCommerce\Memberships\Teams\Team($team_id);
+                        if ($team && $team->get_id()) {
+                            return $team;
+                        }
+                    }
+                } catch (Exception $e) {
+                    error_log('Club Manager: Failed to instantiate team directly: ' . $e->getMessage());
+                }
+            }
+            
+            if (!empty($teams)) {
+                foreach ($teams as $team) {
+                    if (!is_object($team)) continue;
+                    
+                    // Check if user can manage this team
+                    $can_manage = false;
+                    
+                    // Check if user is post author
+                    $team_post = get_post($team->get_id());
+                    if ($team_post && $team_post->post_author == $user_id) {
+                        $can_manage = true;
+                    }
+                    
+                    // Check member role
+                    if (!$can_manage && method_exists($team, 'get_member')) {
+                        $member = $team->get_member($user_id);
+                        if ($member && method_exists($member, 'get_role')) {
+                            $role = $member->get_role();
+                            if (in_array($role, ['owner', 'manager'])) {
+                                $can_manage = true;
+                            }
+                        }
+                    }
+                    
+                    if ($can_manage) {
+                        return $team;
+                    }
+                }
             }
         }
         
@@ -589,7 +625,17 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         ));
         
         if ($authored_teams > 0) {
-            return "Debug: User is author of $authored_teams teams but function failed to retrieve them.";
+            // Get team ID for more debugging
+            $team_id = $wpdb->get_var($wpdb->prepare(
+                "SELECT ID FROM {$wpdb->posts} 
+                 WHERE post_type = 'wc_memberships_team' 
+                 AND post_status = 'publish'
+                 AND post_author = %d
+                 LIMIT 1",
+                $user_id
+            ));
+            
+            return "Debug: User is author of team ID $team_id but API functions are not working correctly. Please check if WooCommerce Teams for Memberships is properly activated.";
         }
         
         // Check if user is member of any team
