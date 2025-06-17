@@ -1,4 +1,14 @@
 // Club Manager Main JavaScript - Module System
+
+// Wait for the clubManagerAjax object to be available
+if (typeof window.clubManagerAjax === 'undefined') {
+    console.error('Club Manager: Ajax object not loaded');
+}
+
+// Get the module base URL
+const moduleBase = window.clubManagerAjax?.plugin_url ? window.clubManagerAjax.plugin_url + 'assets/js/modules/' : '/wp-content/plugins/club-manager/assets/js/modules/';
+
+// Import modules using full URLs
 import { TeamModule } from './modules/team-module.js';
 import { PlayerModule } from './modules/player-module.js';
 import { EvaluationModule } from './modules/evaluation-module.js';
@@ -28,6 +38,7 @@ window.clubManager = function() {
         async init() {
             console.log('Club Manager initializing...');
             console.log('User permissions:', this.userPermissions);
+            console.log('Plugin URL:', window.clubManagerAjax?.plugin_url);
             
             // Initialize modules
             this.initializeModules();

@@ -239,6 +239,7 @@ class Club_Manager_Assets {
         return array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('club_manager_nonce'),
+            'plugin_url' => CLUB_MANAGER_PLUGIN_URL, // Added plugin URL
             'user_id' => $user_id,
             'is_logged_in' => is_user_logged_in(),
             'preferred_season' => get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025',
