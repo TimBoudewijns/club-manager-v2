@@ -12,6 +12,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         add_action('wp_ajax_cm_get_managed_teams', array($this, 'get_managed_teams'));
         add_action('wp_ajax_cm_get_pending_invitations', array($this, 'get_pending_invitations'));
         add_action('wp_ajax_cm_get_active_trainers', array($this, 'get_active_trainers'));
+        add_action('wp_ajax_cm_get_available_trainers', array($this, 'get_available_trainers'));
         add_action('wp_ajax_cm_invite_trainer', array($this, 'invite_trainer'));
         add_action('wp_ajax_cm_cancel_invitation', array($this, 'cancel_invitation'));
         add_action('wp_ajax_cm_update_trainer', array($this, 'update_trainer'));

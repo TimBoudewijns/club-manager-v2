@@ -48,6 +48,14 @@ class Club_Manager {
             error_log('Club Manager: Teams helper file missing at ' . $helpers_file);
         }
         
+        // User Permissions Helper
+        $permissions_file = CLUB_MANAGER_PLUGIN_DIR . 'includes/helpers/class-user-permissions-helper.php';
+        if (file_exists($permissions_file)) {
+            require_once $permissions_file;
+        } else {
+            error_log('Club Manager: User permissions helper file missing at ' . $permissions_file);
+        }
+        
         // Database
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-database.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-teams-table.php';

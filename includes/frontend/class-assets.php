@@ -85,17 +85,25 @@ class Club_Manager_Assets {
             true
         );
         
-        // Enqueue main JS file
+        // Enqueue main JS file (now uses modules)
         wp_enqueue_script(
-            $this->plugin_name,
-            CLUB_MANAGER_PLUGIN_URL . 'assets/js/club-manager.js',
+            $this->plugin_name . '-main',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/club-manager-main.js',
             array('jquery'),
             $this->version,
             true
         );
         
+        // Add type="module" to the script tag
+        add_filter('script_loader_tag', function($tag, $handle) {
+            if ($handle === $this->plugin_name . '-main') {
+                return str_replace('<script', '<script type="module"', $tag);
+            }
+            return $tag;
+        }, 10, 2);
+        
         // Localize script
-        wp_localize_script($this->plugin_name, 'clubManagerAjax', $this->get_localize_data());
+        wp_localize_script($this->plugin_name . '-main', 'clubManagerAjax', $this->get_localize_data());
         
         // Enqueue Alpine.js
         wp_enqueue_script(
@@ -185,63 +193,42 @@ class Club_Manager_Assets {
     private function get_localize_data() {
         $user_id = get_current_user_id();
         
-        // Simple direct database check
-        $can_view_club_teams = false;
-        if (class_exists('Club_Manager_Teams_Helper')) {
-            $can_view_club_teams = Club_Manager_Teams_Helper::can_view_club_teams($user_id);
+        // Get user permissions
+        $permissions = array();
+        if (class_exists('Club_Manager_User_Permissions_Helper')) {
+            $permissions = Club_Manager_User_Permissions_Helper::get_frontend_permissions($user_id);
         }
         
         // Get trainer limit from WooCommerce Teams
         $trainer_limit = null;
-        if (function_exists('wc_memberships_for_teams') && class_exists('Club_Manager_Teams_Helper')) {
-            // Check if user can view club teams first
-            if (Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
-                // Try to get seat info
-                global $wpdb;
+        if (function_exists('wc_memberships_for_teams') && isset($permissions['is_owner_or_manager']) && $permissions['is_owner_or_manager']) {
+            // Get managed teams
+            $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+            
+            if (!empty($managed_teams)) {
+                $wc_team_id = $managed_teams[0]['team_id'];
+                $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
                 
-                // Find any team for this user
-                $team_id = $wpdb->get_var($wpdb->prepare(
-                    "SELECT ID FROM {$wpdb->posts} 
-                     WHERE post_type = 'wc_memberships_team' 
-                     AND (post_author = %d OR ID IN (
-                         SELECT post_id FROM {$wpdb->postmeta} 
-                         WHERE meta_key = '_member_id' AND meta_value = %d
-                     ))
-                     AND post_status = 'publish'
-                     LIMIT 1",
-                    $user_id, $user_id
-                ));
-                
-                if ($team_id && function_exists('wc_memberships_for_teams_get_team')) {
-                    $team = wc_memberships_for_teams_get_team($team_id);
+                if ($wc_team && is_object($wc_team)) {
+                    // Get team seat count
+                    $seat_count = 0;
+                    if (method_exists($wc_team, 'get_seat_count')) {
+                        $seat_count = $wc_team->get_seat_count();
+                    }
                     
-                    if ($team && is_object($team)) {
-                        // Get team seat count
-                        $seat_count = 0;
-                        if (method_exists($team, 'get_seat_count')) {
-                            $seat_count = $team->get_seat_count();
+                    if ($seat_count > 0) {
+                        // Get used seats
+                        $used_seats = 0;
+                        if (method_exists($wc_team, 'get_used_seat_count')) {
+                            $used_seats = $wc_team->get_used_seat_count();
                         }
                         
-                        if ($seat_count > 0) {
-                            // Get used seats
-                            $used_seats = 0;
-                            if (method_exists($team, 'get_used_seat_count')) {
-                                $used_seats = $team->get_used_seat_count();
-                            }
-                            
-                            // Calculate available seats
-                            $trainer_limit = max(0, $seat_count - $used_seats);
-                        } else {
-                            // No seat limit = unlimited
-                            $trainer_limit = 999;
-                        }
+                        // Calculate available seats
+                        $trainer_limit = max(0, $seat_count - $used_seats);
                     } else {
-                        // No team found but user has access = unlimited
+                        // No seat limit = unlimited
                         $trainer_limit = 999;
                     }
-                } else {
-                    // User has club access but no team found = unlimited
-                    $trainer_limit = 999;
                 }
             }
         }
@@ -252,7 +239,7 @@ class Club_Manager_Assets {
             'user_id' => $user_id,
             'is_logged_in' => is_user_logged_in(),
             'preferred_season' => get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025',
-            'can_view_club_teams' => $can_view_club_teams,
+            'permissions' => $permissions,
             'trainer_limit' => $trainer_limit
         );
     }
