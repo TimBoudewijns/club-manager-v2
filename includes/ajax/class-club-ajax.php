@@ -40,6 +40,7 @@ class Club_Manager_Club_Ajax extends Club_Manager_Ajax_Handler {
         // Get teams for all club members
         global $wpdb;
         $teams_table = Club_Manager_Database::get_table_name('teams');
+        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         
         $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
         $query_args = array_merge($club_member_ids, [$season]);
@@ -52,6 +53,36 @@ class Club_Manager_Club_Ajax extends Club_Manager_Ajax_Handler {
             ORDER BY t.name",
             ...$query_args
         ));
+        
+        // For each team, get the trainers
+        foreach ($teams as $team) {
+            $trainers = $wpdb->get_results($wpdb->prepare(
+                "SELECT u.display_name, u.first_name, u.last_name, tt.role 
+                FROM $trainers_table tt
+                LEFT JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
+                LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
+                LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
+                WHERE tt.team_id = %d AND tt.is_active = 1
+                ORDER BY u.display_name",
+                $team->id
+            ));
+            
+            if (!empty($trainers)) {
+                $trainer_names = array();
+                foreach ($trainers as $trainer) {
+                    // Use first/last name if available, otherwise display_name
+                    if (!empty($trainer->first_name) || !empty($trainer->last_name)) {
+                        $name = trim($trainer->first_name . ' ' . $trainer->last_name);
+                    } else {
+                        $name = $trainer->display_name;
+                    }
+                    $trainer_names[] = $name;
+                }
+                $team->trainer_names = implode(', ', $trainer_names);
+            } else {
+                $team->trainer_names = null;
+            }
+        }
         
         wp_send_json_success($teams);
     }
