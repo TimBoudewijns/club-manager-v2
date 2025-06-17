@@ -1,5 +1,5 @@
 // Team Management Module - For owners/managers to manage club teams
-export class TeamManagementModule {
+class TeamManagementModule {
     constructor(app) {
         this.app = app;
         this.initializeData();

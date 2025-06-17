@@ -1,5 +1,5 @@
 // Player Card Module - Handles player card display and functionality
-export class PlayerCardModule {
+class PlayerCardModule {
     constructor(app) {
         this.app = app;
         this.initializeData();

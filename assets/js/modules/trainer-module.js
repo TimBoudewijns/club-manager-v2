@@ -1,5 +1,5 @@
 // Trainer Module - Handles trainer management functionality
-export class TrainerModule {
+class TrainerModule {
     constructor(app) {
         this.app = app;
         this.initializeData();

@@ -1,5 +1,5 @@
 // Club Teams Module - Handles club teams viewing functionality
-export class ClubTeamsModule {
+class ClubTeamsModule {
     constructor(app) {
         this.app = app;
         this.initializeData();

@@ -1,5 +1,5 @@
 // Team Module - Handles My Teams functionality
-export class TeamModule {
+class TeamModule {
     constructor(app) {
         this.app = app;
         this.initializeData();

@@ -1,5 +1,5 @@
 // Evaluation Module - Handles player evaluation functionality
-export class EvaluationModule {
+class EvaluationModule {
     constructor(app) {
         this.app = app;
         this.initializeData();

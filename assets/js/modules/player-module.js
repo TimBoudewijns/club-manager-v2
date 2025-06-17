@@ -1,5 +1,5 @@
 // Player Module - Handles player management functionality
-export class PlayerModule {
+class PlayerModule {
     constructor(app) {
         this.app = app;
         this.initializeData();

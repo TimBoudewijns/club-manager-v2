@@ -85,25 +85,80 @@ class Club_Manager_Assets {
             true
         );
         
-        // Enqueue main JS file (now uses modules)
+        // Enqueue alle module bestanden
         wp_enqueue_script(
-            $this->plugin_name . '-main',
-            CLUB_MANAGER_PLUGIN_URL . 'assets/js/club-manager.js',
+            'cm-team-module',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/modules/team-module.js',
             array('jquery'),
             $this->version,
             true
         );
         
-        // Add type="module" to the script tag
-        add_filter('script_loader_tag', function($tag, $handle) {
-            if ($handle === $this->plugin_name . '-main') {
-                return str_replace('<script', '<script type="module"', $tag);
-            }
-            if ($handle === 'alpinejs') {
-                return str_replace('<script', '<script defer', $tag);
-            }
-            return $tag;
-        }, 10, 2);
+        wp_enqueue_script(
+            'cm-player-module',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/modules/player-module.js',
+            array('jquery'),
+            $this->version,
+            true
+        );
+        
+        wp_enqueue_script(
+            'cm-evaluation-module',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/modules/evaluation-module.js',
+            array('jquery'),
+            $this->version,
+            true
+        );
+        
+        wp_enqueue_script(
+            'cm-trainer-module',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/modules/trainer-module.js',
+            array('jquery'),
+            $this->version,
+            true
+        );
+        
+        wp_enqueue_script(
+            'cm-team-management-module',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/modules/team-management-module.js',
+            array('jquery'),
+            $this->version,
+            true
+        );
+        
+        wp_enqueue_script(
+            'cm-player-card-module',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/modules/player-card-module.js',
+            array('jquery'),
+            $this->version,
+            true
+        );
+        
+        wp_enqueue_script(
+            'cm-club-teams-module',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/modules/club-teams-module.js',
+            array('jquery'),
+            $this->version,
+            true
+        );
+        
+        // Enqueue main JS file
+        wp_enqueue_script(
+            $this->plugin_name . '-main',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/club-manager-init.js',
+            array(
+                'jquery',
+                'cm-team-module',
+                'cm-player-module',
+                'cm-evaluation-module',
+                'cm-trainer-module',
+                'cm-team-management-module',
+                'cm-player-card-module',
+                'cm-club-teams-module'
+            ),
+            $this->version,
+            true
+        );
         
         // Localize script
         wp_localize_script($this->plugin_name . '-main', 'clubManagerAjax', $this->get_localize_data());
@@ -112,10 +167,18 @@ class Club_Manager_Assets {
         wp_enqueue_script(
             'alpinejs',
             'https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js',
-            array(),
+            array($this->plugin_name . '-main'),
             '3.x.x',
             true
         );
+        
+        // Add defer attribute to Alpine.js
+        add_filter('script_loader_tag', function($tag, $handle) {
+            if ($handle === 'alpinejs') {
+                return str_replace('<script', '<script defer', $tag);
+            }
+            return $tag;
+        }, 10, 2);
     }
     
     /**
@@ -239,7 +302,7 @@ class Club_Manager_Assets {
         return array(
             'ajax_url' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('club_manager_nonce'),
-            'plugin_url' => CLUB_MANAGER_PLUGIN_URL, // Added plugin URL
+            'plugin_url' => CLUB_MANAGER_PLUGIN_URL,
             'user_id' => $user_id,
             'is_logged_in' => is_user_logged_in(),
             'preferred_season' => get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025',
