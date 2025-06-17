@@ -88,7 +88,7 @@ class Club_Manager_Assets {
         // Enqueue main JS file (now uses modules)
         wp_enqueue_script(
             $this->plugin_name . '-main',
-            CLUB_MANAGER_PLUGIN_URL . 'assets/js/club-manager-main.js',
+            CLUB_MANAGER_PLUGIN_URL . 'assets/js/club-manager.js',
             array('jquery'),
             $this->version,
             true
@@ -98,6 +98,9 @@ class Club_Manager_Assets {
         add_filter('script_loader_tag', function($tag, $handle) {
             if ($handle === $this->plugin_name . '-main') {
                 return str_replace('<script', '<script type="module"', $tag);
+            }
+            if ($handle === 'alpinejs') {
+                return str_replace('<script', '<script defer', $tag);
             }
             return $tag;
         }, 10, 2);
