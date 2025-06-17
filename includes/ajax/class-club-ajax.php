@@ -57,9 +57,14 @@ class Club_Manager_Club_Ajax extends Club_Manager_Ajax_Handler {
         // For each team, get the trainers
         foreach ($teams as $team) {
             $trainers = $wpdb->get_results($wpdb->prepare(
-                "SELECT u.display_name, u.first_name, u.last_name, tt.role 
+                "SELECT 
+                    u.ID,
+                    u.display_name,
+                    um1.meta_value as first_name,
+                    um2.meta_value as last_name,
+                    tt.role 
                 FROM $trainers_table tt
-                LEFT JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
+                INNER JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
                 LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
                 LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
                 WHERE tt.team_id = %d AND tt.is_active = 1
