@@ -14,6 +14,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         add_action('wp_ajax_cm_get_active_trainers', array($this, 'get_active_trainers'));
         add_action('wp_ajax_cm_invite_trainer', array($this, 'invite_trainer'));
         add_action('wp_ajax_cm_cancel_invitation', array($this, 'cancel_invitation'));
+        add_action('wp_ajax_cm_update_trainer', array($this, 'update_trainer'));
         add_action('wp_ajax_cm_remove_trainer', array($this, 'remove_trainer'));
     }
     
@@ -413,6 +414,87 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             
         } catch (Exception $e) {
             wp_send_json_error('Error cancelling invitation: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Update trainer teams and role.
+     */
+    public function update_trainer() {
+        $user_id = $this->verify_request();
+        
+        if (!class_exists('Club_Manager_Teams_Helper') || !Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
+            wp_send_json_error('Unauthorized access');
+            return;
+        }
+        
+        $trainer_id = $this->get_post_data('trainer_id', 'int');
+        $team_ids = isset($_POST['teams']) ? array_map('intval', $_POST['teams']) : [];
+        $role = $this->get_post_data('role');
+        
+        if (empty($trainer_id) || empty($team_ids)) {
+            wp_send_json_error('Trainer ID and teams are required');
+            return;
+        }
+        
+        global $wpdb;
+        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        
+        // Get all teams owned by current user
+        $owned_teams = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $teams_table WHERE created_by = %d",
+            $user_id
+        ));
+        
+        if (empty($owned_teams)) {
+            wp_send_json_error('No teams found');
+            return;
+        }
+        
+        // Verify all selected teams are owned by user
+        foreach ($team_ids as $team_id) {
+            if (!in_array($team_id, $owned_teams)) {
+                wp_send_json_error('Unauthorized access to team');
+                return;
+            }
+        }
+        
+        // Start transaction
+        $wpdb->query('START TRANSACTION');
+        
+        try {
+            // Remove trainer from all teams owned by user
+            $wpdb->query($wpdb->prepare(
+                "DELETE tt FROM $trainers_table tt
+                INNER JOIN $teams_table t ON tt.team_id = t.id
+                WHERE tt.trainer_id = %d AND t.created_by = %d",
+                $trainer_id, $user_id
+            ));
+            
+            // Add trainer to selected teams
+            foreach ($team_ids as $team_id) {
+                $wpdb->insert(
+                    $trainers_table,
+                    [
+                        'team_id' => $team_id,
+                        'trainer_id' => $trainer_id,
+                        'role' => $role,
+                        'is_active' => 1,
+                        'added_by' => $user_id,
+                        'added_at' => current_time('mysql')
+                    ],
+                    ['%d', '%d', '%s', '%d', '%d', '%s']
+                );
+            }
+            
+            $wpdb->query('COMMIT');
+            
+            wp_send_json_success(['message' => 'Trainer updated successfully']);
+            
+        } catch (Exception $e) {
+            $wpdb->query('ROLLBACK');
+            wp_send_json_error('Error updating trainer: ' . $e->getMessage());
         }
     }
     

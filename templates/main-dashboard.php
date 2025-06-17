@@ -82,6 +82,7 @@
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/evaluation-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/player-history-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/invite-trainer-modal.php';
+        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-trainer-modal.php';
         ?>
     </div>
 </div>

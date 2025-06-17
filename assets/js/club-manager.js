@@ -22,6 +22,7 @@ window.clubManager = function() {
         
         // Trainer management data
         showInviteTrainerModal: false,
+        showEditTrainerModal: false,
         pendingInvitations: [],
         activeTrainers: [],
         managedTeams: [],
@@ -31,6 +32,11 @@ window.clubManager = function() {
             selectedTeams: [],
             role: 'trainer',
             message: ''
+        },
+        editingTrainer: null,
+        editTrainerData: {
+            selectedTeams: [],
+            role: 'trainer'
         },
         
         // Team data
@@ -198,6 +204,9 @@ window.clubManager = function() {
             this.$watch('showInviteTrainerModal', (value) => {
                 document.body.style.overflow = value ? 'hidden' : '';
             });
+            this.$watch('showEditTrainerModal', (value) => {
+                document.body.style.overflow = value ? 'hidden' : '';
+            });
             
             // Watch for tab changes
             this.$watch('activeTab', (value) => {
@@ -231,6 +240,11 @@ window.clubManager = function() {
             // Ensure newTrainerInvite has selectedTeams array
             if (!this.newTrainerInvite.selectedTeams) {
                 this.newTrainerInvite.selectedTeams = [];
+            }
+            
+            // Ensure editTrainerData has selectedTeams array
+            if (!this.editTrainerData.selectedTeams) {
+                this.editTrainerData.selectedTeams = [];
             }
         },
         
@@ -375,6 +389,18 @@ window.clubManager = function() {
             }
         },
         
+        toggleEditTeamSelection(teamId) {
+            if (!this.editTrainerData.selectedTeams) {
+                this.editTrainerData.selectedTeams = [];
+            }
+            const index = this.editTrainerData.selectedTeams.indexOf(teamId);
+            if (index > -1) {
+                this.editTrainerData.selectedTeams.splice(index, 1);
+            } else {
+                this.editTrainerData.selectedTeams.push(teamId);
+            }
+        },
+        
         // Check trainer limit
         canInviteMoreTrainers() {
             if (!this.trainerLimit || this.trainerLimit === 999) {
@@ -439,8 +465,40 @@ window.clubManager = function() {
         },
         
         async editTrainer(trainer) {
-            // TODO: Implement edit trainer functionality
-            console.log('Edit trainer:', trainer);
+            this.editingTrainer = trainer;
+            this.editTrainerData = {
+                selectedTeams: trainer.teams ? trainer.teams.map(t => t.id) : [],
+                role: trainer.role || 'trainer'
+            };
+            this.showEditTrainerModal = true;
+        },
+        
+        async updateTrainer() {
+            if (!this.editTrainerData.selectedTeams || this.editTrainerData.selectedTeams.length === 0) {
+                alert('Please select at least one team for the trainer');
+                return;
+            }
+            
+            try {
+                await this.apiPost('cm_update_trainer', {
+                    trainer_id: this.editingTrainer.id,
+                    teams: this.editTrainerData.selectedTeams,
+                    role: this.editTrainerData.role
+                });
+                
+                this.showEditTrainerModal = false;
+                this.editingTrainer = null;
+                this.editTrainerData = {
+                    selectedTeams: [],
+                    role: 'trainer'
+                };
+                
+                await this.loadTrainerManagementData();
+                alert('Trainer updated successfully!');
+                
+            } catch (error) {
+                alert('Error updating trainer: ' + (error.message || 'Unknown error'));
+            }
         },
         
         async removeTrainer(trainer) {
