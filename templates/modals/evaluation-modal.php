@@ -62,7 +62,7 @@
                                                :value="getSubcategoryScore(category.key, sub.key)"
                                                @input="updateSubcategoryScore(category.key, sub.key, $event.target.value)"
                                                min="1" max="10" step="0.5"
-                                               class="range range-xs">
+                                               class="range range-xs range-orange">
                                     </div>
                                 </template>
                             </div>

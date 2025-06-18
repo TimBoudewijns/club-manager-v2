@@ -4,7 +4,7 @@
 window.clubManager = function() {
     return {
         // Core data
-        activeTab: 'my-teams',
+        activeTab: 'player-management', // Changed from 'my-teams'
         currentSeason: window.clubManagerAjax?.preferred_season || '2024-2025',
         userPermissions: window.clubManagerAjax?.permissions || {},
         
@@ -44,6 +44,11 @@ window.clubManager = function() {
             this.evaluationModule = new EvaluationModule(this);
             this.playerCardModule = new PlayerCardModule(this);
             
+            // Always initialize club teams module for owners/managers
+            if (this.userPermissions.can_view_club_teams) {
+                this.clubTeamsModule = new ClubTeamsModule(this);
+            }
+            
             // Only initialize modules user has access to
             if (this.userPermissions.can_manage_teams) {
                 this.teamManagementModule = new TeamManagementModule(this);
@@ -52,18 +57,14 @@ window.clubManager = function() {
             if (this.userPermissions.can_manage_trainers) {
                 this.trainerModule = new TrainerModule(this);
             }
-            
-            if (this.userPermissions.can_view_club_teams) {
-                this.clubTeamsModule = new ClubTeamsModule(this);
-            }
         },
         
         // Set initial tab based on user permissions
         setInitialTab() {
             if (this.userPermissions.available_tabs && this.userPermissions.available_tabs.length > 0) {
-                // Default to my-teams if available
-                if (this.userPermissions.available_tabs.includes('my-teams')) {
-                    this.activeTab = 'my-teams';
+                // Default to player-management if available
+                if (this.userPermissions.available_tabs.includes('player-management')) {
+                    this.activeTab = 'player-management';
                 } else {
                     // Otherwise use first available tab
                     this.activeTab = this.userPermissions.available_tabs[0];
@@ -79,19 +80,17 @@ window.clubManager = function() {
         // Handle tab changes
         async handleTabChange(tab) {
             switch (tab) {
-                case 'my-teams':
+                case 'player-management':
+                    // Load both my teams and club teams
                     await this.teamModule.loadMyTeams();
+                    if (this.clubTeamsModule && this.userPermissions.can_view_club_teams) {
+                        await this.clubTeamsModule.loadClubTeams();
+                    }
                     break;
                     
                 case 'team-management':
                     if (this.teamManagementModule) {
                         await this.teamManagementModule.loadManagedTeams();
-                    }
-                    break;
-                    
-                case 'club-teams':
-                    if (this.clubTeamsModule) {
-                        await this.clubTeamsModule.loadClubTeams();
                     }
                     break;
                     

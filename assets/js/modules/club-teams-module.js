@@ -37,6 +37,12 @@ class ClubTeamsModule {
     }
     
     async selectClubTeam(team) {
+        // Reset personal team selection when selecting a club team
+        this.app.selectedTeam = null;
+        this.app.viewingPlayer = null;
+        this.app.selectedPlayerCard = null;
+        
+        // Set club team selection
         this.app.selectedClubTeam = team;
         this.app.viewingClubPlayer = null;
         this.app.selectedClubPlayerCard = null;

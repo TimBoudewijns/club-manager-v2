@@ -140,7 +140,7 @@ class Club_Manager_User_Permissions_Helper {
     }
     
     /**
-     * Get teams for "My Teams" tab based on user role
+     * Get teams for "My Teams" section based on user role
      * 
      * @param int $user_id User ID
      * @param string $season Season
@@ -220,7 +220,7 @@ class Club_Manager_User_Permissions_Helper {
             $user_id = get_current_user_id();
         }
         
-        $tabs = ['my-teams']; // Everyone gets My Teams
+        $tabs = ['player-management']; // Everyone gets Player Management
         
         $user_role = self::get_user_role($user_id);
         
@@ -228,16 +228,15 @@ class Club_Manager_User_Permissions_Helper {
             case 'owner':
             case 'manager':
                 $tabs[] = 'team-management';
-                $tabs[] = 'club-teams';
                 $tabs[] = 'trainer-management';
                 break;
                 
             case 'trainer':
-                // Trainers only see My Teams
+                // Trainers only see Player Management
                 break;
                 
             case 'individual':
-                // Individuals only see My Teams
+                // Individuals only see Player Management
                 break;
         }
         
