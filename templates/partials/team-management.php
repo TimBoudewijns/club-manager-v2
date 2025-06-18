@@ -236,7 +236,7 @@
                 <h3 class="font-bold text-2xl">Assign Trainer</h3>
                 <p class="text-orange-100 mt-1">Add a trainer to <span x-text="selectedManagedTeam?.name"></span></p>
             </div>
-            <form @submit.prevent="assignTrainerToTeam" class="p-6">
+            <form @submit.prevent="trainerAssignment.teamId = selectedManagedTeam?.id; trainerAssignment.trainerId && assignTrainerToTeam()" class="p-6">
                 <div class="form-control w-full">
                     <label class="label">
                         <span class="label-text font-semibold text-gray-700">Select Trainer</span>
@@ -251,8 +251,6 @@
                     </select>
                 </div>
                 
-                <input type="hidden" x-model="trainerAssignment.teamId = selectedManagedTeam?.id" />
-                
                 <div class="modal-action mt-8">
                     <button type="button" 
                             class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6" 
@@ -265,4 +263,4 @@
             </form>
         </div>
     </div>
-</div>-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356
+</div>
