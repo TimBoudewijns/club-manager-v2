@@ -88,10 +88,11 @@ class TeamModule {
         this.app.viewingPlayer = null;
         this.app.selectedPlayerCard = null;
         
-        // Show team details modal
-        this.app.showTeamDetailsModal = true;
-        
+        // Load team players
         await this.loadTeamPlayers();
+        
+        // Show team details modal after loading players
+        this.app.showTeamDetailsModal = true;
     }
     
     async loadTeamPlayers() {

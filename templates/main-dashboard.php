@@ -261,6 +261,7 @@
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-trainer-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/create-club-team-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/assign-trainer-modal.php';
+        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-team-modal.php';
         ?>
     </div>
 </div>

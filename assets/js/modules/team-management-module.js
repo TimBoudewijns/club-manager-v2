@@ -21,6 +21,14 @@ class TeamManagementModule {
                 trainers: []
             },
             
+            // Edit team modal
+            showEditTeamModal: false,
+            editingTeam: null,
+            editTeamData: {
+                name: '',
+                coach: ''
+            },
+            
             // Assign trainer modal
             showAssignTrainerModal: false,
             trainerAssignment: {
@@ -40,6 +48,7 @@ class TeamManagementModule {
         this.app.removeTrainerFromTeam = this.removeTrainerFromTeam.bind(this);
         this.app.loadAvailableTrainers = this.loadAvailableTrainers.bind(this);
         this.app.editManagedTeam = this.editManagedTeam.bind(this);
+        this.app.updateManagedTeam = this.updateManagedTeam.bind(this);
         this.app.deleteManagedTeam = this.deleteManagedTeam.bind(this);
     }
     
@@ -151,8 +160,40 @@ class TeamManagementModule {
     }
     
     async editManagedTeam(team) {
-        // TODO: Implement team editing
-        alert('Team editing coming soon');
+        this.app.editingTeam = team;
+        this.app.editTeamData = {
+            name: team.name,
+            coach: team.coach
+        };
+        this.app.showEditTeamModal = true;
+    }
+    
+    async updateManagedTeam() {
+        if (!this.app.editingTeam || !this.app.editTeamData.name || !this.app.editTeamData.coach) {
+            alert('Please fill in all fields');
+            return;
+        }
+        
+        try {
+            await this.app.apiPost('cm_update_team', {
+                team_id: this.app.editingTeam.id,
+                name: this.app.editTeamData.name,
+                coach: this.app.editTeamData.coach
+            });
+            
+            this.app.showEditTeamModal = false;
+            this.app.editingTeam = null;
+            this.app.editTeamData = {
+                name: '',
+                coach: ''
+            };
+            
+            await this.loadManagedTeams();
+            alert('Team updated successfully!');
+            
+        } catch (error) {
+            alert('Error updating team: ' + (error.message || 'Unknown error'));
+        }
     }
     
     async deleteManagedTeam(teamId) {

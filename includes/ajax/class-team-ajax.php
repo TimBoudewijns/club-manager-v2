@@ -17,6 +17,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         add_action('wp_ajax_cm_get_team_trainers', array($this, 'get_team_trainers'));
         add_action('wp_ajax_cm_assign_trainer_to_team', array($this, 'assign_trainer_to_team'));
         add_action('wp_ajax_cm_remove_trainer_from_team', array($this, 'remove_trainer_from_team'));
+        add_action('wp_ajax_cm_update_team', array($this, 'update_team'));
         add_action('wp_ajax_cm_delete_team', array($this, 'delete_team'));
         add_action('wp_ajax_cm_save_season_preference', array($this, 'save_season_preference'));
     }
@@ -327,6 +328,45 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             wp_send_json_success(['message' => 'Trainer removed successfully']);
         } else {
             wp_send_json_error('Failed to remove trainer');
+        }
+    }
+    
+    /**
+     * Update a team.
+     */
+    public function update_team() {
+        $user_id = $this->verify_request();
+        
+        if (!Club_Manager_User_Permissions_Helper::is_club_owner_or_manager($user_id)) {
+            wp_send_json_error('Unauthorized access');
+            return;
+        }
+        
+        $team_id = $this->get_post_data('team_id', 'int');
+        $name = $this->get_post_data('name');
+        $coach = $this->get_post_data('coach');
+        
+        if (empty($name) || empty($coach)) {
+            wp_send_json_error('Missing required fields');
+            return;
+        }
+        
+        // Verify team belongs to club
+        if (!$this->is_club_team($team_id, $user_id)) {
+            wp_send_json_error('Unauthorized access to team');
+            return;
+        }
+        
+        $team_model = new Club_Manager_Team_Model();
+        $result = $team_model->update($team_id, [
+            'name' => $name,
+            'coach' => $coach
+        ]);
+        
+        if ($result !== false) {
+            wp_send_json_success(['message' => 'Team updated successfully']);
+        } else {
+            wp_send_json_error('Failed to update team');
         }
     }
     
