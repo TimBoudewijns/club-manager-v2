@@ -221,9 +221,6 @@
                 </div>
             </div>
             
-            <!-- Team Details Section -->
-            <?php include 'partials/team-details.php'; ?>
-            
             <!-- Player Card Section -->
             <?php include 'partials/player-card.php'; ?>
             
@@ -255,6 +252,7 @@
         <!-- Include Modals -->
         <?php 
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/create-team-modal.php';
+        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/team-details-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/add-player-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/add-existing-player-modal.php';
         include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/evaluation-modal.php';

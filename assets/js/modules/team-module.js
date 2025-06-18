@@ -19,7 +19,10 @@ class TeamModule {
             newTeam: {
                 name: '',
                 coach: ''
-            }
+            },
+            
+            // Team details modal
+            showTeamDetailsModal: false
         });
         
         // Bind methods to app
@@ -32,6 +35,7 @@ class TeamModule {
         this.app.selectTeam = this.selectTeam.bind(this);
         this.app.loadTeamPlayers = this.loadTeamPlayers.bind(this);
         this.app.canCreateTeam = this.canCreateTeam.bind(this);
+        this.app.closeTeamDetailsModal = this.closeTeamDetailsModal.bind(this);
     }
     
     async loadMyTeams() {
@@ -83,6 +87,10 @@ class TeamModule {
         this.app.selectedTeam = team;
         this.app.viewingPlayer = null;
         this.app.selectedPlayerCard = null;
+        
+        // Show team details modal
+        this.app.showTeamDetailsModal = true;
+        
         await this.loadTeamPlayers();
     }
     
@@ -99,10 +107,18 @@ class TeamModule {
         }
     }
     
+    closeTeamDetailsModal() {
+        this.app.showTeamDetailsModal = false;
+        // Optionally reset selection
+        // this.app.selectedTeam = null;
+        // this.app.teamPlayers = [];
+    }
+    
     resetSelections() {
         this.app.selectedTeam = null;
         this.app.teamPlayers = [];
         this.app.viewingPlayer = null;
         this.app.selectedPlayerCard = null;
+        this.app.showTeamDetailsModal = false;
     }
 }

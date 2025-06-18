@@ -449,3 +449,50 @@ body.modal-open {
         font-size: 16px !important;
     }
 }
+
+/* Team Details Modal Specific Styles */
+.club-manager-app .team-details-modal {
+    z-index: 9990 !important;
+}
+
+.club-manager-app .team-details-modal .modal-content {
+    z-index: 9991 !important;
+}
+
+/* Ensure other modals opened from team details modal appear on top */
+.club-manager-app .modal-wrapper[x-show="showEvaluationModal"],
+.club-manager-app .modal-wrapper[x-show="showPlayerHistoryModal"],
+.club-manager-app .modal-wrapper[x-show="showAddPlayerModal"],
+.club-manager-app .modal-wrapper[x-show="showAddExistingPlayerModal"] {
+    z-index: 9995 !important;
+}
+
+/* Smooth transitions for team cards */
+.club-manager-app .team-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.club-manager-app .team-card:hover {
+    transform: translateY(-2px);
+}
+
+/* Loading state for team details */
+.club-manager-app .team-details-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+}
+
+.club-manager-app .team-details-loading svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
