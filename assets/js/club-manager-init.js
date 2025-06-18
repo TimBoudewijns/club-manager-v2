@@ -4,7 +4,7 @@
 window.clubManager = function() {
     return {
         // Core data
-        activeTab: 'player-management', // Changed from 'my-teams'
+        activeTab: 'player-management',
         currentSeason: window.clubManagerAjax?.preferred_season || '2024-2025',
         userPermissions: window.clubManagerAjax?.permissions || {},
         
@@ -39,22 +39,34 @@ window.clubManager = function() {
         
         // Initialize all modules
         initializeModules() {
-            this.teamModule = new TeamModule(this);
-            this.playerModule = new PlayerModule(this);
-            this.evaluationModule = new EvaluationModule(this);
-            this.playerCardModule = new PlayerCardModule(this);
+            // Check if modules exist in global scope
+            if (typeof TeamModule !== 'undefined') {
+                this.teamModule = new TeamModule(this);
+            }
+            
+            if (typeof PlayerModule !== 'undefined') {
+                this.playerModule = new PlayerModule(this);
+            }
+            
+            if (typeof EvaluationModule !== 'undefined') {
+                this.evaluationModule = new EvaluationModule(this);
+            }
+            
+            if (typeof PlayerCardModule !== 'undefined') {
+                this.playerCardModule = new PlayerCardModule(this);
+            }
             
             // Always initialize club teams module for owners/managers
-            if (this.userPermissions.can_view_club_teams) {
+            if (this.userPermissions.can_view_club_teams && typeof ClubTeamsModule !== 'undefined') {
                 this.clubTeamsModule = new ClubTeamsModule(this);
             }
             
             // Only initialize modules user has access to
-            if (this.userPermissions.can_manage_teams) {
+            if (this.userPermissions.can_manage_teams && typeof TeamManagementModule !== 'undefined') {
                 this.teamManagementModule = new TeamManagementModule(this);
             }
             
-            if (this.userPermissions.can_manage_trainers) {
+            if (this.userPermissions.can_manage_trainers && typeof TrainerModule !== 'undefined') {
                 this.trainerModule = new TrainerModule(this);
             }
         },
@@ -82,7 +94,9 @@ window.clubManager = function() {
             switch (tab) {
                 case 'player-management':
                     // Load both my teams and club teams
-                    await this.teamModule.loadMyTeams();
+                    if (this.teamModule) {
+                        await this.teamModule.loadMyTeams();
+                    }
                     if (this.clubTeamsModule && this.userPermissions.can_view_club_teams) {
                         await this.clubTeamsModule.loadClubTeams();
                     }
@@ -169,4 +183,26 @@ window.clubManager = function() {
                    this.userPermissions.available_tabs.includes(tab);
         }
     };
+};
+
+// Module base class - andere modules kunnen dit gebruiken
+window.ClubManagerModule = class {
+    constructor(manager) {
+        this.manager = manager;
+    }
+    
+    // Shared API helper
+    async apiPost(action, data = {}) {
+        return this.manager.apiPost(action, data);
+    }
+    
+    // Get current season
+    get currentSeason() {
+        return this.manager.currentSeason;
+    }
+    
+    // Check permission
+    hasPermission(permission) {
+        return this.manager.hasPermission(permission);
+    }
 };
