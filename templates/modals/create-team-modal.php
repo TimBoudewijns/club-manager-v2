@@ -6,14 +6,14 @@
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     class="modal-wrapper" 
+     class="fixed inset-0 z-50 overflow-y-auto" 
      style="display: none;">
-    <!-- Modal container met scrolling -->
+    <!-- Modal container with scrolling -->
     <div class="modal-container">
-        <!-- Backdrop - z-index lager dan content -->
+        <!-- Backdrop -->
         <div class="modal-backdrop" @click="showCreateTeamModal = false"></div>
         
-        <!-- Modal content - hogere z-index -->
+        <!-- Modal content -->
         <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 transform scale-90"

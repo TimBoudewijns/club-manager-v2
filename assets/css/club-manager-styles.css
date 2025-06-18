@@ -22,16 +22,66 @@ body.modal-open {
     box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
 }
 
-.club-manager-app .modal-box {
-    max-height: calc(100vh - 5em);
+/* Universal Modal Styles */
+.club-manager-app .fixed.inset-0 {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 9999 !important;
 }
 
-@media (max-width: 640px) {
-    .club-manager-app .modal-box {
-        max-height: 90vh;
-        margin: 1rem;
-        width: calc(100% - 2rem);
-        max-width: calc(100% - 2rem);
+.club-manager-app .modal-backdrop {
+    position: fixed !important;
+    inset: 0 !important;
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(4px);
+}
+
+.club-manager-app .modal-container {
+    position: fixed !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 1rem !important;
+}
+
+.club-manager-app .modal-content {
+    position: relative !important;
+    background-color: white !important;
+    max-height: calc(100vh - 2rem) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+}
+
+/* Mobile-specific modal fixes */
+@media (max-width: 768px) {
+    .club-manager-app .modal-container {
+        padding: 0.5rem !important;
+    }
+    
+    .club-manager-app .modal-content {
+        max-height: calc(100vh - 1rem) !important;
+        width: calc(100vw - 1rem) !important;
+        max-width: calc(100vw - 1rem) !important;
+        margin: 0.5rem !important;
+    }
+    
+    /* Fix for iOS input focus issues in modals */
+    .club-manager-app input[type="text"],
+    .club-manager-app input[type="email"],
+    .club-manager-app input[type="number"],
+    .club-manager-app input[type="date"],
+    .club-manager-app select,
+    .club-manager-app textarea {
+        font-size: 16px !important; /* Prevents iOS zoom on focus */
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
     }
 }
 
@@ -44,10 +94,6 @@ body.modal-open {
 .club-manager-app .btn-primary:hover {
     background-color: #ea580c !important;
     border-color: #ea580c !important;
-}
-
-.club-manager-app .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.5) !important;
 }
 
 .club-manager-app [type="checkbox"]:checked,
@@ -81,19 +127,7 @@ body.modal-open {
     height: 1rem;
 }
 
-/* Fix modal backdrop color */
-.club-manager-app .modal::backdrop,
-.club-manager-app .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.5) !important;
-    backdrop-filter: blur(4px);
-}
-
 /* Remove DaisyUI theme colors */
-.club-manager-app .modal-open .modal-backdrop {
-    background-color: rgba(0, 0, 0, 0.5) !important;
-}
-
-/* Prevent any pink/rose colors */
 .club-manager-app * {
     --fallback-p: 25 84% 50% !important;
     --fallback-pc: 0 0% 100% !important;
@@ -130,107 +164,6 @@ body.modal-open {
     transform: translateX(0.25rem);
 }
 
-/* MODAL Z-INDEX AND MOBILE FIXES - ENHANCED */
-.club-manager-app .modal-wrapper {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 9999 !important;
-    overflow: hidden !important;
-}
-
-.club-manager-app .modal-backdrop {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 9998 !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-}
-
-.club-manager-app .modal-container {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 9999 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    padding: 1rem !important;
-}
-
-.club-manager-app .modal-content {
-    position: relative !important;
-    z-index: 10001 !important;
-    background-color: white !important;
-    max-height: calc(100vh - 2rem) !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-
-/* Mobile-specific modal fixes - ENHANCED */
-@media (max-width: 768px) {
-    .club-manager-app .modal-container {
-        padding: 0.5rem !important;
-    }
-    
-    .club-manager-app .modal-content {
-        max-height: calc(100vh - 1rem) !important;
-        width: calc(100vw - 1rem) !important;
-        max-width: calc(100vw - 1rem) !important;
-        margin: 0.5rem !important;
-    }
-    
-    /* Fix for iOS input focus issues in modals */
-    .club-manager-app input[type="text"],
-    .club-manager-app input[type="email"],
-    .club-manager-app input[type="number"],
-    .club-manager-app input[type="date"],
-    .club-manager-app select,
-    .club-manager-app textarea {
-        font-size: 16px !important; /* Prevents iOS zoom on focus */
-        -webkit-appearance: none !important;
-        -moz-appearance: none !important;
-        appearance: none !important;
-    }
-    
-    /* Fix for search results in modal */
-    .club-manager-app .modal-content button {
-        cursor: pointer !important;
-        -webkit-tap-highlight-color: transparent !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        user-select: none !important;
-        position: relative !important;
-        z-index: 10 !important;
-    }
-    
-    /* Ensure scrolling works on iOS */
-    .club-manager-app .modal-wrapper,
-    .club-manager-app .modal-container,
-    .club-manager-app .modal-content {
-        -webkit-transform: translateZ(0) !important;
-        transform: translateZ(0) !important;
-    }
-    
-    /* Better touch targets for modal buttons */
-    .club-manager-app .modal-content button,
-    .club-manager-app .modal-content a {
-        min-height: 44px !important;
-        min-width: 44px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 12px !important;
-    }
-    
-    /* Fix for modal input focus */
-    .club-manager-app .modal-content input:focus,
-    .club-manager-app .modal-content select:focus,
-    .club-manager-app .modal-content textarea:focus {
-        position: relative !important;
-        z-index: 11 !important;
-    }
-}
-
 /* Range input styles */
 .club-manager-app .range {
     --range-shdw: #f97316;
@@ -256,38 +189,6 @@ body.modal-open {
     height: 100%;
     background-color: #f97316;
     transition: width 0.3s ease;
-}
-
-/* Modal styles */
-.modal-wrapper {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    overflow-y: auto;
-}
-
-.modal-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 1rem;
-}
-
-.modal-backdrop {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-}
-
-.modal-content {
-    position: relative;
-    background-color: white;
-    border-radius: 1rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    max-width: 100%;
-    overflow: hidden;
 }
 
 /* Mobile-specific action button fixes */
@@ -352,16 +253,6 @@ body.modal-open {
         scrollbar-width: thin !important;
         position: relative !important;
         z-index: 1 !important;
-    }
-    
-    /* Fix modal z-index issues on mobile */
-    .club-manager-app .fixed.inset-0 {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        z-index: 9999 !important;
     }
     
     /* Better button feedback on mobile */
@@ -448,23 +339,6 @@ body.modal-open {
     .club-manager-app textarea {
         font-size: 16px !important;
     }
-}
-
-/* Team Details Modal Specific Styles */
-.club-manager-app .team-details-modal {
-    z-index: 9990 !important;
-}
-
-.club-manager-app .team-details-modal .modal-content {
-    z-index: 9991 !important;
-}
-
-/* Ensure other modals opened from team details modal appear on top */
-.club-manager-app .modal-wrapper[x-show="showEvaluationModal"],
-.club-manager-app .modal-wrapper[x-show="showPlayerHistoryModal"],
-.club-manager-app .modal-wrapper[x-show="showAddPlayerModal"],
-.club-manager-app .modal-wrapper[x-show="showAddExistingPlayerModal"] {
-    z-index: 9995 !important;
 }
 
 /* Smooth transitions for team cards */

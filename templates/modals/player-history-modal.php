@@ -6,12 +6,12 @@
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     class="modal-wrapper" 
+     class="fixed inset-0 z-50 overflow-y-auto" 
      style="display: none;">
     <div class="modal-container">
         <div class="modal-backdrop" @click="showPlayerHistoryModal = false"></div>
         
-        <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden"
+        <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-3xl w-full"
              x-transition:enter="transition ease-out duration-300"
              x-transition:enter-start="opacity-0 transform scale-90"
              x-transition:enter-end="opacity-100 transform scale-100"

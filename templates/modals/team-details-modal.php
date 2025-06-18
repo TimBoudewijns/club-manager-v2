@@ -6,15 +6,14 @@
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     class="fixed inset-0 z-[9990] overflow-hidden" 
+     class="fixed inset-0 z-50 overflow-y-auto" 
      style="display: none;">
-    <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="modal-container">
         <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" 
-             @click="closeTeamDetailsModal()"></div>
+        <div class="modal-backdrop" @click="closeTeamDetailsModal()"></div>
         
         <!-- Modal Content -->
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden z-[9991]"
+        <div class="modal-content bg-white rounded-2xl shadow-2xl max-w-7xl w-full overflow-hidden"
              @click.stop>
             <!-- Team Header -->
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-4 md:p-6 text-white">
