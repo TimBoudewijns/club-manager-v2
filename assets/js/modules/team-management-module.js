@@ -165,7 +165,10 @@ class TeamManagementModule {
             name: team.name,
             coach: team.coach
         };
-        this.app.showEditTeamModal = true;
+        // Use nextTick to ensure DOM is updated
+        this.app.$nextTick(() => {
+            this.app.showEditTeamModal = true;
+        });
     }
     
     async updateManagedTeam() {

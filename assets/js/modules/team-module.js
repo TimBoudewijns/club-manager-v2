@@ -92,7 +92,10 @@ class TeamModule {
         await this.loadTeamPlayers();
         
         // Show team details modal after loading players
-        this.app.showTeamDetailsModal = true;
+        // Use nextTick to ensure DOM is updated
+        this.app.$nextTick(() => {
+            this.app.showTeamDetailsModal = true;
+        });
     }
     
     async loadTeamPlayers() {

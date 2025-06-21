@@ -248,20 +248,20 @@
              x-transition:enter-end="opacity-100 transform scale-100">
             <?php include 'partials/trainer-management.php'; ?>
         </div>
-        
-        <!-- Include Modals -->
-        <?php 
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/create-team-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/team-details-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/add-player-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/add-existing-player-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/evaluation-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/player-history-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/invite-trainer-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-trainer-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/create-club-team-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/assign-trainer-modal.php';
-        include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-team-modal.php';
-        ?>
     </div>
+    
+    <!-- Include ALL Modals OUTSIDE the tab content divs -->
+    <?php 
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/create-team-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/team-details-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/add-player-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/add-existing-player-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/evaluation-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/player-history-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/invite-trainer-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-trainer-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/create-club-team-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/assign-trainer-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-team-modal.php';
+    ?>
 </div>
