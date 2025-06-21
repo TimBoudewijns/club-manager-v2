@@ -20,7 +20,8 @@ class PlayerCardModule {
             
             // Modal specific data
             showPlayerCardModal: false,
-            modalViewingPlayer: null
+            modalViewingPlayer: null,
+            modalIsClubView: false
         });
         
         this.bindMethods();
@@ -54,12 +55,14 @@ class PlayerCardModule {
         }
     }
     
-    async viewPlayerCardInModal(playerId) {
-        const player = this.app.teamPlayers.find(p => p.id == playerId);
+    async viewPlayerCardInModal(playerId, isClubView = false) {
+        const players = isClubView ? this.app.clubTeamPlayers : this.app.teamPlayers;
+        const player = players.find(p => p.id == playerId);
         if (!player) return;
         
-        // Set modal player
+        // Set modal player and view type
         this.app.modalViewingPlayer = player;
+        this.app.modalIsClubView = isClubView;
         
         // Destroy existing modal chart if any
         if (this.app.modalPlayerCardChart) {
@@ -68,11 +71,11 @@ class PlayerCardModule {
         }
         
         // Load evaluations first
-        await this.app.evaluationModule.loadEvaluations(player, false);
-        await this.loadEvaluationHistory(player, false);
+        await this.app.evaluationModule.loadEvaluations(player, isClubView);
+        await this.loadEvaluationHistory(player, isClubView);
         
         // Load AI advice
-        await this.loadPlayerAdvice(player, false);
+        await this.loadPlayerAdvice(player, isClubView);
         
         // Show modal
         this.app.showPlayerCardModal = true;
@@ -89,6 +92,7 @@ class PlayerCardModule {
     closePlayerCardModal() {
         this.app.showPlayerCardModal = false;
         this.app.modalViewingPlayer = null;
+        this.app.modalIsClubView = false;
         
         // Destroy modal chart
         if (this.app.modalPlayerCardChart) {
@@ -193,6 +197,13 @@ class PlayerCardModule {
             chartLabel = 'Performance on ' + dateObj.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
         }
         
+        // Determine colors based on view type
+        const isClubView = this.app.modalIsClubView;
+        const backgroundColor = isClubView ? 'rgba(59, 130, 246, 0.2)' : 'rgba(249, 115, 22, 0.2)';
+        const borderColor = isClubView ? 'rgb(59, 130, 246)' : 'rgb(249, 115, 22)';
+        const pointBackgroundColor = isClubView ? 'rgb(59, 130, 246)' : 'rgb(249, 115, 22)';
+        const pointHoverBorderColor = isClubView ? 'rgb(59, 130, 246)' : 'rgb(249, 115, 22)';
+        
         try {
             this.app.modalPlayerCardChart = new Chart(ctx, {
                 type: 'radar',
@@ -202,12 +213,12 @@ class PlayerCardModule {
                         label: chartLabel,
                         data: data,
                         fill: true,
-                        backgroundColor: 'rgba(249, 115, 22, 0.2)',
-                        borderColor: 'rgb(249, 115, 22)',
-                        pointBackgroundColor: 'rgb(249, 115, 22)',
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        pointBackgroundColor: pointBackgroundColor,
                         pointBorderColor: '#fff',
                         pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(249, 115, 22)',
+                        pointHoverBorderColor: pointHoverBorderColor,
                         pointRadius: 4,
                         pointHoverRadius: 6
                     }]
@@ -664,8 +675,8 @@ class PlayerCardModule {
             const jsPDF = window.jspdf.jsPDF;
             const pdf = new jsPDF('p', 'mm', 'a4');
             
-            // Colors
-            const orangeColor = [255, 152, 0];
+            // Colors - use blue for club teams
+            const primaryColor = (isModal ? this.app.modalIsClubView : isClubView) ? [59, 130, 246] : [255, 152, 0];
             const darkGray = [31, 41, 55];
             const mediumGray = [107, 114, 128];
             const lightGray = [229, 231, 235];
@@ -680,12 +691,12 @@ class PlayerCardModule {
             // Title
             const playerName = viewingPlayer.first_name + ' ' + viewingPlayer.last_name;
             pdf.setFontSize(24);
-            pdf.setTextColor.apply(pdf, orangeColor);
+            pdf.setTextColor.apply(pdf, primaryColor);
             pdf.text(playerName, pageWidth / 2, yPosition, { align: 'center' });
             yPosition += 10;
             
             // Subtitle
-            const team = isClubView ? this.app.selectedClubTeam : this.app.selectedTeam;
+            const team = (isModal ? this.app.modalIsClubView : isClubView) ? this.app.selectedClubTeam : this.app.selectedTeam;
             pdf.setFontSize(14);
             pdf.setTextColor.apply(pdf, mediumGray);
             pdf.text(team.name + ' - ' + this.app.currentSeason, pageWidth / 2, yPosition, { align: 'center' });
@@ -720,97 +731,97 @@ class PlayerCardModule {
             
             // Performance Scores
             pdf.setFontSize(16);
-            pdf.setTextColor.apply(pdf, orangeColor);
+            pdf.setTextColor.apply(pdf, primaryColor);
             pdf.setFont(undefined, 'bold');
             pdf.text('Performance Evaluation', margin, yPosition);
             pdf.setFont(undefined, 'normal');
             yPosition += 10;
             
             // Draw evaluation scores
-           const categories = this.app.evaluationCategories;
-           pdf.setFontSize(11);
-           
-           categories.forEach((category, index) => {
-               if (yPosition > pageHeight - 40) {
-                   pdf.addPage();
-                   yPosition = 20;
-               }
-               
-               const score = this.getPlayerCardCategoryAverage(category.key);
-               const scoreFloat = parseFloat(score);
-               
-               // Category name
-               pdf.setTextColor.apply(pdf, darkGray);
-               pdf.text(category.name, margin, yPosition);
-               
-               // Score
-               pdf.setTextColor.apply(pdf, orangeColor);
-               pdf.text(score + '/10', margin + 80, yPosition);
-               
-               // Progress bar
-               pdf.setDrawColor.apply(pdf, lightGray);
-               pdf.setFillColor.apply(pdf, lightGray);
-               pdf.rect(margin + 110, yPosition - 4, 50, 5, 'F');
-               
-               // Fill based on score
-               if (scoreFloat >= 7) {
-                   pdf.setFillColor(34, 197, 94); // Green
-               } else if (scoreFloat >= 5) {
-                   pdf.setFillColor.apply(pdf, orangeColor);
-               } else {
-                   pdf.setFillColor(239, 68, 68); // Red
-               }
-               pdf.rect(margin + 110, yPosition - 4, (scoreFloat / 10) * 50, 5, 'F');
-               
-               yPosition += 8;
-           });
-           
-           yPosition += 10;
-           
-           // AI Advice
-           if (this.app.playerAdvice && this.app.adviceStatus !== 'no_evaluations') {
-               if (yPosition > pageHeight - 60) {
-                   pdf.addPage();
-                   yPosition = 20;
-               }
-               
-               pdf.setFontSize(16);
-               pdf.setTextColor.apply(pdf, orangeColor);
-               pdf.setFont(undefined, 'bold');
-               pdf.text('AI Coaching Advice', margin, yPosition);
-               pdf.setFont(undefined, 'normal');
-               yPosition += 10;
-               
-               pdf.setFontSize(10);
-               pdf.setTextColor.apply(pdf, darkGray);
-               const splitAdvice = pdf.splitTextToSize(this.app.playerAdvice, contentWidth);
-               pdf.text(splitAdvice, margin, yPosition);
-               yPosition += splitAdvice.length * 4 + 10;
-           }
-           
-           // Footer
-           pdf.setFontSize(8);
-           pdf.setTextColor.apply(pdf, mediumGray);
-           pdf.text('Generated: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString(), pageWidth / 2, pageHeight - 10, { align: 'center' });
-           
-           // Save the PDF
-           const fileName = playerName.replace(/\s+/g, '_') + '_' + this.app.currentSeason + '_PlayerCard.pdf';
-           pdf.save(fileName);
-           
-           // Restore button if it exists
-           if (button) {
-               button.innerHTML = originalContent;
-               button.disabled = false;
-           }
-           
-       } catch (error) {
-           alert('Error generating PDF: ' + error.message);
-           
-           // Restore button if it exists
-           if (button && originalContent) {
-               button.innerHTML = originalContent;
-               button.disabled = false;
-           }
-       }
-   }
+            const categories = this.app.evaluationCategories;
+            pdf.setFontSize(11);
+            
+            categories.forEach((category, index) => {
+                if (yPosition > pageHeight - 40) {
+                    pdf.addPage();
+                    yPosition = 20;
+                }
+                
+                const score = this.getPlayerCardCategoryAverage(category.key);
+                const scoreFloat = parseFloat(score);
+                
+                // Category name
+                pdf.setTextColor.apply(pdf, darkGray);
+                pdf.text(category.name, margin, yPosition);
+                
+                // Score
+                pdf.setTextColor.apply(pdf, primaryColor);
+                pdf.text(score + '/10', margin + 80, yPosition);
+                
+                // Progress bar
+                pdf.setDrawColor.apply(pdf, lightGray);
+                pdf.setFillColor.apply(pdf, lightGray);
+                pdf.rect(margin + 110, yPosition - 4, 50, 5, 'F');
+                
+                // Fill based on score
+                if (scoreFloat >= 7) {
+                    pdf.setFillColor(34, 197, 94); // Green
+                } else if (scoreFloat >= 5) {
+                    pdf.setFillColor.apply(pdf, primaryColor);
+                } else {
+                    pdf.setFillColor(239, 68, 68); // Red
+                }
+                pdf.rect(margin + 110, yPosition - 4, (scoreFloat / 10) * 50, 5, 'F');
+                
+                yPosition += 8;
+            });
+            
+            yPosition += 10;
+            
+            // AI Advice
+            if (this.app.playerAdvice && this.app.adviceStatus !== 'no_evaluations') {
+                if (yPosition > pageHeight - 60) {
+                    pdf.addPage();
+                    yPosition = 20;
+                }
+                
+                pdf.setFontSize(16);
+                pdf.setTextColor.apply(pdf, primaryColor);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('AI Coaching Advice', margin, yPosition);
+                pdf.setFont(undefined, 'normal');
+                yPosition += 10;
+                
+                pdf.setFontSize(10);
+                pdf.setTextColor.apply(pdf, darkGray);
+                const splitAdvice = pdf.splitTextToSize(this.app.playerAdvice, contentWidth);
+                pdf.text(splitAdvice, margin, yPosition);
+                yPosition += splitAdvice.length * 4 + 10;
+            }
+            
+            // Footer
+            pdf.setFontSize(8);
+            pdf.setTextColor.apply(pdf, mediumGray);
+            pdf.text('Generated: ' + new Date().toLocaleDateString() + ' at ' + new Date().toLocaleTimeString(), pageWidth / 2, pageHeight - 10, { align: 'center' });
+            
+            // Save the PDF
+            const fileName = playerName.replace(/\s+/g, '_') + '_' + this.app.currentSeason + '_PlayerCard.pdf';
+            pdf.save(fileName);
+            
+            // Restore button if it exists
+            if (button) {
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+            
+        } catch (error) {
+            alert('Error generating PDF: ' + error.message);
+            
+            // Restore button if it exists
+            if (button && originalContent) {
+                button.innerHTML = originalContent;
+                button.disabled = false;
+            }
+        }
+    }
 }
