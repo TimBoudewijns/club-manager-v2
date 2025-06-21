@@ -223,12 +223,6 @@
             
             <!-- Player Card Section -->
             <?php include 'partials/player-card.php'; ?>
-            
-            <!-- Club Team Details Section -->
-            <?php include 'partials/club-team-details.php'; ?>
-            
-            <!-- Club Player Card Section -->
-            <?php include 'partials/club-player-card.php'; ?>
         </div>
         
         <!-- Team Management Tab - Only for owners/managers -->
@@ -264,6 +258,5 @@
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/assign-trainer-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-team-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/player-card-modal.php';
-    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/club-team-details-modal.php';
     ?>
 </div>

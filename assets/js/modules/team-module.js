@@ -113,9 +113,13 @@ class TeamModule {
     
     closeTeamDetailsModal() {
         this.app.showTeamDetailsModal = false;
-        // Optionally reset selection
-        // this.app.selectedTeam = null;
-        // this.app.teamPlayers = [];
+        
+        // Als we een club team bekijken, reset dan niet de selectie
+        if (!this.app.isViewingClubTeam) {
+            // Optionally reset selection for my teams
+            // this.app.selectedTeam = null;
+            // this.app.teamPlayers = [];
+        }
     }
     
     resetSelections() {
