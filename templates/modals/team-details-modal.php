@@ -106,7 +106,7 @@
                                                     </svg>
                                                 </button>
                                                 <!-- View Player Card Button -->
-                                                <button @click="handlePlayerCardClick(player.id); closeTeamDetailsModal()" 
+                                                <button @click="viewPlayerCardInModal(player.id)" 
                                                         class="text-blue-600 hover:text-blue-900 transition-colors p-2 rounded-lg hover:bg-blue-50 active:bg-blue-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                         title="View player card"
                                                         type="button">
