@@ -163,7 +163,12 @@ class PlayerModule {
         this.app.showPlayerHistoryModal = true;
         this.app.historyLoading = true;
         this.app.playerHistory = [];
-        this.app.historyPlayer = player;
+        
+        // Set historyPlayer with isClubView flag for dynamic styling
+        this.app.historyPlayer = {
+            ...player,
+            isClubView: isClubView
+        };
         
         try {
             const data = await this.app.apiPost('cm_get_player_history', {
@@ -171,7 +176,11 @@ class PlayerModule {
             });
             
             this.app.playerHistory = data.history;
-            this.app.historyPlayer = data.player;
+            // Update historyPlayer with complete data but keep isClubView flag
+            this.app.historyPlayer = {
+                ...data.player,
+                isClubView: isClubView
+            };
             
         } catch (error) {
             alert('Error loading player history');
