@@ -39,8 +39,6 @@
         
         <?php include 'partials/header.php'; ?>
         
-        <?php include 'partials/tabs.php'; ?>
-        
         <!-- Player Management Tab (Combined My Teams + Club Teams) -->
         <div x-show="activeTab === 'player-management'" 
              x-transition:enter="transition ease-out duration-300"
