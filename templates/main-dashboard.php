@@ -34,7 +34,7 @@
     [x-cloak] { display: none !important; }
 </style>
 
-<div class="club-manager-app min-h-screen bg-gray-50" x-data="clubManager()" data-theme="light">
+<div class="club-manager-app min-h-screen bg-white" x-data="clubManager()" data-theme="light">
     <div class="w-full px-4 md:px-6 lg:px-8 py-8">
         
         <?php include 'partials/header.php'; ?>
@@ -48,23 +48,8 @@
              x-transition:enter-end="opacity-100 transform scale-100">
             
             <!-- Player Management Header -->
-            <div class="mb-8 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-6 relative overflow-hidden">
-                <!-- Background Pattern -->
-                <div class="absolute inset-0 opacity-5">
-                    <svg class="w-full h-full" viewBox="0 0 60 60" preserveAspectRatio="none">
-                        <defs>
-                            <pattern id="playerPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                                <circle cx="10" cy="10" r="1" fill="#f97316"/>
-                            </pattern>
-                        </defs>
-                        <rect width="100%" height="100%" fill="url(#playerPattern)"/>
-                    </svg>
-                </div>
-                
-                <!-- Orange accent -->
-                <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-300 to-orange-500 rounded-bl-full opacity-20"></div>
-                
-                <div class="relative z-10 flex items-center justify-between">
+            <div class="mb-8 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-6">
+                <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-4">
                         <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
                             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

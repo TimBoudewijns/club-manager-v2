@@ -4,24 +4,8 @@
  */
 ?>
 <!-- Header Section -->
-<div class="bg-gradient-to-br from-white to-orange-50 rounded-2xl shadow-xl p-4 md:p-8 mb-8 border border-orange-100 relative overflow-hidden">
-    <!-- Background Pattern -->
-    <div class="absolute inset-0 opacity-5">
-        <svg class="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <defs>
-                <pattern id="headerPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <circle cx="10" cy="10" r="1" fill="#f97316"/>
-                </pattern>
-            </defs>
-            <rect width="100" height="100" fill="url(#headerPattern)"/>
-        </svg>
-    </div>
-    
-    <!-- Orange accent corner -->
-    <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-orange-400 to-orange-600 rounded-bl-full opacity-10"></div>
-    <div class="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-orange-300 to-orange-500 rounded-tr-full opacity-10"></div>
-    
-    <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+<div class="bg-white rounded-2xl shadow-xl p-4 md:p-8 mb-8 border border-orange-100">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div class="flex items-center space-x-4">
             <!-- Icon -->
             <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 shadow-lg">
@@ -30,7 +14,7 @@
                 </svg>
             </div>
             <div>
-                <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-gray-900 to-orange-600 bg-clip-text text-transparent mb-2">
+                <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                     Club Manager
                 </h1>
                 <p class="text-gray-600 text-sm md:text-base flex items-center">
