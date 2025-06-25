@@ -34,7 +34,7 @@
     [x-cloak] { display: none !important; }
 </style>
 
-<div class="club-manager-app min-h-screen bg-white" x-data="clubManager()" data-theme="light">
+<div class="club-manager-app min-h-screen bg-gray-50" x-data="clubManager()" data-theme="light">
     <div class="w-full px-4 md:px-6 lg:px-8 py-8">
         
         <?php include 'partials/header.php'; ?>
@@ -47,13 +47,52 @@
              x-transition:enter-start="opacity-0 transform scale-95"
              x-transition:enter-end="opacity-100 transform scale-100">
             
+            <!-- Player Management Header -->
+            <div class="mb-8 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg p-6 relative overflow-hidden">
+                <!-- Background Pattern -->
+                <div class="absolute inset-0 opacity-5">
+                    <svg class="w-full h-full" viewBox="0 0 60 60" preserveAspectRatio="none">
+                        <defs>
+                            <pattern id="playerPattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                                <circle cx="10" cy="10" r="1" fill="#f97316"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#playerPattern)"/>
+                    </svg>
+                </div>
+                
+                <!-- Orange accent -->
+                <div class="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-orange-300 to-orange-500 rounded-bl-full opacity-20"></div>
+                
+                <div class="relative z-10 flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-gray-900 mb-1">Player Management</h2>
+                            <p class="text-gray-600">Manage players across your teams and view club roster</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- My Teams Section -->
             <div class="mb-12">
                 <!-- Section Header -->
                 <div class="flex items-center justify-between mb-6">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-900">My Teams</h2>
-                        <p class="text-gray-600 mt-1">Teams you manage directly</p>
+                        <h3 class="text-xl font-bold text-gray-900 flex items-center">
+                            <span class="bg-orange-100 rounded-lg p-2 mr-3">
+                                <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                            </span>
+                            My Teams
+                        </h3>
+                        <p class="text-gray-600 mt-1 ml-12">Teams you manage directly</p>
                     </div>
                     <!-- Add Team Button - Only show if user can create teams -->
                     <button x-show="canCreateTeam()" 
@@ -93,7 +132,7 @@
                             </div>
                             <div class="p-6">
                                 <div class="flex items-start justify-between mb-4">
-                                    <h3 class="text-2xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors" x-text="team.name"></h3>
+                                    <h4 class="text-2xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors" x-text="team.name"></h4>
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex items-center text-gray-600">
@@ -126,7 +165,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">No teams yet</h3>
+                    <h4 class="text-2xl font-bold text-gray-900 mb-2">No teams yet</h4>
                     <p class="text-gray-600 mb-6" x-show="userPermissions.is_trainer">
                         Your club manager will assign teams to you.
                     </p>
@@ -145,8 +184,15 @@
             <div x-show="hasPermission('can_view_club_teams')" x-cloak>
                 <!-- Section Header -->
                 <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-gray-900">Club Teams</h2>
-                    <p class="text-gray-600 mt-1">View-only access to other teams in your club</p>
+                    <h3 class="text-xl font-bold text-gray-900 flex items-center">
+                        <span class="bg-blue-100 rounded-lg p-2 mr-3">
+                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                        </span>
+                        Club Teams
+                    </h3>
+                    <p class="text-gray-600 mt-1 ml-12">View-only access to other teams in your club</p>
                 </div>
                 
                 <!-- Club Teams Notice -->
@@ -176,7 +222,7 @@
                             </div>
                             <div class="p-6">
                                 <div class="flex items-start justify-between mb-4">
-                                    <h3 class="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors" x-text="team.name"></h3>
+                                    <h4 class="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors" x-text="team.name"></h4>
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex items-center text-gray-600">
@@ -216,7 +262,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                         </svg>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-2">No club teams found</h3>
+                    <h4 class="text-2xl font-bold text-gray-900 mb-2">No club teams found</h4>
                     <p class="text-gray-600 mb-6">There are no other teams in your club yet.</p>
                 </div>
             </div>
