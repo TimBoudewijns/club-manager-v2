@@ -140,9 +140,6 @@ $seat_info = cm_get_available_trainer_seats();
                                          style="width: <?php echo min(100, ($seat_info['used'] / $seat_info['total']) * 100); ?>%"></div>
                                 </div>
                             <?php endif; ?>
-                            <p class="text-xs text-gray-500 mt-1">
-                                Trainers count towards your WooCommerce team membership seats
-                            </p>
                         </div>
                     <?php elseif ($seat_info !== false): ?>
                         <p class="text-sm text-yellow-600 mt-3">

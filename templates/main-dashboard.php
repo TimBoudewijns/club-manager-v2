@@ -111,8 +111,6 @@
                             <template x-for="team in myTeams" :key="team.id">
                                 <div @click="selectTeam(team)" 
                                      class="bg-white rounded-xl shadow-lg hover:shadow-2xl transform transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden group relative border border-gray-100">
-                                    <!-- Orange gradient bar -->
-                                    <div class="bg-gradient-to-r from-orange-400 to-orange-500 h-2 group-hover:h-3 transition-all duration-300"></div>
                                     <!-- My Team Badge -->
                                     <div class="absolute top-4 right-4 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-semibold">
                                         My Team
@@ -210,8 +208,6 @@
                             <template x-for="team in clubTeams" :key="team.id">
                                 <div @click="selectClubTeam(team)" 
                                      class="bg-white rounded-xl shadow-lg hover:shadow-2xl transform transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden group relative border border-gray-100">
-                                    <!-- Blue gradient bar -->
-                                    <div class="bg-gradient-to-r from-blue-400 to-blue-500 h-2 group-hover:h-3 transition-all duration-300"></div>
                                     <!-- Club Team Badge -->
                                     <div class="absolute top-4 right-4 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
                                         Club Team

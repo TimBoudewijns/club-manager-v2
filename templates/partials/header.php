@@ -19,26 +19,13 @@
                     <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
                         Club Manager
                     </h1>
-                    <p class="text-gray-600 text-sm md:text-base flex items-center">
-                        <svg class="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                        </svg>
+                    <p class="text-gray-600 text-sm md:text-base">
                         Manage your hockey teams and players efficiently
                     </p>
                 </div>
             </div>
             
             <div class="flex items-center space-x-4">
-                <!-- User info (optional) -->
-                <div class="hidden lg:flex items-center space-x-3 text-sm text-gray-600">
-                    <div class="bg-orange-100 rounded-full p-2">
-                        <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                        </svg>
-                    </div>
-                    <span>Welcome back!</span>
-                </div>
-                
                 <!-- Season Selector -->
                 <div class="relative">
                     <label class="text-sm font-medium text-gray-700 mb-1 block">Season</label>
