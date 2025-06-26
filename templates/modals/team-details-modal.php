@@ -69,8 +69,8 @@
                     </div>
                 </div>
                 
-                <!-- Action Buttons (alleen voor My Teams) -->
-                <div x-show="!isViewingClubTeam" class="p-4 md:p-6 border-b bg-gray-50">
+                <!-- Action Buttons (alleen voor My Teams en team owners) -->
+                <div x-show="!isViewingClubTeam && hasPermission('can_create_teams')" class="p-4 md:p-6 border-b bg-gray-50">
                     <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                         <button type="button"
                                 @click="showAddPlayerModal = true" 
@@ -161,10 +161,10 @@
                                                     </div>
                                                 </template>
                                                 
-                                                <!-- My Teams: Alle actie knoppen -->
+                                                <!-- My Teams: Actie knoppen gebaseerd op permissions -->
                                                 <template x-if="!isViewingClubTeam">
                                                     <div class="flex items-center justify-center space-x-1 md:space-x-2">
-                                                        <!-- Evaluate Button -->
+                                                        <!-- Evaluate Button - Voor alle trainers (owners en trainers) -->
                                                         <button @click="handleEvaluateClick(player.id)" 
                                                                 class="text-orange-600 hover:text-orange-900 transition-colors p-2 rounded-lg hover:bg-orange-50 active:bg-orange-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                                 title="Evaluate player"
@@ -173,7 +173,7 @@
                                                                 <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
                                                             </svg>
                                                         </button>
-                                                        <!-- View Player Card Button -->
+                                                        <!-- View Player Card Button - Voor alle trainers -->
                                                         <button @click="viewPlayerCardInModal(player.id, isViewingClubTeam)" 
                                                                 class="text-blue-600 hover:text-blue-900 transition-colors p-2 rounded-lg hover:bg-blue-50 active:bg-blue-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                                 title="View player card"
@@ -182,7 +182,7 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path>
                                                             </svg>
                                                         </button>
-                                                        <!-- History Button -->
+                                                        <!-- History Button - Voor alle trainers -->
                                                         <button @click="handleHistoryClick(player.id, isViewingClubTeam)" 
                                                                 class="text-purple-600 hover:text-purple-900 transition-colors p-2 rounded-lg hover:bg-purple-50 active:bg-purple-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                                 title="View player history"
@@ -191,8 +191,9 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                             </svg>
                                                         </button>
-                                                        <!-- Remove Button -->
-                                                        <button @click="handleRemoveClick(player.id)" 
+                                                        <!-- Remove Button - Alleen voor team owners -->
+                                                        <button x-show="hasPermission('can_create_teams')"
+                                                                @click="handleRemoveClick(player.id)" 
                                                                 class="text-red-600 hover:text-red-900 transition-colors p-2 rounded-lg hover:bg-red-50 active:bg-red-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                                 title="Remove from team"
                                                                 type="button">

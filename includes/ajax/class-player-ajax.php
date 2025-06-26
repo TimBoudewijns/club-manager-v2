@@ -62,7 +62,8 @@ class Club_Manager_Player_Ajax extends Club_Manager_Ajax_Handler {
         $team_id = $this->get_post_data('team_id', 'int');
         $season = $this->get_post_data('season');
         
-        $this->verify_team_ownership($team_id, $user_id);
+        // Use verify_team_access instead of verify_team_ownership for trainers
+        $this->verify_team_access($team_id, $user_id);
         
         $player_model = new Club_Manager_Player_Model();
         $players = $player_model->get_team_players($team_id, $season);
@@ -164,4 +165,4 @@ class Club_Manager_Player_Ajax extends Club_Manager_Ajax_Handler {
             'history' => $history
         ]);
     }
-} 
+}

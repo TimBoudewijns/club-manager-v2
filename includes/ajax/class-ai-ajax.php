@@ -23,7 +23,8 @@ class Club_Manager_AI_Ajax extends Club_Manager_Ajax_Handler {
         $player_id = $this->get_post_data('player_id', 'int');
         $season = $this->get_post_data('season');
         
-        $this->verify_team_ownership($team_id, $user_id);
+        // Use verify_team_access instead of verify_team_ownership for trainers
+        $this->verify_team_access($team_id, $user_id);
         
         global $wpdb;
         $advice_table = Club_Manager_Database::get_table_name('player_advice');
@@ -66,11 +67,12 @@ class Club_Manager_AI_Ajax extends Club_Manager_Ajax_Handler {
         $player_id = $this->get_post_data('player_id', 'int');
         $season = $this->get_post_data('season');
         
-        $this->verify_team_ownership($team_id, $user_id);
+        // Use verify_team_access instead of verify_team_ownership for trainers
+        $this->verify_team_access($team_id, $user_id);
         
         // Schedule the advice generation
         wp_schedule_single_event(time() + 1, 'cm_generate_player_advice', [$player_id, $team_id, $season]);
         
         wp_send_json_success(['message' => 'Advice generation started']);
     }
-} 
+}

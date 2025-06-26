@@ -45,6 +45,39 @@ abstract class Club_Manager_Ajax_Handler {
     }
     
     /**
+     * Verify team access - for both owners and assigned trainers.
+     */
+    protected function verify_team_access($team_id, $user_id) {
+        global $wpdb;
+        
+        // First check if user owns the team
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        $owner = $wpdb->get_var($wpdb->prepare(
+            "SELECT created_by FROM $teams_table WHERE id = %d",
+            $team_id
+        ));
+        
+        if ($owner == $user_id) {
+            return true; // User owns the team
+        }
+        
+        // Check if user is assigned as trainer to this team
+        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
+        $trainer_access = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM $trainers_table 
+            WHERE team_id = %d AND trainer_id = %d AND is_active = 1",
+            $team_id, $user_id
+        ));
+        
+        if ($trainer_access) {
+            return true; // User is assigned as trainer
+        }
+        
+        wp_send_json_error('Unauthorized access to team');
+        exit;
+    }
+    
+    /**
      * Verify player ownership.
      */
     protected function verify_player_ownership($player_id, $user_id) {
@@ -91,4 +124,4 @@ abstract class Club_Manager_Ajax_Handler {
      * Register AJAX actions.
      */
     abstract public function init();
-} 
+}

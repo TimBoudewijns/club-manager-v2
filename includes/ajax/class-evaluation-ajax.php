@@ -22,7 +22,8 @@ class Club_Manager_Evaluation_Ajax extends Club_Manager_Ajax_Handler {
         $team_id = $this->get_post_data('team_id', 'int');
         $player_id = $this->get_post_data('player_id', 'int');
         
-        $this->verify_team_ownership($team_id, $user_id);
+        // Use verify_team_access instead of verify_team_ownership for trainers
+        $this->verify_team_access($team_id, $user_id);
         
         // Verify player is in team
         $player_model = new Club_Manager_Player_Model();
@@ -71,7 +72,8 @@ class Club_Manager_Evaluation_Ajax extends Club_Manager_Ajax_Handler {
         $player_id = $this->get_post_data('player_id', 'int');
         $season = $this->get_post_data('season');
         
-        $this->verify_team_ownership($team_id, $user_id);
+        // Use verify_team_access instead of verify_team_ownership for trainers
+        $this->verify_team_access($team_id, $user_id);
         
         $evaluation_model = new Club_Manager_Evaluation_Model();
         $evaluations = $evaluation_model->get_player_evaluations($player_id, $team_id, $season);
@@ -82,4 +84,4 @@ class Club_Manager_Evaluation_Ajax extends Club_Manager_Ajax_Handler {
             'averages' => $averages
         ]);
     }
-} 
+}

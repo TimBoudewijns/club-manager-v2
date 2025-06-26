@@ -99,6 +99,39 @@ class Club_Manager_User_Permissions_Helper {
     }
     
     /**
+     * Check if user can manage teams (add/remove players)
+     * 
+     * @param int $user_id User ID
+     * @param int $team_id Team ID to check access for
+     * @return bool
+     */
+    public static function can_manage_team_players($user_id = null, $team_id = null) {
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+        
+        if (!$team_id) {
+            return false;
+        }
+        
+        global $wpdb;
+        
+        // Check if user owns the team
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        $owner = $wpdb->get_var($wpdb->prepare(
+            "SELECT created_by FROM $teams_table WHERE id = %d",
+            $team_id
+        ));
+        
+        if ($owner == $user_id) {
+            return true; // User owns the team
+        }
+        
+        // Individual subscribers can manage their own teams, trainers cannot add/remove players
+        return false;
+    }
+    
+    /**
      * Get user's role in the system
      * 
      * @param int $user_id User ID
