@@ -133,6 +133,127 @@ body.modal-open {
     --fallback-pc: 0 0% 100% !important;
 }
 
+/* ==================================== */
+/* FIX FOR BUTTON FOCUS STATES         */
+/* ==================================== */
+
+/* Remove default focus styles and pink/rose colors */
+.club-manager-app button:focus,
+.club-manager-app button:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Tab buttons focus state */
+.club-manager-app button[class*="bg-gradient-to-r"]:focus,
+.club-manager-app button[class*="bg-gradient-to-r"]:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+}
+
+/* Close/Cancel buttons focus state */
+.club-manager-app button.text-white:focus,
+.club-manager-app button.text-white:focus-visible {
+    outline: none !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Gray buttons focus state */
+.club-manager-app button[class*="bg-gray"]:focus,
+.club-manager-app button[class*="bg-gray"]:focus-visible {
+    outline: none !important;
+    background-color: #d1d5db !important;
+    box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.1) !important;
+}
+
+/* Icon buttons focus state */
+.club-manager-app button[class*="text-orange"]:focus,
+.club-manager-app button[class*="text-orange"]:focus-visible,
+.club-manager-app button[class*="text-blue"]:focus,
+.club-manager-app button[class*="text-blue"]:focus-visible,
+.club-manager-app button[class*="text-purple"]:focus,
+.club-manager-app button[class*="text-purple"]:focus-visible,
+.club-manager-app button[class*="text-red"]:focus,
+.club-manager-app button[class*="text-red"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* Tab navigation specific styles */
+.club-manager-app button[x-show*="isTabAvailable"]:focus {
+    outline: none !important;
+}
+
+/* Active tab should maintain its gradient colors */
+.club-manager-app button.bg-orange-500:focus,
+.club-manager-app button[class*="from-orange-500"]:focus {
+    background-image: linear-gradient(to right, #f97316, #ea580c) !important;
+}
+
+/* Modal close buttons enhancement */
+.club-manager-app button[class*="hover:bg-white/10"]:focus,
+.club-manager-app button[class*="hover:bg-white/20"]:focus {
+    outline: none !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.5rem !important;
+}
+
+/* Enhanced button transitions */
+.club-manager-app button {
+    transition: all 0.2s ease !important;
+}
+
+/* Beautiful button hover effects */
+.club-manager-app button:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+.club-manager-app button:not(:disabled):active {
+    transform: translateY(0);
+}
+
+/* Enhanced shadow effects for primary buttons */
+.club-manager-app button[class*="bg-gradient-to-r"] {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+.club-manager-app button[class*="bg-gradient-to-r"]:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Nice rounded corners for all buttons */
+.club-manager-app button {
+    border-radius: 0.5rem !important;
+}
+
+/* Icon buttons specific enhancements */
+.club-manager-app button[title] {
+    position: relative;
+    overflow: hidden;
+}
+
+.club-manager-app button[title]::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.3s, height 0.3s;
+}
+
+.club-manager-app button[title]:hover::after {
+    width: 100%;
+    height: 100%;
+}
+
+/* ==================================== */
+/* END OF BUTTON FOCUS FIXES           */
+/* ==================================== */
+
 /* Player Card Styles */
 .player-card-container {
     margin-top: 2rem;
