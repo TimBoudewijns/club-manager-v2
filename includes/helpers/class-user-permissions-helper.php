@@ -99,6 +99,21 @@ class Club_Manager_User_Permissions_Helper {
     }
     
     /**
+     * Check if user can import/export data
+     * 
+     * @param int $user_id User ID
+     * @return bool
+     */
+    public static function can_import_export($user_id = null) {
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+        
+        // Only owners/managers can import/export
+        return self::is_club_owner_or_manager($user_id);
+    }
+    
+    /**
      * Check if user can manage teams (add/remove players)
      * 
      * @param int $user_id User ID
@@ -262,6 +277,7 @@ class Club_Manager_User_Permissions_Helper {
             case 'manager':
                 $tabs[] = 'team-management';
                 $tabs[] = 'trainer-management';
+                $tabs[] = 'import-export';
                 break;
                 
             case 'trainer':
@@ -299,6 +315,7 @@ class Club_Manager_User_Permissions_Helper {
             'can_view_club_teams' => self::is_club_owner_or_manager($user_id),
             'can_manage_teams' => self::is_club_owner_or_manager($user_id),
             'can_manage_trainers' => self::is_club_owner_or_manager($user_id),
+            'can_import_export' => self::can_import_export($user_id),
             'available_tabs' => self::get_available_tabs($user_id)
         ];
     }

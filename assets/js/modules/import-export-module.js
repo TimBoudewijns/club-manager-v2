@@ -73,6 +73,18 @@ class ImportExportModule {
                     { key: 'last_name', label: 'Last Name', required: true },
                     { key: 'role', label: 'Role', required: false },
                     { key: 'team_names', label: 'Team Names (comma separated)', required: false }
+                ],
+                'teams-with-players': [
+                    { key: 'name', label: 'Team Name', required: true },
+                    { key: 'coach', label: 'Coach', required: true },
+                    { key: 'season', label: 'Season', required: true }
+                ],
+                'trainers-with-assignments': [
+                    { key: 'email', label: 'Email', required: true },
+                    { key: 'first_name', label: 'First Name', required: true },
+                    { key: 'last_name', label: 'Last Name', required: true },
+                    { key: 'role', label: 'Role', required: false },
+                    { key: 'team_names', label: 'Team Names (comma separated)', required: false }
                 ]
             },
             
@@ -114,10 +126,16 @@ class ImportExportModule {
         this.app.getFieldLabel = this.getFieldLabel.bind(this);
         this.app.isFieldRequired = this.isFieldRequired.bind(this);
         this.app.formatProgress = this.formatProgress.bind(this);
+        this.app.isTrainerImport = this.isTrainerImport.bind(this);
+        this.app.getImportTypeFields = this.getImportTypeFields.bind(this);
     }
     
     // Open import/export modal
     openImportExport(mode = 'import') {
+        console.log('Opening import/export modal, mode:', mode);
+        console.log('User permissions:', this.app.userPermissions);
+        console.log('Can import/export:', this.app.hasPermission('can_import_export'));
+        
         this.app.importExportMode = mode;
         this.app.showImportExportModal = true;
         this.resetImportWizard();
@@ -147,23 +165,36 @@ class ImportExportModule {
         const file = event.target.files[0];
         if (!file) return;
         
-        // Validate file type
-        const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
-        if (!validTypes.includes(file.type)) {
-            alert('Please upload a CSV or Excel file');
-            return;
+        try {
+            // Validate file type
+            const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+            const fileExtension = file.name.split('.').pop().toLowerCase();
+            
+            // Check by extension if MIME type check fails
+            const validExtensions = ['csv', 'xls', 'xlsx'];
+            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
+                alert('Please upload a CSV or Excel file');
+                event.target.value = ''; // Reset input
+                return;
+            }
+            
+            // Validate file size (max 10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 10MB');
+                event.target.value = ''; // Reset input
+                return;
+            }
+            
+            this.app.importFile = file;
+            
+            // Parse file
+            await this.parseImportFile();
+            
+        } catch (error) {
+            console.error('File upload error:', error);
+            alert('Error uploading file: ' + error.message);
+            event.target.value = ''; // Reset input
         }
-        
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            alert('File size must be less than 10MB');
-            return;
-        }
-        
-        this.app.importFile = file;
-        
-        // Parse file
-        await this.parseImportFile();
     }
     
     // Parse import file
@@ -177,6 +208,10 @@ class ImportExportModule {
             
             const response = await this.app.apiPost('cm_parse_import_file', formData);
             
+            if (!response) {
+                throw new Error('No response from server');
+            }
+            
             this.app.importFileData = response;
             
             // Auto-map columns
@@ -188,6 +223,12 @@ class ImportExportModule {
         } catch (error) {
             console.error('Error parsing file:', error);
             alert('Error parsing file: ' + error.message);
+            // Reset file input
+            this.app.importFile = null;
+            const fileInput = document.getElementById('import-file-input');
+            if (fileInput) {
+                fileInput.value = '';
+            }
         }
     }
     
@@ -196,7 +237,7 @@ class ImportExportModule {
         if (!this.app.importFileData || !this.app.importFileData.headers) return;
         
         const headers = this.app.importFileData.headers;
-        const fields = this.app.availableFields[this.app.importType.replace('-with-players', '').replace('-with-assignments', '')] || [];
+        const fields = this.getImportTypeFields();
         
         this.app.importMapping = {};
         
@@ -227,8 +268,12 @@ class ImportExportModule {
             
             const response = await this.app.apiPost('cm_validate_import_data', data);
             
-            this.app.importPreviewData = response.preview;
-            this.app.importProgress.total = response.total_rows;
+            if (!response) {
+                throw new Error('Validation failed');
+            }
+            
+            this.app.importPreviewData = response.preview || [];
+            this.app.importProgress.total = response.total_rows || this.app.importFileData.rows.length;
             
             // Move to preview step
             this.app.importWizardStep = 4;
@@ -257,6 +302,11 @@ class ImportExportModule {
             };
             
             const initResponse = await this.app.apiPost('cm_init_import_session', sessionData);
+            
+            if (!initResponse || !initResponse.session_id) {
+                throw new Error('Failed to initialize import session');
+            }
+            
             this.app.importProgress.sessionId = initResponse.session_id;
             
             // Process import in batches
@@ -281,10 +331,14 @@ class ImportExportModule {
                 session_id: this.app.importProgress.sessionId
             });
             
+            if (!response) {
+                throw new Error('No response from server');
+            }
+            
             // Update progress
-            this.app.importProgress.processed = response.processed;
-            this.app.importProgress.successful = response.successful;
-            this.app.importProgress.failed = response.failed;
+            this.app.importProgress.processed = response.processed || 0;
+            this.app.importProgress.successful = response.successful || 0;
+            this.app.importProgress.failed = response.failed || 0;
             
             // Add any new errors
             if (response.errors && response.errors.length > 0) {
@@ -294,7 +348,7 @@ class ImportExportModule {
             // Check if complete
             if (response.complete) {
                 this.app.importProgress.isProcessing = false;
-                this.app.importResults = response.results;
+                this.app.importResults = response.results || this.app.importResults;
                 this.app.importWizardStep = 6;
                 
                 // Refresh data based on import type
@@ -378,10 +432,12 @@ class ImportExportModule {
     nextImportStep() {
         if (this.app.importWizardStep === 3) {
             // Validate mapping before proceeding
-            const requiredFields = this.app.availableFields[this.app.importType.replace('-with-players', '').replace('-with-assignments', '')]
-                .filter(f => f.required);
+            const fields = this.getImportTypeFields();
+            const requiredFields = fields.filter(f => f.required);
             
-            const missingFields = requiredFields.filter(f => !this.app.importMapping[f.key] && this.app.importMapping[f.key] !== 0);
+            const missingFields = requiredFields.filter(f => 
+                !this.app.importMapping[f.key] && this.app.importMapping[f.key] !== 0
+            );
             
             if (missingFields.length > 0) {
                 alert('Please map all required fields: ' + missingFields.map(f => f.label).join(', '));
@@ -422,7 +478,9 @@ class ImportExportModule {
         try {
             // Load teams for export filter
             if (!this.app.myTeams || this.app.myTeams.length === 0) {
-                await this.app.loadMyTeams();
+                if (this.app.teamModule && typeof this.app.teamModule.loadMyTeams === 'function') {
+                    await this.app.teamModule.loadMyTeams();
+                }
             }
             
             // Reset filters
@@ -444,6 +502,10 @@ class ImportExportModule {
             };
             
             const response = await this.app.apiPost('cm_export_data', data);
+            
+            if (!response) {
+                throw new Error('Export failed - no response');
+            }
             
             // Download file
             if (response.download_url) {
@@ -487,22 +549,24 @@ class ImportExportModule {
         switch (this.app.importType) {
             case 'teams':
             case 'teams-with-players':
-                await this.app.loadMyTeams();
-                if (this.app.hasPermission('can_view_club_teams')) {
-                    await this.app.loadClubTeams();
+                if (this.app.teamModule && typeof this.app.teamModule.loadMyTeams === 'function') {
+                    await this.app.teamModule.loadMyTeams();
+                }
+                if (this.app.hasPermission('can_view_club_teams') && this.app.clubTeamsModule) {
+                    await this.app.clubTeamsModule.loadClubTeams();
                 }
                 break;
                 
             case 'players':
-                if (this.app.selectedTeam) {
-                    await this.app.loadTeamPlayers();
+                if (this.app.selectedTeam && this.app.teamModule) {
+                    await this.app.teamModule.loadTeamPlayers();
                 }
                 break;
                 
             case 'trainers':
             case 'trainers-with-assignments':
-                if (this.app.activeTab === 'trainer-management') {
-                    await this.app.loadTrainerManagementData();
+                if (this.app.activeTab === 'trainer-management' && this.app.trainerModule) {
+                    await this.app.trainerModule.loadTrainerManagementData();
                 }
                 break;
         }
@@ -510,15 +574,13 @@ class ImportExportModule {
     
     // Helper methods
     getFieldLabel(key) {
-        const type = this.app.importType.replace('-with-players', '').replace('-with-assignments', '');
-        const fields = this.app.availableFields[type] || [];
+        const fields = this.getImportTypeFields();
         const field = fields.find(f => f.key === key);
         return field ? field.label : key;
     }
     
     isFieldRequired(key) {
-        const type = this.app.importType.replace('-with-players', '').replace('-with-assignments', '');
-        const fields = this.app.availableFields[type] || [];
+        const fields = this.getImportTypeFields();
         const field = fields.find(f => f.key === key);
         return field ? field.required : false;
     }
@@ -527,5 +589,17 @@ class ImportExportModule {
         if (this.app.importProgress.total === 0) return '0%';
         const percentage = (this.app.importProgress.processed / this.app.importProgress.total) * 100;
         return percentage.toFixed(1) + '%';
+    }
+    
+    isTrainerImport() {
+        return this.app.importType === 'trainers' || 
+               this.app.importType === 'trainers-with-assignments';
+    }
+    
+    getImportTypeFields() {
+        const baseType = this.app.importType
+            .replace('-with-players', '')
+            .replace('-with-assignments', '');
+        return this.app.availableFields[baseType] || [];
     }
 }
