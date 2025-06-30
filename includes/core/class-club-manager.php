@@ -75,6 +75,12 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/models/class-player-model.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/models/class-evaluation-model.php';
         
+        // Import/Export classes
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-csv-parser.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-data-validator.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-import-handler.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-export-handler.php';
+        
         // AJAX
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-ajax-handler.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-team-ajax.php';
@@ -83,6 +89,7 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-ai-ajax.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-club-ajax.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-trainer-ajax.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-import-export-ajax.php';
         
         // AI
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ai/class-ai-manager.php';
@@ -103,6 +110,9 @@ class Club_Manager {
         // Activation/Deactivation hooks
         register_activation_hook(CLUB_MANAGER_PLUGIN_FILE, array('Club_Manager_Activator', 'activate'));
         register_deactivation_hook(CLUB_MANAGER_PLUGIN_FILE, array('Club_Manager_Activator', 'deactivate'));
+        
+        // Add download export action
+        add_action('wp_ajax_cm_download_export', array($this, 'handle_export_download'));
     }
     
     /**
@@ -125,6 +135,7 @@ class Club_Manager {
         $evaluation_ajax = new Club_Manager_Evaluation_Ajax();
         $ai_ajax = new Club_Manager_AI_Ajax();
         $club_ajax = new Club_Manager_Club_Ajax();
+        $import_export_ajax = new Club_Manager_Import_Export_Ajax();
         
         // Initialize AJAX handlers
         $this->loader->add_action('init', $team_ajax, 'init');
@@ -132,6 +143,7 @@ class Club_Manager {
         $this->loader->add_action('init', $evaluation_ajax, 'init');
         $this->loader->add_action('init', $ai_ajax, 'init');
         $this->loader->add_action('init', $club_ajax, 'init');
+        $this->loader->add_action('init', $import_export_ajax, 'init');
         
         // Trainer AJAX - special handling to ensure email hooks are registered early
         $trainer_ajax = new Club_Manager_Trainer_Ajax();
@@ -160,6 +172,54 @@ class Club_Manager {
             Club_Manager_Database::create_tables();
             error_log('Club Manager: Database updated to version 2.0.0');
         }
+    }
+    
+    /**
+     * Handle export file downloads.
+     */
+    public function handle_export_download() {
+        // Verify nonce
+        if (!isset($_GET['nonce']) || !wp_verify_nonce($_GET['nonce'], 'cm_download_' . $_GET['file'])) {
+            wp_die('Invalid request');
+        }
+        
+        // Check permissions
+        if (!is_user_logged_in() || !Club_Manager_User_Permissions_Helper::can_import_export(get_current_user_id())) {
+            wp_die('Unauthorized');
+        }
+        
+        $file = sanitize_file_name($_GET['file']);
+        $upload_dir = wp_upload_dir();
+        $export_dir = $upload_dir['basedir'] . '/club-manager-exports';
+        $file_path = $export_dir . '/' . $file;
+        
+        // Security check - ensure file is in export directory
+        if (!file_exists($file_path) || strpos(realpath($file_path), realpath($export_dir)) !== 0) {
+            wp_die('File not found');
+        }
+        
+        // Determine content type
+        $file_extension = pathinfo($file, PATHINFO_EXTENSION);
+        if ($file_extension === 'csv') {
+            $content_type = 'text/csv';
+        } else {
+            $content_type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        }
+        
+        // Send file
+        header('Content-Type: ' . $content_type);
+        header('Content-Disposition: attachment; filename="' . basename($file) . '"');
+        header('Content-Length: ' . filesize($file_path));
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
+        header('Expires: 0');
+        
+        readfile($file_path);
+        
+        // Delete file after download
+        unlink($file_path);
+        
+        exit;
     }
     
     /**

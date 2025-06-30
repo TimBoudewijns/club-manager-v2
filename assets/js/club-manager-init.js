@@ -16,6 +16,7 @@ window.clubManager = function() {
         teamManagementModule: null,
         playerCardModule: null,
         clubTeamsModule: null,
+        importExportModule: null,
         
         // Initialize
         async init() {
@@ -69,6 +70,11 @@ window.clubManager = function() {
             if (this.userPermissions.can_manage_trainers && typeof TrainerModule !== 'undefined') {
                 this.trainerModule = new TrainerModule(this);
             }
+            
+            // Initialize import/export module for authorized users
+            if (this.userPermissions.can_import_export && typeof ImportExportModule !== 'undefined') {
+                this.importExportModule = new ImportExportModule(this);
+            }
         },
         
         // Set initial tab based on user permissions
@@ -113,41 +119,72 @@ window.clubManager = function() {
                         await this.trainerModule.loadTrainerManagementData();
                     }
                     break;
+                    
+                case 'import-export':
+                    // No initial data load needed for import/export
+                    break;
             }
         },
         
         // API helper (shared across modules)
         async apiPost(action, data = {}) {
-            const formData = new FormData();
-            formData.append('action', action);
-            formData.append('nonce', window.clubManagerAjax.nonce);
-            
-            Object.keys(data).forEach(key => {
-                if (Array.isArray(data[key])) {
-                    data[key].forEach(value => {
-                        formData.append(key + '[]', value);
+            // Handle FormData differently
+            if (data instanceof FormData) {
+                data.append('action', action);
+                data.append('nonce', window.clubManagerAjax.nonce);
+                
+                try {
+                    const response = await fetch(window.clubManagerAjax.ajax_url, {
+                        method: 'POST',
+                        body: data
                     });
-                } else {
-                    formData.append(key, data[key]);
+                    
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        throw new Error(result.data || 'Request failed');
+                    }
+                    
+                    return result.data;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    throw error;
                 }
-            });
-            
-            try {
-                const response = await fetch(window.clubManagerAjax.ajax_url, {
-                    method: 'POST',
-                    body: formData
+            } else {
+                // Regular data handling
+                const formData = new FormData();
+                formData.append('action', action);
+                formData.append('nonce', window.clubManagerAjax.nonce);
+                
+                Object.keys(data).forEach(key => {
+                    if (Array.isArray(data[key])) {
+                        data[key].forEach(value => {
+                            formData.append(key + '[]', value);
+                        });
+                    } else if (typeof data[key] === 'object' && data[key] !== null) {
+                        formData.append(key, JSON.stringify(data[key]));
+                    } else {
+                        formData.append(key, data[key]);
+                    }
                 });
                 
-                const result = await response.json();
-                
-                if (!result.success) {
-                    throw new Error(result.data || 'Request failed');
+                try {
+                    const response = await fetch(window.clubManagerAjax.ajax_url, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (!result.success) {
+                        throw new Error(result.data || 'Request failed');
+                    }
+                    
+                    return result.data;
+                } catch (error) {
+                    console.error('API Error:', error);
+                    throw error;
                 }
-                
-                return result.data;
-            } catch (error) {
-                console.error('API Error:', error);
-                throw error;
             }
         },
         

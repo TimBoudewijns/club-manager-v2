@@ -30,6 +30,15 @@
         background-image: linear-gradient(to right, #2563eb, #1d4ed8) !important;
     }
     
+    /* Purple gradients for import/export */
+    .club-manager-app .bg-gradient-to-r.from-purple-500.to-purple-600 {
+        background-image: linear-gradient(to right, #a855f7, #9333ea) !important;
+    }
+    
+    .club-manager-app .bg-gradient-to-r.from-purple-600.to-purple-700 {
+        background-image: linear-gradient(to right, #9333ea, #7e22ce) !important;
+    }
+    
     /* Hide elements with x-cloak until Alpine loads */
     [x-cloak] { display: none !important; }
 </style>
@@ -282,6 +291,15 @@
              x-transition:enter-end="opacity-100 transform scale-100">
             <?php include 'partials/trainer-management.php'; ?>
         </div>
+        
+        <!-- Import/Export Tab - Only show if user has permission -->
+        <div x-show="activeTab === 'import-export' && isTabAvailable('import-export')" 
+             x-cloak
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 transform scale-95"
+             x-transition:enter-end="opacity-100 transform scale-100">
+            <?php include 'partials/import-export-tab.php'; ?>
+        </div>
     </div>
     
     <!-- Include ALL Modals OUTSIDE the tab content divs -->
@@ -298,5 +316,6 @@
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/assign-trainer-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-team-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/player-card-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/import-export-modal.php';
     ?>
 </div>
