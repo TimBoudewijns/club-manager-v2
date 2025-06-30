@@ -10,7 +10,11 @@ class Club_Manager_CSV_Parser {
      */
     public function parse($file_path, $mime_type) {
         // Determine file type
-        if (strpos($mime_type, 'excel') !== false || strpos($mime_type, 'spreadsheet') !== false) {
+        $file_extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+        
+        if ($file_extension === 'xlsx' || $file_extension === 'xls' || 
+            strpos($mime_type, 'excel') !== false || 
+            strpos($mime_type, 'spreadsheet') !== false) {
             return $this->parseExcel($file_path);
         } else {
             return $this->parseCSV($file_path);
@@ -18,7 +22,7 @@ class Club_Manager_CSV_Parser {
     }
     
     /**
-     * Parse CSV file.
+     * Parse CSV file - FIXED: Better encoding and delimiter detection.
      */
     private function parseCSV($file_path) {
         $data = array(
@@ -33,8 +37,9 @@ class Club_Manager_CSV_Parser {
         // Convert to UTF-8 if needed
         if ($encoding && $encoding !== 'UTF-8') {
             $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-            file_put_contents($file_path . '.utf8', $content);
-            $file_path = $file_path . '.utf8';
+            $temp_file = $file_path . '.utf8';
+            file_put_contents($temp_file, $content);
+            $file_path = $temp_file;
         }
         
         // Open file
@@ -89,55 +94,75 @@ class Club_Manager_CSV_Parser {
         fclose($handle);
         
         // Clean up temp file
-        if (substr($file_path, -5) === '.utf8') {
-            unlink($file_path);
+        if (isset($temp_file) && file_exists($temp_file)) {
+            unlink($temp_file);
         }
         
         return $data;
     }
     
     /**
-     * Parse Excel file.
+     * Parse Excel file - FIXED: Better PhpSpreadsheet support check.
      */
     private function parseExcel($file_path) {
-        // In production, you would use PhpSpreadsheet here
-        // For now, we'll try to convert Excel to CSV using available methods
-        
-        // Check if we can use COM (Windows only)
-        if (class_exists('COM')) {
-            return $this->parseExcelWithCOM($file_path);
-        }
-        
-        // Fall back to treating as CSV
-        return $this->parseCSV($file_path);
-        
-        /* PhpSpreadsheet implementation:
-        $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($file_path);
-        $reader->setReadDataOnly(true);
-        $reader->setReadEmptyCells(false);
-        
-        $spreadsheet = $reader->load($file_path);
-        $worksheet = $spreadsheet->getActiveSheet();
-        
-        $data = array(
-            'headers' => array(),
-            'rows' => array()
-        );
-        
-        $rows = $worksheet->toArray();
-        
-        if (!empty($rows)) {
-            $data['headers'] = array_map(array($this, 'cleanHeader'), array_shift($rows));
-            
-            foreach ($rows as $row) {
-                if (!empty(array_filter($row))) {
-                    $data['rows'][] = array_map('trim', $row);
+        // Check if PhpSpreadsheet is available
+        if (class_exists('\PhpOffice\PhpSpreadsheet\IOFactory')) {
+            try {
+                $reader = \PhpOffice\PhpSpreadsheet\IOFactory::createReaderForFile($file_path);
+                $reader->setReadDataOnly(true);
+                $reader->setReadEmptyCells(false);
+                
+                $spreadsheet = $reader->load($file_path);
+                $worksheet = $spreadsheet->getActiveSheet();
+                
+                $data = array(
+                    'headers' => array(),
+                    'rows' => array()
+                );
+                
+                $rows = $worksheet->toArray();
+                
+                if (!empty($rows)) {
+                    // First row is headers
+                    $data['headers'] = array_map(array($this, 'cleanHeader'), array_shift($rows));
+                    
+                    // Rest are data rows
+                    foreach ($rows as $row) {
+                        // Skip empty rows
+                        if (!empty(array_filter($row))) {
+                            $data['rows'][] = array_map('trim', $row);
+                        }
+                        
+                        // Limit rows
+                        if (count($data['rows']) >= 10000) {
+                            break;
+                        }
+                    }
                 }
+                
+                return $data;
+                
+            } catch (Exception $e) {
+                Club_Manager_Logger::log('PhpSpreadsheet error: ' . $e->getMessage(), 'error');
+                // Fall back to CSV parsing
+                return $this->parseCSV($file_path);
             }
         }
         
-        return $data;
-        */
+        // Try alternative methods if PhpSpreadsheet not available
+        
+        // Check if we can use COM (Windows only)
+        if (class_exists('COM')) {
+            try {
+                return $this->parseExcelWithCOM($file_path);
+            } catch (Exception $e) {
+                Club_Manager_Logger::log('COM Excel parsing failed: ' . $e->getMessage(), 'error');
+            }
+        }
+        
+        // Fall back to treating as CSV
+        Club_Manager_Logger::log('No Excel parser available, treating as CSV', 'warning');
+        return $this->parseCSV($file_path);
     }
     
     /**
@@ -149,7 +174,7 @@ class Club_Manager_CSV_Parser {
             $excel->Visible = false;
             $excel->DisplayAlerts = false;
             
-            $workbook = $excel->Workbooks->Open($file_path);
+            $workbook = $excel->Workbooks->Open(realpath($file_path));
             $worksheet = $workbook->Worksheets(1);
             
             $data = array(
@@ -171,7 +196,7 @@ class Club_Manager_CSV_Parser {
             }
             
             // Read data
-            for ($row = 2; $row <= $rows && $row <= 10000; $row++) {
+            for ($row = 2; $row <= $rows && $row <= 10001; $row++) {
                 $row_data = array();
                 $has_data = false;
                 
@@ -202,35 +227,51 @@ class Club_Manager_CSV_Parser {
     }
     
     /**
-     * Detect file encoding.
+     * Detect file encoding - FIXED: Better BOM detection.
      */
     private function detectEncoding($content) {
         // Check for BOM
-        $bom = substr($content, 0, 3);
-        if ($bom === "\xEF\xBB\xBF") {
+        $first_bytes = substr($content, 0, 3);
+        
+        // UTF-8 BOM
+        if ($first_bytes === "\xEF\xBB\xBF") {
             return 'UTF-8';
-        } elseif ($bom === "\xFF\xFE" || $bom === "\xFE\xFF") {
-            return 'UTF-16';
         }
         
-        // Try to detect encoding
+        // UTF-16 BOMs
+        $first_two = substr($content, 0, 2);
+        if ($first_two === "\xFF\xFE") {
+            return 'UTF-16LE';
+        } elseif ($first_two === "\xFE\xFF") {
+            return 'UTF-16BE';
+        }
+        
+        // Try to detect encoding with mb_detect_encoding
         $encodings = array('UTF-8', 'ISO-8859-1', 'Windows-1252', 'ASCII');
         
+        // Use strict mode for better detection
+        $detected = mb_detect_encoding($content, $encodings, true);
+        if ($detected) {
+            return $detected;
+        }
+        
+        // Additional check for each encoding
         foreach ($encodings as $encoding) {
             if (mb_check_encoding($content, $encoding)) {
                 return $encoding;
             }
         }
         
-        // Use mb_detect_encoding as fallback
-        return mb_detect_encoding($content, $encodings, true);
+        // Default to ISO-8859-1 if nothing detected
+        return 'ISO-8859-1';
     }
     
     /**
-     * Detect CSV delimiter.
+     * Detect CSV delimiter - FIXED: Excel-aware delimiter detection.
      */
     private function detectDelimiter($file_path) {
-        $delimiters = array(',', ';', "\t", '|');
+        // Common delimiters - semicolon first for Excel exports in certain locales
+        $delimiters = array(';', ',', "\t", '|');
         $results = array();
         
         $handle = fopen($file_path, 'r');
@@ -255,16 +296,41 @@ class Club_Manager_CSV_Parser {
         
         fclose($handle);
         
-        // Count occurrences of each delimiter
-        foreach ($delimiters as $delimiter) {
-            $count = 0;
-            foreach ($lines as $line) {
-                $count += substr_count($line, $delimiter);
-            }
-            $results[$delimiter] = $count;
+        if (empty($lines)) {
+            return ',';
         }
         
-        // Return delimiter with highest count
+        // Count occurrences and consistency of each delimiter
+        foreach ($delimiters as $delimiter) {
+            $counts = array();
+            $consistency = 0;
+            
+            foreach ($lines as $line) {
+                $count = substr_count($line, $delimiter);
+                $counts[] = $count;
+            }
+            
+            // Check if counts are consistent across lines
+            if (!empty($counts)) {
+                $avg = array_sum($counts) / count($counts);
+                if ($avg > 0) {
+                    // Calculate standard deviation
+                    $variance = 0;
+                    foreach ($counts as $count) {
+                        $variance += pow($count - $avg, 2);
+                    }
+                    $variance = $variance / count($counts);
+                    $std_dev = sqrt($variance);
+                    
+                    // Lower std dev means more consistent
+                    $consistency = $avg / (1 + $std_dev);
+                }
+            }
+            
+            $results[$delimiter] = $consistency;
+        }
+        
+        // Return delimiter with highest consistency score
         arsort($results);
         $delimiter = key($results);
         
@@ -272,20 +338,26 @@ class Club_Manager_CSV_Parser {
     }
     
     /**
-     * Clean header value.
+     * Clean header value - FIXED: Better whitespace handling.
      */
     private function cleanHeader($header) {
         // Remove BOM
         $header = str_replace("\xEF\xBB\xBF", '', $header);
         
-        // Trim whitespace
-        $header = trim($header);
+        // Convert to string if needed
+        $header = (string)$header;
+        
+        // Trim all types of whitespace
+        $header = trim($header, " \t\n\r\0\x0B");
         
         // Remove quotes
         $header = trim($header, '"\'');
         
-        // Normalize whitespace
+        // Normalize internal whitespace
         $header = preg_replace('/\s+/', ' ', $header);
+        
+        // Remove any non-printable characters
+        $header = preg_replace('/[\x00-\x1F\x7F]/', '', $header);
         
         return $header;
     }

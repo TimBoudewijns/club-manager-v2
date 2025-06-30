@@ -75,11 +75,15 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/models/class-player-model.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/models/class-evaluation-model.php';
         
+        // Logger
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/class-logger.php';
+        
         // Import/Export classes
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-csv-parser.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-data-validator.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-import-handler.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-export-handler.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/import-export/class-import-queue.php';
         
         // AJAX
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-ajax-handler.php';

@@ -227,7 +227,7 @@
                         </div>
                         
                         <div class="space-y-4">
-                            <template x-for="field in availableFields[importType.replace('-with-players', '').replace('-with-assignments', '')] || []" :key="field.key">
+                            <template x-for="field in getImportTypeFields()" :key="field.key">
                                 <div class="flex items-center space-x-4">
                                     <div class="w-1/3">
                                         <label class="text-sm font-medium text-gray-700">
@@ -278,7 +278,7 @@
                                 </select>
                             </div>
                             
-                            <div x-show="importType === 'trainers' || importType === 'trainers-with-assignments'">
+                            <div x-show="isTrainerImport()">
                                 <label class="flex items-center space-x-3">
                                     <input type="checkbox" x-model="importOptions.sendInvitations" class="checkbox checkbox-purple">
                                     <span class="text-sm text-gray-700">Send invitation emails to new trainers</span>
@@ -302,7 +302,7 @@
                                         <tr>
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Row</th>
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                            <template x-for="field in availableFields[importType.replace('-with-players', '').replace('-with-assignments', '')] || []" :key="field.key">
+                                            <template x-for="field in getImportTypeFields()" :key="field.key">
                                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase" x-text="field.label"></th>
                                             </template>
                                         </tr>
@@ -315,13 +315,32 @@
                                                     <span x-show="preview.status === 'valid'" class="text-green-600">✓ Valid</span>
                                                     <span x-show="preview.status === 'error'" class="text-red-600">✗ Error</span>
                                                 </td>
-                                                <template x-for="field in availableFields[importType.replace('-with-players', '').replace('-with-assignments', '')] || []" :key="field.key">
+                                                <template x-for="field in getImportTypeFields()" :key="field.key">
                                                     <td class="px-4 py-3 text-sm text-gray-900" x-text="preview.data[field.key] || '-'"></td>
                                                 </template>
                                             </tr>
                                         </template>
                                     </tbody>
                                 </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Error Summary -->
+                        <div x-show="importPreviewData.some(p => p.status === 'error')" class="bg-red-50 rounded-lg p-4">
+                            <h5 class="font-medium text-red-900 mb-2">Validation Errors</h5>
+                            <div class="space-y-1 max-h-32 overflow-y-auto">
+                                <template x-for="preview in importPreviewData.filter(p => p.status === 'error').slice(0, 10)" :key="preview.row">
+                                    <div>
+                                        <p class="text-sm text-red-700">
+                                            Row <span x-text="preview.row"></span>:
+                                        </p>
+                                        <ul class="ml-4 text-sm text-red-600">
+                                            <template x-for="error in preview.errors" :key="error.field">
+                                                <li x-text="error.message"></li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </template>
                             </div>
                         </div>
                         
@@ -439,13 +458,33 @@
                         
                         <!-- Error Details -->
                         <div x-show="importResults.errors.length > 0" class="bg-red-50 rounded-lg p-4">
-                            <h5 class="font-medium text-red-900 mb-2">Import Errors</h5>
+                            <div class="flex justify-between items-center mb-2">
+                                <h5 class="font-medium text-red-900">Import Errors</h5>
+                                <button @click="downloadErrorReport" class="text-sm text-red-700 hover:text-red-800 underline">
+                                    Download Error Report
+                                </button>
+                            </div>
                             <div class="space-y-1 max-h-48 overflow-y-auto">
                                 <template x-for="error in importResults.errors" :key="error.row">
                                     <p class="text-sm text-red-700">
                                         Row <span x-text="error.row"></span>: <span x-text="error.message"></span>
                                     </p>
                                 </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Trainer Invitation Notice -->
+                        <div x-show="isTrainerImport() && importOptions.sendInvitations && importResults.created > 0" 
+                             class="bg-blue-50 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-blue-800 text-sm">
+                                        Invitation emails are being sent to new trainers. This may take a few minutes to complete.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                         
@@ -534,6 +573,23 @@
                         </div>
                     </div>
                     
+                    <!-- Export Info -->
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="text-sm text-blue-800">
+                                <p class="font-medium mb-1">Export Permissions:</p>
+                                <ul class="space-y-1">
+                                    <li x-show="userPermissions.user_role === 'trainer'">• As a trainer, you can only export data from teams you're assigned to</li>
+                                    <li x-show="userPermissions.user_role === 'individual'">• As an individual user, you can only export your own data</li>
+                                    <li x-show="userPermissions.user_role === 'owner' || userPermissions.user_role === 'manager'">• As a club owner/manager, you can export all club data</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- Export Button -->
                     <div class="flex justify-end space-x-4">
                         <button @click="showImportExportModal = false" 
@@ -550,3 +606,22 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Import/Export Modal Specific Styles */
+.checkbox-purple {
+    --chkbg: #a855f7;
+    --chkfg: white;
+}
+
+.radio-purple {
+    --chkbg: #a855f7;
+    --chkfg: white;
+}
+
+.checkbox-purple:checked,
+.radio-purple:checked {
+    background-color: #a855f7;
+    border-color: #a855f7;
+}
+</style>

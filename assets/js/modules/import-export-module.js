@@ -69,9 +69,6 @@ class ImportExportModule {
                 ],
                 trainers: [
                     { key: 'email', label: 'Email', required: true },
-                    { key: 'first_name', label: 'First Name', required: true },
-                    { key: 'last_name', label: 'Last Name', required: true },
-                    { key: 'role', label: 'Role', required: false },
                     { key: 'team_names', label: 'Team Names (comma separated)', required: false }
                 ],
                 'teams-with-players': [
@@ -81,18 +78,15 @@ class ImportExportModule {
                 ],
                 'trainers-with-assignments': [
                     { key: 'email', label: 'Email', required: true },
-                    { key: 'first_name', label: 'First Name', required: true },
-                    { key: 'last_name', label: 'Last Name', required: true },
-                    { key: 'role', label: 'Role', required: false },
                     { key: 'team_names', label: 'Team Names (comma separated)', required: false }
                 ]
             },
             
-            // Templates
+            // Templates - FIXED: Removed first/last name from trainers template
             importTemplates: {
                 teams: 'team_name,coach,season\n"Example Team","John Doe","2024-2025"',
                 players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\n"John","Doe","john@example.com","01-01-2005","Forward","10","Example Team"',
-                trainers: 'email,first_name,last_name,role,team_names\n"trainer@example.com","Jane","Smith","trainer","Team A, Team B"'
+                trainers: 'email,team_names\n"trainer@example.com","Team A, Team B"'
             }
         });
         

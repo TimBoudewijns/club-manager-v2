@@ -46,16 +46,46 @@ class Club_Manager_Export_Handler {
     }
     
     /**
-     * Get teams data for export.
+     * Get teams data for export - FIXED: Added security permissions check.
      */
     private function getTeamsData() {
         global $wpdb;
         
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        // Base query
-        $query = "SELECT * FROM $teams_table WHERE created_by = %d";
-        $params = array($this->user_id);
+        // Check user role for proper data access
+        $user_role = Club_Manager_User_Permissions_Helper::get_user_role($this->user_id);
+        
+        if ($user_role === 'trainer') {
+            // Trainers can only export teams they're assigned to
+            $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
+            
+            $query = "SELECT t.* FROM $teams_table t
+                     INNER JOIN $trainers_table tt ON t.id = tt.team_id
+                     WHERE tt.trainer_id = %d AND tt.is_active = 1";
+            $params = array($this->user_id);
+            
+        } elseif ($user_role === 'individual') {
+            // Individuals only export their own teams
+            $query = "SELECT * FROM $teams_table WHERE created_by = %d";
+            $params = array($this->user_id);
+            
+        } elseif (in_array($user_role, ['owner', 'manager'])) {
+            // Owners/managers can export all club teams
+            // Get all club member IDs first
+            $club_member_ids = $this->getClubMemberIds();
+            
+            if (empty($club_member_ids)) {
+                return array();
+            }
+            
+            $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
+            $query = "SELECT * FROM $teams_table WHERE created_by IN ($placeholders)";
+            $params = $club_member_ids;
+            
+        } else {
+            return array();
+        }
         
         // Apply filters
         if (!empty($this->filters['season'])) {
@@ -88,7 +118,7 @@ class Club_Manager_Export_Handler {
     }
     
     /**
-     * Get players data for export.
+     * Get players data for export - FIXED: Added security permissions check.
      */
     private function getPlayersData() {
         global $wpdb;
@@ -97,26 +127,43 @@ class Club_Manager_Export_Handler {
         $team_players_table = Club_Manager_Database::get_table_name('team_players');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        // Build query
-        if (!empty($this->filters['teamIds'])) {
-            // Get players from specific teams
-            $placeholders = implode(',', array_fill(0, count($this->filters['teamIds']), '%d'));
-            $query = "SELECT DISTINCT p.*, tp.position, tp.jersey_number, t.name as team_name, t.season
-                     FROM $players_table p
-                     INNER JOIN $team_players_table tp ON p.id = tp.player_id
-                     INNER JOIN $teams_table t ON tp.team_id = t.id
-                     WHERE t.id IN ($placeholders)
-                     AND t.created_by = %d";
+        // Check user role
+        $user_role = Club_Manager_User_Permissions_Helper::get_user_role($this->user_id);
+        
+        // Build query based on user role
+        if ($user_role === 'trainer') {
+            // Trainers can only export players from teams they're assigned to
+            $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
             
-            $params = array_merge($this->filters['teamIds'], array($this->user_id));
-            
-            if (!empty($this->filters['season'])) {
-                $query .= " AND t.season = %s";
-                $params[] = $this->filters['season'];
+            if (!empty($this->filters['teamIds'])) {
+                // Get players from specific teams (that trainer has access to)
+                $placeholders = implode(',', array_fill(0, count($this->filters['teamIds']), '%d'));
+                
+                $query = "SELECT DISTINCT p.*, tp.position, tp.jersey_number, t.name as team_name, t.season
+                         FROM $players_table p
+                         INNER JOIN $team_players_table tp ON p.id = tp.player_id
+                         INNER JOIN $teams_table t ON tp.team_id = t.id
+                         INNER JOIN $trainers_table tt ON t.id = tt.team_id
+                         WHERE tt.trainer_id = %d 
+                         AND tt.is_active = 1
+                         AND t.id IN ($placeholders)";
+                
+                $params = array_merge(array($this->user_id), $this->filters['teamIds']);
+                
+            } else {
+                // Get all players from trainer's teams
+                $query = "SELECT DISTINCT p.*, tp.position, tp.jersey_number, t.name as team_name, t.season
+                         FROM $players_table p
+                         INNER JOIN $team_players_table tp ON p.id = tp.player_id
+                         INNER JOIN $teams_table t ON tp.team_id = t.id
+                         INNER JOIN $trainers_table tt ON t.id = tt.team_id
+                         WHERE tt.trainer_id = %d AND tt.is_active = 1";
+                
+                $params = array($this->user_id);
             }
             
-        } else {
-            // Get all players created by user
+        } elseif ($user_role === 'individual') {
+            // Individuals only export players they created
             $query = "SELECT p.*, tp.position, tp.jersey_number, t.name as team_name, t.season
                      FROM $players_table p
                      LEFT JOIN $team_players_table tp ON p.id = tp.player_id
@@ -125,10 +172,48 @@ class Club_Manager_Export_Handler {
             
             $params = array($this->user_id);
             
-            if (!empty($this->filters['season'])) {
-                $query .= " AND (t.season = %s OR t.season IS NULL)";
-                $params[] = $this->filters['season'];
+        } elseif (in_array($user_role, ['owner', 'manager'])) {
+            // Owners/managers can export all club players
+            $club_member_ids = $this->getClubMemberIds();
+            
+            if (empty($club_member_ids)) {
+                return array();
             }
+            
+            $member_placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
+            
+            if (!empty($this->filters['teamIds'])) {
+                // Get players from specific teams
+                $team_placeholders = implode(',', array_fill(0, count($this->filters['teamIds']), '%d'));
+                
+                $query = "SELECT DISTINCT p.*, tp.position, tp.jersey_number, t.name as team_name, t.season
+                         FROM $players_table p
+                         INNER JOIN $team_players_table tp ON p.id = tp.player_id
+                         INNER JOIN $teams_table t ON tp.team_id = t.id
+                         WHERE t.id IN ($team_placeholders)
+                         AND t.created_by IN ($member_placeholders)";
+                
+                $params = array_merge($this->filters['teamIds'], $club_member_ids);
+                
+            } else {
+                // Get all players created by club members
+                $query = "SELECT p.*, tp.position, tp.jersey_number, t.name as team_name, t.season
+                         FROM $players_table p
+                         LEFT JOIN $team_players_table tp ON p.id = tp.player_id
+                         LEFT JOIN $teams_table t ON tp.team_id = t.id
+                         WHERE p.created_by IN ($member_placeholders)";
+                
+                $params = $club_member_ids;
+            }
+            
+        } else {
+            return array();
+        }
+        
+        // Apply season filter
+        if (!empty($this->filters['season'])) {
+            $query .= " AND (t.season = %s OR t.season IS NULL)";
+            $params[] = $this->filters['season'];
         }
         
         $query .= " ORDER BY p.last_name, p.first_name";
@@ -163,15 +248,32 @@ class Club_Manager_Export_Handler {
     }
     
     /**
-     * Get trainers data for export.
+     * Get trainers data for export - FIXED: Added security permissions check.
      */
     private function getTrainersData() {
         global $wpdb;
         
+        // Check user role
+        $user_role = Club_Manager_User_Permissions_Helper::get_user_role($this->user_id);
+        
+        // Only owners and managers can export trainer data
+        if (!in_array($user_role, ['owner', 'manager'])) {
+            return array();
+        }
+        
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        // Get trainers for teams owned by user
+        // Get all club member IDs
+        $club_member_ids = $this->getClubMemberIds();
+        
+        if (empty($club_member_ids)) {
+            return array();
+        }
+        
+        $member_placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
+        
+        // Get trainers for teams owned by club members
         $query = "SELECT DISTINCT tt.trainer_id, tt.role, u.user_email as email,
                         um1.meta_value as first_name, um2.meta_value as last_name
                  FROM $trainers_table tt
@@ -179,9 +281,9 @@ class Club_Manager_Export_Handler {
                  INNER JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
                  LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
                  LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
-                 WHERE t.created_by = %d";
+                 WHERE t.created_by IN ($member_placeholders)";
         
-        $params = array($this->user_id);
+        $params = $club_member_ids;
         
         if (!empty($this->filters['teamIds'])) {
             $placeholders = implode(',', array_fill(0, count($this->filters['teamIds']), '%d'));
@@ -198,9 +300,9 @@ class Club_Manager_Export_Handler {
             $team_query = "SELECT t.name
                           FROM $trainers_table tt
                           INNER JOIN $teams_table t ON tt.team_id = t.id
-                          WHERE tt.trainer_id = %d AND t.created_by = %d";
+                          WHERE tt.trainer_id = %d AND t.created_by IN ($member_placeholders)";
             
-            $team_params = array($trainer['trainer_id'], $this->user_id);
+            $team_params = array_merge(array($trainer['trainer_id']), $club_member_ids);
             
             if (!empty($this->filters['teamIds'])) {
                 $placeholders = implode(',', array_fill(0, count($this->filters['teamIds']), '%d'));
@@ -212,9 +314,6 @@ class Club_Manager_Export_Handler {
             
             $export_data[] = array(
                 'email' => $trainer['email'],
-                'first_name' => $trainer['first_name'] ?? '',
-                'last_name' => $trainer['last_name'] ?? '',
-                'role' => $trainer['role'],
                 'team_names' => implode(', ', $teams)
             );
         }
@@ -239,6 +338,53 @@ class Club_Manager_Export_Handler {
         ), ARRAY_A);
         
         return $evaluations;
+    }
+    
+    /**
+     * Get club member IDs for owners/managers.
+     */
+    private function getClubMemberIds() {
+        if (!class_exists('Club_Manager_Teams_Helper')) {
+            return array($this->user_id);
+        }
+        
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($this->user_id);
+        
+        if (empty($managed_teams)) {
+            return array($this->user_id);
+        }
+        
+        $member_ids = array();
+        
+        // Get all members from managed teams
+        foreach ($managed_teams as $team_info) {
+            $team_id = $team_info['team_id'];
+            
+            // Try to get team members
+            if (function_exists('wc_memberships_for_teams_get_team')) {
+                $team = wc_memberships_for_teams_get_team($team_id);
+                
+                if ($team && is_object($team) && method_exists($team, 'get_members')) {
+                    $members = $team->get_members();
+                    
+                    foreach ($members as $member) {
+                        if (method_exists($member, 'get_user_id')) {
+                            $member_ids[] = $member->get_user_id();
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Remove duplicates
+        $member_ids = array_unique($member_ids);
+        
+        // Always include the current user
+        if (!in_array($this->user_id, $member_ids)) {
+            $member_ids[] = $this->user_id;
+        }
+        
+        return $member_ids;
     }
     
     /**
@@ -276,50 +422,59 @@ class Club_Manager_Export_Handler {
     }
     
     /**
-     * Generate Excel content.
+     * Generate Excel content - FIXED: Note about PhpSpreadsheet requirement.
      */
     public function generateExcel($data, $type) {
-        // For now, we'll generate CSV with Excel-compatible formatting
-        // In a production environment, you'd use a library like PhpSpreadsheet
+        // Check if PhpSpreadsheet is available
+        if (!class_exists('\PhpOffice\PhpSpreadsheet\Spreadsheet')) {
+            // Fall back to CSV
+            return $this->generateCSV($data, $type);
+        }
         
         if (empty($data)) {
             return '';
         }
         
-        // Generate CSV content
-        $csv_content = $this->generateCSV($data, $type);
-        
-        // Note: In production, you would use PhpSpreadsheet here:
-        /*
-        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        
-        // Headers
-        $headers = array_keys($data[0]);
-        $col = 'A';
-        foreach ($headers as $header) {
-            $sheet->setCellValue($col . '1', $header);
-            $col++;
-        }
-        
-        // Data
-        $row = 2;
-        foreach ($data as $record) {
+        try {
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            
+            // Headers
+            $headers = array_keys($data[0]);
             $col = 'A';
-            foreach ($record as $value) {
-                $sheet->setCellValue($col . $row, $value);
+            foreach ($headers as $header) {
+                $sheet->setCellValue($col . '1', $header);
+                // Bold headers
+                $sheet->getStyle($col . '1')->getFont()->setBold(true);
+                // Auto-size columns
+                $sheet->getColumnDimension($col)->setAutoSize(true);
                 $col++;
             }
-            $row++;
+            
+            // Data
+            $row = 2;
+            foreach ($data as $record) {
+                $col = 'A';
+                foreach ($record as $value) {
+                    $sheet->setCellValue($col . $row, $value);
+                    $col++;
+                }
+                $row++;
+            }
+            
+            // Add filters
+            $sheet->setAutoFilter($sheet->calculateWorksheetDimension());
+            
+            // Save to string
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            ob_start();
+            $writer->save('php://output');
+            return ob_get_clean();
+            
+        } catch (Exception $e) {
+            // Fall back to CSV on error
+            Club_Manager_Logger::log('Excel generation failed: ' . $e->getMessage(), 'error');
+            return $this->generateCSV($data, $type);
         }
-        
-        // Save to string
-        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        ob_start();
-        $writer->save('php://output');
-        return ob_get_clean();
-        */
-        
-        return $csv_content;
     }
 }

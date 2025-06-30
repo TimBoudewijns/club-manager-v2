@@ -140,7 +140,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Initialize import session.
+     * Initialize import session - FIXED: Store in wp_options instead of transients.
      */
     public function init_import_session() {
         $user_id = $this->verify_request();
@@ -164,7 +164,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             // Generate session ID
             $session_id = wp_generate_uuid4();
             
-            // Store session data in transient (valid for 1 hour)
+            // Store session data in wp_options for reliability
             $session_data = array(
                 'user_id' => $user_id,
                 'type' => $type,
@@ -185,10 +185,15 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                     'skipped' => 0,
                     'failed' => 0,
                     'errors' => array()
-                )
+                ),
+                'created_at' => current_time('mysql')
             );
             
-            set_transient('cm_import_session_' . $session_id, $session_data, HOUR_IN_SECONDS);
+            // Store in wp_options
+            update_option('cm_import_session_' . $session_id, $session_data, false);
+            
+            // Schedule cleanup after 1 hour
+            wp_schedule_single_event(time() + HOUR_IN_SECONDS, 'cm_cleanup_import_session', array($session_id));
             
             wp_send_json_success(array(
                 'session_id' => $session_id,
@@ -201,7 +206,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Process import batch.
+     * Process import batch - FIXED: Collect trainers and send invitations after import.
      */
     public function process_import_batch() {
         $user_id = $this->verify_request();
@@ -218,8 +223,8 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
-        // Get session data
-        $session_data = get_transient('cm_import_session_' . $session_id);
+        // Get session data from wp_options
+        $session_data = get_option('cm_import_session_' . $session_id);
         
         if (!$session_data) {
             wp_send_json_error('Invalid or expired session');
@@ -267,6 +272,17 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 );
             }
             
+            // Collect trainers to invite
+            if (!empty($batch_results['trainers_to_invite'])) {
+                if (!isset($session_data['trainers_to_invite'])) {
+                    $session_data['trainers_to_invite'] = array();
+                }
+                $session_data['trainers_to_invite'] = array_merge(
+                    $session_data['trainers_to_invite'],
+                    $batch_results['trainers_to_invite']
+                );
+            }
+            
             // Check if complete
             $complete = $session_data['progress']['processed'] >= $session_data['progress']['total'];
             
@@ -274,15 +290,15 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 $session_data['status'] = 'completed';
                 
                 // Send trainer invitations if enabled
-                if ($session_data['type'] === 'trainers' || $session_data['type'] === 'trainers-with-assignments') {
-                    if (!empty($session_data['options']['sendInvitations']) && !empty($batch_results['trainers_to_invite'])) {
-                        $this->sendTrainerInvitations($batch_results['trainers_to_invite'], $user_id);
-                    }
+                if (($session_data['type'] === 'trainers' || $session_data['type'] === 'trainers-with-assignments') 
+                    && !empty($session_data['options']['sendInvitations']) 
+                    && !empty($session_data['trainers_to_invite'])) {
+                    $this->sendBulkTrainerInvitations($session_data['trainers_to_invite'], $user_id);
                 }
             }
             
-            // Update transient
-            set_transient('cm_import_session_' . $session_id, $session_data, HOUR_IN_SECONDS);
+            // Update session in wp_options
+            update_option('cm_import_session_' . $session_id, $session_data, false);
             
             // Return progress
             wp_send_json_success(array(
@@ -308,14 +324,14 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         $session_id = $this->get_post_data('session_id');
         
         if ($session_id) {
-            delete_transient('cm_import_session_' . $session_id);
+            delete_option('cm_import_session_' . $session_id);
         }
         
         wp_send_json_success();
     }
     
     /**
-     * Export data.
+     * Export data - FIXED: Add security permissions check.
      */
     public function export_data() {
         $user_id = $this->verify_request();
@@ -412,29 +428,69 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Send trainer invitations.
+     * Send bulk trainer invitations - FIXED: Use existing invite_trainer functionality.
      */
-    private function sendTrainerInvitations($trainers, $inviter_id) {
+    private function sendBulkTrainerInvitations($trainers, $inviter_id) {
         if (empty($trainers)) return;
+        
+        $trainer_ajax = new Club_Manager_Trainer_Ajax();
+        $sent_count = 0;
+        $failed_count = 0;
         
         foreach ($trainers as $trainer_data) {
             try {
-                // Use existing trainer invitation system
-                $trainer_ajax = new Club_Manager_Trainer_Ajax();
+                // Rate limiting - max 10 per minute
+                if ($sent_count > 0 && $sent_count % 10 === 0) {
+                    sleep(60); // Wait 1 minute after every 10 invitations
+                }
                 
-                // Format data for invitation
+                // Prepare data for invitation
                 $_POST['email'] = $trainer_data['email'];
                 $_POST['teams'] = $trainer_data['team_ids'];
                 $_POST['role'] = $trainer_data['role'] ?? 'trainer';
                 $_POST['message'] = 'You have been invited to join as a trainer through bulk import.';
+                $_POST['nonce'] = wp_create_nonce('club_manager_nonce');
                 
-                // Note: This would need to be refactored to not use $_POST directly
-                // For now, we'll just log that invitations should be sent
-                error_log('Club Manager: Trainer invitation needed for ' . $trainer_data['email']);
+                // Use the existing invite_trainer method directly
+                ob_start();
+                $trainer_ajax->invite_trainer();
+                $response = ob_get_clean();
+                
+                $result = json_decode($response, true);
+                if ($result && $result['success']) {
+                    $sent_count++;
+                } else {
+                    $failed_count++;
+                    Club_Manager_Logger::log(
+                        'Failed to send trainer invitation to ' . $trainer_data['email'],
+                        'error',
+                        array('response' => $result)
+                    );
+                }
                 
             } catch (Exception $e) {
-                error_log('Club Manager: Failed to send trainer invitation: ' . $e->getMessage());
+                $failed_count++;
+                Club_Manager_Logger::log(
+                    'Exception during trainer invitation: ' . $e->getMessage(),
+                    'error',
+                    array('email' => $trainer_data['email'])
+                );
             }
         }
+        
+        Club_Manager_Logger::log(
+            'Bulk trainer invitations completed',
+            'info',
+            array(
+                'sent' => $sent_count,
+                'failed' => $failed_count,
+                'total' => count($trainers)
+            )
+        );
     }
 }
+
+// Add cleanup action for expired sessions
+add_action('cm_cleanup_import_session', function($session_id) {
+    delete_option('cm_import_session_' . $session_id);
+});

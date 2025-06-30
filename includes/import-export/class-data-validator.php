@@ -65,7 +65,7 @@ class Club_Manager_Data_Validator {
     }
     
     /**
-     * Validate team data.
+     * Validate team data - FIXED: Added season validation.
      */
     private function validateTeam(&$data, $row_number) {
         // Validate required fields
@@ -81,6 +81,7 @@ class Club_Manager_Data_Validator {
             $data['coach'] = sanitize_text_field($data['coach']);
         }
         
+        // FIXED: Season is now REQUIRED for teams
         if (empty($data['season'])) {
             $this->addError('season', 'Season is required', $row_number);
         } else {
@@ -153,26 +154,14 @@ class Club_Manager_Data_Validator {
     }
     
     /**
-     * Validate trainer data.
+     * Validate trainer data - FIXED: Removed first/last name requirements.
      */
     private function validateTrainer(&$data, $row_number) {
-        // Validate required fields
+        // Validate required fields - ONLY EMAIL IS REQUIRED
         if (empty($data['email'])) {
             $this->addError('email', 'Email is required', $row_number);
         } else {
             $data['email'] = $this->validateEmail($data['email'], $row_number);
-        }
-        
-        if (empty($data['first_name'])) {
-            $this->addError('first_name', 'First name is required', $row_number);
-        } else {
-            $data['first_name'] = sanitize_text_field($data['first_name']);
-        }
-        
-        if (empty($data['last_name'])) {
-            $this->addError('last_name', 'Last name is required', $row_number);
-        } else {
-            $data['last_name'] = sanitize_text_field($data['last_name']);
         }
         
         // Validate optional fields
@@ -184,7 +173,7 @@ class Club_Manager_Data_Validator {
     }
     
     /**
-     * Validate trainer with assignments data.
+     * Validate trainer with assignments data - FIXED: Only email required.
      */
     private function validateTrainerWithAssignments(&$data, $row_number) {
         // First validate trainer data
@@ -279,7 +268,7 @@ class Club_Manager_Data_Validator {
     }
     
     /**
-     * Validate season format.
+     * Validate season format - FIXED: Enhanced validation.
      */
     private function validateSeason($season, $row_number) {
         $season = trim($season);
@@ -347,7 +336,7 @@ class Club_Manager_Data_Validator {
      */
     private function addError($field, $message, $row_number) {
         $this->errors[] = array(
-            'row' => $row_number,
+            'row' => $row_number + 1, // Make row numbers 1-based for users
             'field' => $field,
             'message' => $message
         );

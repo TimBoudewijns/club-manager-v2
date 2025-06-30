@@ -8,6 +8,7 @@ class Club_Manager_Import_Handler {
     private $options = array();
     private $validator;
     private $errors = array();
+    private $trainers_to_invite = array();
     
     public function __construct() {
         $this->validator = new Club_Manager_Data_Validator();
@@ -70,14 +71,14 @@ class Club_Manager_Import_Handler {
                         
                     case 'trainers':
                         $result = $this->importTrainer($validation['data'], $user_id);
-                        if ($result['success'] && $result['action'] === 'created' && $result['needs_invitation']) {
+                        if ($result['success'] && !empty($result['trainer_data'])) {
                             $results['trainers_to_invite'][] = $result['trainer_data'];
                         }
                         break;
                         
                     case 'trainers-with-assignments':
                         $result = $this->importTrainerWithAssignments($validation['data'], $user_id);
-                        if ($result['success'] && $result['action'] === 'created' && $result['needs_invitation']) {
+                        if ($result['success'] && !empty($result['trainer_data'])) {
                             $results['trainers_to_invite'][] = $result['trainer_data'];
                         }
                         break;
@@ -115,7 +116,16 @@ class Club_Manager_Import_Handler {
     private function importTeam($data, $user_id) {
         global $wpdb;
         
-        // Check for duplicates
+        // Validate season is present
+        if (empty($data['season'])) {
+            return array(
+                'success' => false,
+                'action' => 'failed',
+                'error' => 'Season is required for teams'
+            );
+        }
+        
+        // Check for duplicates including season
         $teams_table = Club_Manager_Database::get_table_name('teams');
         $existing = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
@@ -316,42 +326,43 @@ class Club_Manager_Import_Handler {
     }
     
     /**
-     * Import trainer.
+     * Import trainer - FIXED: No WordPress user creation.
      */
     private function importTrainer($data, $user_id) {
-        global $wpdb;
+        // Only validate email and collect for later invitation
+        if (empty($data['email'])) {
+            return array(
+                'success' => false,
+                'action' => 'failed',
+                'error' => 'Email is required for trainer'
+            );
+        }
         
-        // Check if user exists
-        $user = get_user_by('email', $data['email']);
+        // Check if user with this email already exists
+        $existing_user = get_user_by('email', $data['email']);
         
-        if ($user) {
-            // User exists
+        if ($existing_user) {
+            // User already exists in WordPress
             switch ($this->options['duplicateHandling']) {
                 case 'skip':
                     return array('success' => true, 'action' => 'skipped');
                     
                 case 'update':
-                    // Update user meta
-                    update_user_meta($user->ID, 'first_name', $data['first_name']);
-                    update_user_meta($user->ID, 'last_name', $data['last_name']);
-                    
+                    // Can update role in team assignments later
                     return array('success' => true, 'action' => 'updated');
                     
                 case 'create':
-                    // Can't create duplicate user with same email
+                    // Can't create duplicate user
                     return array('success' => true, 'action' => 'skipped');
             }
         }
         
-        // User doesn't exist - prepare for invitation
+        // Return data for invitation - NO USER CREATION
         return array(
             'success' => true,
             'action' => 'created',
-            'needs_invitation' => true,
             'trainer_data' => array(
                 'email' => $data['email'],
-                'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
                 'role' => $data['role'] ?? 'trainer',
                 'team_ids' => array()
             )
@@ -359,20 +370,22 @@ class Club_Manager_Import_Handler {
     }
     
     /**
-     * Import trainer with team assignments.
+     * Import trainer with team assignments - FIXED: No user creation.
      */
     private function importTrainerWithAssignments($data, $user_id) {
-        // First handle trainer
-        $trainer_result = $this->importTrainer($data, $user_id);
-        
-        if (!$trainer_result['success']) {
-            return $trainer_result;
+        // Only validate email
+        if (empty($data['email'])) {
+            return array(
+                'success' => false,
+                'action' => 'failed',
+                'error' => 'Email is required for trainer'
+            );
         }
         
         // Parse team assignments
+        $team_ids = array();
         if (!empty($data['team_names'])) {
             $team_names = array_map('trim', explode(',', $data['team_names']));
-            $team_ids = array();
             
             global $wpdb;
             $teams_table = Club_Manager_Database::get_table_name('teams');
@@ -387,19 +400,27 @@ class Club_Manager_Import_Handler {
                     $team_ids[] = $team->id;
                 }
             }
-            
-            if ($trainer_result['needs_invitation']) {
-                $trainer_result['trainer_data']['team_ids'] = $team_ids;
-            } else {
-                // User exists, add to teams
-                $user = get_user_by('email', $data['email']);
-                if ($user && !empty($team_ids)) {
-                    $this->assignTrainerToTeams($user->ID, $team_ids, $data['role'] ?? 'trainer', $user_id);
-                }
-            }
         }
         
-        return $trainer_result;
+        // Check if user exists
+        $existing_user = get_user_by('email', $data['email']);
+        
+        if ($existing_user && !empty($team_ids)) {
+            // User exists, add to teams directly
+            $this->assignTrainerToTeams($existing_user->ID, $team_ids, $data['role'] ?? 'trainer', $user_id);
+            return array('success' => true, 'action' => 'updated');
+        }
+        
+        // Return data for invitation
+        return array(
+            'success' => true,
+            'action' => 'created',
+            'trainer_data' => array(
+                'email' => $data['email'],
+                'role' => $data['role'] ?? 'trainer',
+                'team_ids' => $team_ids
+            )
+        );
     }
     
     /**
@@ -515,5 +536,12 @@ class Club_Manager_Import_Handler {
             $counter++;
             $name = $base_name . ' (' . $counter . ')';
         }
+    }
+    
+    /**
+     * Get trainers that need invitations.
+     */
+    public function getTrainersToInvite() {
+        return $this->trainers_to_invite;
     }
 }
