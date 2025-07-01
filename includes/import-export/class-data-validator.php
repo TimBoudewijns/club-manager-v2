@@ -25,13 +25,27 @@ class Club_Manager_Data_Validator {
         $this->errors = array();
         $data = array();
         
+        // Debug logging
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Club Manager: Validating row ' . $row_number . ' with mapping: ' . json_encode($mapping));
+            error_log('Club Manager: Row data: ' . json_encode($row));
+        }
+        
         // Map row data to fields
         foreach ($mapping as $field => $column_index) {
+            // Convert string index to integer if needed
+            $column_index = intval($column_index);
+            
             if (isset($row[$column_index])) {
                 $data[$field] = $row[$column_index];
             } else {
                 $data[$field] = '';
             }
+        }
+        
+        // Debug mapped data
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Club Manager: Mapped data: ' . json_encode($data));
         }
         
         // Validate based on type

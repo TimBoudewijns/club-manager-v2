@@ -100,7 +100,7 @@ class ImportExportModule {
                 ]
             },
             
-            // Templates - FIXED: Headers must match field keys exactly
+            // Templates - Headers must match field keys EXACTLY
             importTemplates: {
                 teams: 'name,coach,season\n"Example Team","John Doe","2024-2025"',
                 players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\n"John","Doe","john@example.com","01-01-2005","Forward","10","Example Team"',
@@ -224,6 +224,11 @@ class ImportExportModule {
                 throw new Error('No response from server');
             }
             
+            // Debug logging
+            console.log('Parsed file data:', response);
+            console.log('Headers:', response.headers);
+            console.log('First row:', response.rows[0]);
+            
             this.app.importFileData = response;
             
             // Auto-map columns
@@ -298,6 +303,11 @@ class ImportExportModule {
     // Validate import data
     async validateImportData() {
         try {
+            // Debug logging
+            console.log('Validating with mapping:', this.app.importMapping);
+            console.log('Import type:', this.app.importType);
+            console.log('Sample data:', this.app.importFileData.rows.slice(0, 3));
+            
             const data = {
                 type: this.app.importType,
                 mapping: this.app.importMapping,
@@ -310,6 +320,8 @@ class ImportExportModule {
             if (!response) {
                 throw new Error('Validation failed');
             }
+            
+            console.log('Validation response:', response);
             
             this.app.importPreviewData = response.preview || [];
             this.app.importProgress.total = response.total_rows || this.app.importFileData.rows.length;
@@ -474,8 +486,13 @@ class ImportExportModule {
             const fields = this.getImportTypeFields();
             const requiredFields = fields.filter(f => f.required);
             
+            console.log('Required fields:', requiredFields);
+            console.log('Current mapping:', this.app.importMapping);
+            
             const missingFields = requiredFields.filter(f => 
-                !this.app.importMapping[f.key] && this.app.importMapping[f.key] !== 0
+                this.app.importMapping[f.key] === undefined || 
+                this.app.importMapping[f.key] === null || 
+                this.app.importMapping[f.key] === ''
             );
             
             if (missingFields.length > 0) {

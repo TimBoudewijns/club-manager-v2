@@ -94,6 +94,14 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         $options = isset($_POST['options']) ? $_POST['options'] : array();
         $sample_data = isset($_POST['sample_data']) ? $_POST['sample_data'] : array();
         
+        // Debug logging
+        Club_Manager_Logger::log('Validate import data', 'debug', array(
+            'type' => $type,
+            'mapping' => $mapping,
+            'options' => $options,
+            'sample_data_count' => count($sample_data)
+        ));
+        
         if (empty($mapping) || empty($sample_data)) {
             wp_send_json_error('Missing mapping or sample data');
             return;
