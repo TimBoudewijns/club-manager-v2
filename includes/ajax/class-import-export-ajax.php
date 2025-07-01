@@ -79,7 +79,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Validate import data.
+     * Validate import data - FIXED to properly handle mapping.
      */
     public function validate_import_data() {
         $user_id = $this->verify_request();
@@ -99,7 +99,8 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             'type' => $type,
             'mapping' => $mapping,
             'options' => $options,
-            'sample_data_count' => count($sample_data)
+            'sample_data_count' => count($sample_data),
+            'first_row' => isset($sample_data[0]) ? $sample_data[0] : null
         ));
         
         if (empty($mapping) || empty($sample_data)) {
@@ -114,9 +115,21 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             // Validate sample data
             $preview = array();
             $errors = array();
+            $error_counts = array();
             
             foreach ($sample_data as $index => $row) {
-                $result = $validator->validateRow($row, $mapping, $type, $index);
+                // Extract mapped values from the row
+                $mapped_data = array();
+                foreach ($mapping as $field => $column_index) {
+                    if ($column_index !== '' && isset($row[$column_index])) {
+                        $mapped_data[$field] = trim($row[$column_index]);
+                    } else {
+                        $mapped_data[$field] = '';
+                    }
+                }
+                
+                // Validate the mapped data
+                $result = $validator->validateRow($mapped_data, $type, $index);
                 
                 if ($result['valid']) {
                     $preview[] = array(
@@ -131,6 +144,16 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                         'status' => 'error',
                         'errors' => $result['errors']
                     );
+                    
+                    // Count errors by field
+                    foreach ($result['errors'] as $error) {
+                        $field = $error['field'] ?? 'general';
+                        if (!isset($error_counts[$field])) {
+                            $error_counts[$field] = 0;
+                        }
+                        $error_counts[$field]++;
+                    }
+                    
                     $errors = array_merge($errors, $result['errors']);
                 }
             }
@@ -139,7 +162,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 'preview' => $preview,
                 'total_rows' => count($sample_data),
                 'has_errors' => !empty($errors),
-                'error_summary' => $this->summarizeErrors($errors)
+                'error_summary' => $error_counts
             ));
             
         } catch (Exception $e) {
@@ -214,7 +237,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Process import batch - FIXED: Collect trainers and send invitations after import.
+     * Process import batch - FIXED: Apply mapping correctly and collect trainers.
      */
     public function process_import_batch() {
         $user_id = $this->verify_request();
@@ -254,10 +277,21 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             $start_index = $session_data['progress']['current_batch'] * $batch_size;
             $rows_to_process = array_slice($session_data['file_data']['rows'], $start_index, $batch_size);
             
+            // Map the raw rows to field data before processing
+            $mapped_rows = array();
+            foreach ($rows_to_process as $row) {
+                $mapped_data = array();
+                foreach ($session_data['mapping'] as $field => $column_index) {
+                    if ($column_index !== '' && isset($row[$column_index])) {
+                        $mapped_data[$field] = trim($row[$column_index]);
+                    }
+                }
+                $mapped_rows[] = $mapped_data;
+            }
+            
             $batch_results = $handler->processBatch(
-                $rows_to_process,
+                $mapped_rows,
                 $session_data['type'],
-                $session_data['mapping'],
                 $start_index,
                 $user_id
             );
@@ -416,23 +450,6 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         } catch (Exception $e) {
             wp_send_json_error('Export error: ' . $e->getMessage());
         }
-    }
-    
-    /**
-     * Summarize validation errors.
-     */
-    private function summarizeErrors($errors) {
-        $summary = array();
-        
-        foreach ($errors as $error) {
-            $field = $error['field'] ?? 'general';
-            if (!isset($summary[$field])) {
-                $summary[$field] = 0;
-            }
-            $summary[$field]++;
-        }
-        
-        return $summary;
     }
     
     /**
