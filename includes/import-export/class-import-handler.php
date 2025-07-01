@@ -21,13 +21,14 @@ class Club_Manager_Import_Handler {
     /**
      * Process a batch of import rows.
      * 
-     * @param array $rows Mapped data rows to process
+     * @param array $rows Raw or mapped data rows to process
      * @param string $type Import type
+     * @param array $mapping Column mapping (optional if rows are already mapped)
      * @param int $start_index Starting index for error reporting
      * @param int $user_id User performing the import
      * @return array Processing results
      */
-    public function processBatch($rows, $type, $start_index = 0, $user_id = 0) {
+    public function processBatch($rows, $type, $mapping = null, $start_index = 0, $user_id = 0) {
         $results = array(
             'successful' => 0,
             'failed' => 0,
@@ -37,6 +38,21 @@ class Club_Manager_Import_Handler {
             'errors' => array(),
             'trainers_to_invite' => array()
         );
+        
+        // If mapping is provided, map the raw rows
+        if ($mapping !== null && !empty($mapping)) {
+            $mapped_rows = array();
+            foreach ($rows as $row) {
+                $mapped_data = array();
+                foreach ($mapping as $field => $column_index) {
+                    if ($column_index !== '' && isset($row[$column_index])) {
+                        $mapped_data[$field] = trim($row[$column_index]);
+                    }
+                }
+                $mapped_rows[] = $mapped_data;
+            }
+            $rows = $mapped_rows;
+        }
         
         // Remove type suffixes for processing
         $base_type = str_replace(array('-with-players', '-with-assignments'), '', $type);

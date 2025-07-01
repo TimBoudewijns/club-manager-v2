@@ -79,7 +79,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Validate import data - FIXED to properly handle mapping.
+     * Validate import data.
      */
     public function validate_import_data() {
         $user_id = $this->verify_request();
@@ -93,15 +93,6 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         $mapping = isset($_POST['mapping']) ? $_POST['mapping'] : array();
         $options = isset($_POST['options']) ? $_POST['options'] : array();
         $sample_data = isset($_POST['sample_data']) ? $_POST['sample_data'] : array();
-        
-        // Debug logging
-        Club_Manager_Logger::log('Validate import data', 'debug', array(
-            'type' => $type,
-            'mapping' => $mapping,
-            'options' => $options,
-            'sample_data_count' => count($sample_data),
-            'first_row' => isset($sample_data[0]) ? $sample_data[0] : null
-        ));
         
         if (empty($mapping) || empty($sample_data)) {
             wp_send_json_error('Missing mapping or sample data');
@@ -121,7 +112,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 // Extract mapped values from the row
                 $mapped_data = array();
                 foreach ($mapping as $field => $column_index) {
-                    if ($column_index !== '' && isset($row[$column_index])) {
+                    if ($column_index !== '' && $column_index !== null && isset($row[$column_index])) {
                         $mapped_data[$field] = trim($row[$column_index]);
                     } else {
                         $mapped_data[$field] = '';
@@ -171,7 +162,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Initialize import session - FIXED: Store in wp_options instead of transients.
+     * Initialize import session.
      */
     public function init_import_session() {
         $user_id = $this->verify_request();
@@ -237,7 +228,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Process import batch - FIXED: Apply mapping correctly and collect trainers.
+     * Process import batch.
      */
     public function process_import_batch() {
         $user_id = $this->verify_request();
@@ -373,7 +364,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Export data - FIXED: Add security permissions check.
+     * Export data.
      */
     public function export_data() {
         $user_id = $this->verify_request();
@@ -453,7 +444,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Send bulk trainer invitations - FIXED: Use existing invite_trainer functionality.
+     * Send bulk trainer invitations.
      */
     private function sendBulkTrainerInvitations($trainers, $inviter_id) {
         if (empty($trainers)) return;
