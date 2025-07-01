@@ -51,7 +51,25 @@ class ImportExportModule {
             },
             exportFormat: 'csv', // csv, xlsx
             
-            // Field mappings
+            // Field mappings with common header variations
+            fieldMappings: {
+                // Teams
+                'name': ['name', 'team_name', 'team name', 'teamname'],
+                'coach': ['coach', 'coach_name', 'coach name', 'trainer', 'head_coach'],
+                'season': ['season', 'year', 'seizoen'],
+                
+                // Players
+                'first_name': ['first_name', 'firstname', 'first name', 'voornaam', 'fname'],
+                'last_name': ['last_name', 'lastname', 'last name', 'achternaam', 'lname'],
+                'email': ['email', 'email_address', 'email address', 'e-mail', 'emailadres'],
+                'birth_date': ['birth_date', 'birthdate', 'birth date', 'date_of_birth', 'dob', 'geboortedatum'],
+                'position': ['position', 'pos', 'positie'],
+                'jersey_number': ['jersey_number', 'jersey', 'number', 'shirt_number', 'rugnummer'],
+                'team_name': ['team_name', 'team', 'team name', 'teamname'],
+                
+                // Trainers
+                'team_names': ['team_names', 'teams', 'team names', 'assigned_teams']
+            },
             availableFields: {
                 teams: [
                     { key: 'name', label: 'Team Name', required: true },
@@ -82,9 +100,9 @@ class ImportExportModule {
                 ]
             },
             
-            // Templates - FIXED: Removed first/last name from trainers template
+            // Templates - FIXED: Headers must match field keys exactly
             importTemplates: {
-                teams: 'team_name,coach,season\n"Example Team","John Doe","2024-2025"',
+                teams: 'name,coach,season\n"Example Team","John Doe","2024-2025"',
                 players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\n"John","Doe","john@example.com","01-01-2005","Forward","10","Example Team"',
                 trainers: 'email,team_names\n"trainer@example.com","Team A, Team B"'
             }
@@ -226,7 +244,7 @@ class ImportExportModule {
         }
     }
     
-    // Auto-map columns based on headers
+    // Auto-map columns based on headers - ENHANCED with mapping variations
     autoMapColumns() {
         if (!this.app.importFileData || !this.app.importFileData.headers) return;
         
@@ -237,9 +255,31 @@ class ImportExportModule {
         
         // Try to match headers to fields
         headers.forEach((header, index) => {
-            const normalizedHeader = header.toLowerCase().replace(/[^a-z0-9]/g, '');
+            const cleanHeader = header.toLowerCase().trim();
             
+            // Check each field
             fields.forEach(field => {
+                // Skip if already mapped
+                if (this.app.importMapping[field.key] !== undefined) return;
+                
+                // Check if header matches any known variations for this field
+                if (this.app.fieldMappings[field.key]) {
+                    const variations = this.app.fieldMappings[field.key];
+                    if (variations.includes(cleanHeader)) {
+                        this.app.importMapping[field.key] = index;
+                        return;
+                    }
+                }
+                
+                // Try exact match with field key
+                if (cleanHeader === field.key || 
+                    cleanHeader === field.key.replace(/_/g, ' ')) {
+                    this.app.importMapping[field.key] = index;
+                    return;
+                }
+                
+                // Try normalized matching
+                const normalizedHeader = cleanHeader.replace(/[^a-z0-9]/g, '');
                 const normalizedField = field.label.toLowerCase().replace(/[^a-z0-9]/g, '');
                 const normalizedKey = field.key.replace(/_/g, '');
                 
@@ -248,6 +288,11 @@ class ImportExportModule {
                 }
             });
         });
+        
+        // Log mapping for debugging
+        console.log('Auto-mapping results:', this.app.importMapping);
+        console.log('Headers:', headers);
+        console.log('Fields:', fields);
     }
     
     // Validate import data
@@ -456,7 +501,11 @@ class ImportExportModule {
         const template = this.app.importTemplates[type];
         if (!template) return;
         
-        const blob = new Blob([template], { type: 'text/csv' });
+        // Add UTF-8 BOM for Excel compatibility
+        const BOM = '\uFEFF';
+        const content = BOM + template;
+        
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
