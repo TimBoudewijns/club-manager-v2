@@ -359,12 +359,6 @@ class Club_Manager_CSV_Parser {
         // Remove any non-printable characters
         $header = preg_replace('/[\x00-\x1F\x7F]/', '', $header);
         
-        // Convert to lowercase for consistency
-        $header = strtolower($header);
-        
-        // Replace spaces with underscores for field matching
-        $header = str_replace(' ', '_', $header);
-        
         return $header;
     }
 }
