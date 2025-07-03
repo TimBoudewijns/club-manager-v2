@@ -83,28 +83,40 @@ class Club_Manager_Import_Handler {
     private function processTeam($data, $user_id) {
         global $wpdb;
         $teams_table = Club_Manager_Database::get_table_name('teams');
-        
+
+        // Ensure required data is present
+        if (empty($data['name']) || empty($data['coach']) || empty($data['season'])) {
+            return ['success' => false, 'error' => 'Missing required fields: Team Name, Coach, and Season.'];
+        }
+
         $existing = $wpdb->get_row($wpdb->prepare(
             "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
             $data['name'], $data['season'], $user_id
         ));
-        
+
         if ($existing) {
             if ($this->options['duplicateHandling'] === 'update') {
-                $wpdb->update($teams_table, ['coach' => $data['coach']], ['id' => $existing->id]);
+                $updated = $wpdb->update($teams_table, ['coach' => $data['coach']], ['id' => $existing->id]);
+                if ($updated === false) {
+                    return ['success' => false, 'error' => 'Failed to update existing team.'];
+                }
                 return ['success' => true, 'action' => 'updated', 'id' => $existing->id];
             }
             return ['success' => true, 'action' => 'skipped', 'id' => $existing->id];
         }
-        
-        $wpdb->insert($teams_table, [
-            'name' => $data['name'],
-            'coach' => $data['coach'],
-            'season' => $data['season'],
+
+        $inserted = $wpdb->insert($teams_table, [
+            'name'       => $data['name'],
+            'coach'      => $data['coach'],
+            'season'     => $data['season'],
             'created_by' => $user_id,
             'created_at' => current_time('mysql')
         ]);
-        
+
+        if ($inserted === false) {
+            return ['success' => false, 'error' => 'Database error: Could not insert team. Last error: ' . $wpdb->last_error];
+        }
+
         return ['success' => true, 'action' => 'created', 'id' => $wpdb->insert_id];
     }
     
@@ -116,16 +128,22 @@ class Club_Manager_Import_Handler {
         $players_table = Club_Manager_Database::get_table_name('players');
         $team_players_table = Club_Manager_Database::get_table_name('team_players');
         
-        $player_id = email_exists($data['email']);
+        $existing_player = $wpdb->get_row($wpdb->prepare(
+            "SELECT id FROM $players_table WHERE email = %s AND created_by = %d",
+            $data['email'],
+            $user_id
+        ));
+        $player_id = $existing_player ? $existing_player->id : null;
         $action = 'created';
 
         if ($player_id) {
             if ($this->options['duplicateHandling'] === 'skip') {
-                // Return early, but still try to add to team if a team_name is provided
+                // Player exists, but we might still need to add them to a team.
+                // Don't return here.
             } elseif ($this->options['duplicateHandling'] === 'update') {
                 $update_data = [
                     'first_name' => $data['first_name'],
-                    'last_name' => $data['last_name'],
+                    'last_name'  => $data['last_name'],
                 ];
                 if (!empty($data['birth_date'])) {
                     $update_data['birth_date'] = $data['birth_date'];
@@ -134,14 +152,18 @@ class Club_Manager_Import_Handler {
                 $action = 'updated';
             }
         } else {
-            $wpdb->insert($players_table, [
+            // Create new player if they don't exist
+            $inserted = $wpdb->insert($players_table, [
                 'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
+                'last_name'  => $data['last_name'],
                 'birth_date' => $data['birth_date'],
-                'email' => $data['email'],
+                'email'      => $data['email'],
                 'created_by' => $user_id,
                 'created_at' => current_time('mysql')
             ]);
+            if ($inserted === false) {
+                return ['success' => false, 'error' => 'Could not create new player.'];
+            }
             $player_id = $wpdb->insert_id;
         }
 
