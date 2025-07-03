@@ -26,6 +26,11 @@ class Club_Manager_Data_Validator {
      * @return array Validation result
      */
     public function validateRow($data, $type, $row_index = 0) {
+        // Trim whitespace and quotes from all data fields
+        $data = array_map(function($value) {
+            return is_string($value) ? trim(trim($value), '"') : $value;
+        }, $data);
+
         $errors = array();
         $validated_data = array();
         
@@ -69,42 +74,25 @@ class Club_Manager_Data_Validator {
         
         // Validate team name
         if (empty($data['name'])) {
-            $errors[] = array(
-                'row' => $row_index + 1,
-                'field' => 'name',
-                'message' => 'Team name is required'
-            );
+            $errors[] = ['row' => $row_index + 1, 'field' => 'name', 'message' => 'Team name is required'];
         } else {
             $validated['name'] = sanitize_text_field($data['name']);
         }
         
         // Validate coach
         if (empty($data['coach'])) {
-            $errors[] = array(
-                'row' => $row_index + 1,
-                'field' => 'coach',
-                'message' => 'Coach name is required'
-            );
+            $errors[] = ['row' => $row_index + 1, 'field' => 'coach', 'message' => 'Coach name is required'];
         } else {
             $validated['coach'] = sanitize_text_field($data['coach']);
         }
         
         // Validate season
         if (empty($data['season'])) {
-            $errors[] = array(
-                'row' => $row_index + 1,
-                'field' => 'season',
-                'message' => 'Season is required'
-            );
+            $errors[] = ['row' => $row_index + 1, 'field' => 'season', 'message' => 'Season is required'];
         } else {
-            // Validate season format (e.g., 2024-2025)
             $season = sanitize_text_field($data['season']);
             if (!preg_match('/^\d{4}-\d{4}$/', $season)) {
-                $errors[] = array(
-                    'row' => $row_index + 1,
-                    'field' => 'season',
-                    'message' => 'Invalid season format. Use YYYY-YYYY (e.g., 2024-2025)'
-                );
+                $errors[] = ['row' => $row_index + 1, 'field' => 'season', 'message' => 'Invalid season format. Use YYYY-YYYY (e.g., 2024-2025)'];
             } else {
                 $validated['season'] = $season;
             }
@@ -117,19 +105,11 @@ class Club_Manager_Data_Validator {
             
             $existing = $wpdb->get_var($wpdb->prepare(
                 "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
-                $validated['name'],
-                $validated['season'],
-                get_current_user_id()
+                $validated['name'], $validated['season'], get_current_user_id()
             ));
             
-            if ($existing) {
-                 if ($this->options['duplicateHandling'] === 'skip') {
-                    $errors[] = array(
-                        'row' => $row_index + 1,
-                        'field' => 'name',
-                        'message' => 'Team already exists and will be skipped'
-                    );
-                 }
+            if ($existing && $this->options['duplicateHandling'] === 'skip') {
+                $errors[] = ['row' => $row_index + 1, 'field' => 'name', 'message' => 'Team already exists and will be skipped'];
             }
         }
         
@@ -177,7 +157,7 @@ class Club_Manager_Data_Validator {
         if (!empty($data['birth_date'])) {
             $date = $this->parseDate($data['birth_date']);
             if (!$date) {
-                $errors[] = ['row' => $row_index + 1, 'field' => 'birth_date', 'message' => 'Invalid date format. Use ' . $this->options['dateFormat']];
+                $errors[] = ['row' => $row_index + 1, 'field' => 'birth_date', 'message' => 'Invalid date format. Use ' . ($this->options['dateFormat'] ?? 'DD-MM-YYYY')];
             } else {
                 $validated['birth_date'] = $date->format('Y-m-d');
             }
@@ -188,30 +168,11 @@ class Club_Manager_Data_Validator {
         $validated['jersey_number'] = !empty($data['jersey_number']) ? intval($data['jersey_number']) : null;
         $validated['notes'] = !empty($data['notes']) ? sanitize_textarea_field($data['notes']) : '';
 
-        // Validate team name if provided
-        if (!empty($data['team_name'])) {
-            $validated['team_name'] = sanitize_text_field($data['team_name']);
-            global $wpdb;
-            $teams_table = Club_Manager_Database::get_table_name('teams');
-            $season = get_user_meta(get_current_user_id(), 'cm_preferred_season', true) ?: '2024-2025';
-
-            $team_exists = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
-                $validated['team_name'], $season, get_current_user_id()
-            ));
-
-            if (!$team_exists) {
-                $errors[] = ['row' => $row_index + 1, 'field' => 'team_name', 'message' => "Team '{$validated['team_name']}' not found for season {$season}"];
-            }
-        }
-
         // Check for duplicate if not updating
-        if ($this->options['duplicateHandling'] !== 'update' && empty($errors)) {
+        if ($this->options['duplicateHandling'] !== 'update' && !empty($validated['email'])) {
             $existing_player_id = email_exists($validated['email']);
-            if ($existing_player_id) {
-                if ($this->options['duplicateHandling'] === 'skip') {
-                     $errors[] = ['row' => $row_index + 1, 'field' => 'email', 'message' => 'Player with this email already exists and will be skipped.'];
-                }
+            if ($existing_player_id && $this->options['duplicateHandling'] === 'skip') {
+                 $errors[] = ['row' => $row_index + 1, 'field' => 'email', 'message' => 'Player with this email already exists and will be skipped.'];
             }
         }
         
@@ -231,19 +192,11 @@ class Club_Manager_Data_Validator {
         
         // Validate email
         if (empty($data['email'])) {
-            $errors[] = array(
-                'row' => $row_index + 1,
-                'field' => 'email',
-                'message' => 'Email is required'
-            );
+            $errors[] = ['row' => $row_index + 1, 'field' => 'email', 'message' => 'Email is required'];
         } else {
             $email = sanitize_email($data['email']);
             if ($this->options['validateEmails'] && !is_email($email)) {
-                $errors[] = array(
-                    'row' => $row_index + 1,
-                    'field' => 'email',
-                    'message' => 'Invalid email address'
-                );
+                $errors[] = ['row' => $row_index + 1, 'field' => 'email', 'message' => 'Invalid email address'];
             } else {
                 $validated['email'] = $email;
             }
@@ -252,11 +205,7 @@ class Club_Manager_Data_Validator {
         // Validate team names (optional)
         if (!empty($data['team_names'])) {
             $team_names = array_map('trim', explode(',', $data['team_names']));
-            $team_names = array_filter($team_names);
-            
-            if (!empty($team_names)) {
-                $validated['team_names'] = $team_names;
-            }
+            $validated['team_names'] = array_filter($team_names);
         }
         
         return array(
