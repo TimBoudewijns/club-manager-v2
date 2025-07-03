@@ -90,9 +90,21 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $type = $this->get_post_data('type');
-        $mapping = isset($_POST['mapping']) ? $_POST['mapping'] : array();
-        $options = isset($_POST['options']) ? $_POST['options'] : array();
-        $sample_data = isset($_POST['sample_data']) ? $_POST['sample_data'] : array();
+        $mapping = isset($_POST['mapping']) ? json_decode(stripslashes($_POST['mapping']), true) : array();
+        $options = isset($_POST['options']) ? json_decode(stripslashes($_POST['options']), true) : array();
+        $raw_sample_data = isset($_POST['sample_data']) ? $_POST['sample_data'] : array();
+
+        // Fix for FormData array conversion: parse CSV strings back to arrays
+        $sample_data = [];
+        if (!empty($raw_sample_data) && is_array($raw_sample_data)) {
+            foreach ($raw_sample_data as $row_string) {
+                 if (is_string($row_string)) {
+                    $sample_data[] = str_getcsv($row_string);
+                 } else {
+                    $sample_data[] = $row_string;
+                 }
+            }
+        }
         
         if (empty($mapping) || empty($sample_data)) {
             wp_send_json_error('Missing mapping or sample data');
@@ -173,9 +185,9 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $type = $this->get_post_data('type');
-        $mapping = isset($_POST['mapping']) ? $_POST['mapping'] : array();
-        $options = isset($_POST['options']) ? $_POST['options'] : array();
-        $file_data = isset($_POST['file_data']) ? $_POST['file_data'] : array();
+        $mapping = isset($_POST['mapping']) ? json_decode(stripslashes($_POST['mapping']), true) : array();
+        $options = isset($_POST['options']) ? json_decode(stripslashes($_POST['options']), true) : array();
+        $file_data = isset($_POST['file_data']) ? json_decode(stripslashes($_POST['file_data']), true) : array();
         
         if (empty($type) || empty($mapping) || empty($file_data)) {
             wp_send_json_error('Missing required data');
@@ -273,7 +285,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             foreach ($rows_to_process as $row) {
                 $mapped_data = array();
                 foreach ($session_data['mapping'] as $field => $column_index) {
-                    if ($column_index !== '' && isset($row[$column_index])) {
+                    if ($column_index !== '' && $column_index !== null && isset($row[$column_index])) {
                         $mapped_data[$field] = trim($row[$column_index]);
                     }
                 }
@@ -323,9 +335,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 $session_data['status'] = 'completed';
                 
                 // Send trainer invitations if enabled
-                if (($session_data['type'] === 'trainers' || $session_data['type'] === 'trainers-with-assignments') 
-                    && !empty($session_data['options']['sendInvitations']) 
-                    && !empty($session_data['trainers_to_invite'])) {
+                if (!empty($session_data['options']['sendInvitations']) && !empty($session_data['trainers_to_invite'])) {
                     $this->sendBulkTrainerInvitations($session_data['trainers_to_invite'], $user_id);
                 }
             }
