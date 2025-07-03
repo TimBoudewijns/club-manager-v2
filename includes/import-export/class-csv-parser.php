@@ -7,8 +7,7 @@ class Club_Manager_CSV_Parser {
     
     /**
      * Parse a CSV or Excel file.
-     * 
-     * @param string $file_path Path to the file
+     * * @param string $file_path Path to the file
      * @param string $mime_type File MIME type
      * @return array Parsed data with headers and rows
      */
@@ -31,48 +30,52 @@ class Club_Manager_CSV_Parser {
      * Parse CSV file.
      */
     private function parseCSV($file_path) {
-        $data = array(
-            'headers' => array(),
-            'rows' => array()
-        );
-        
-        // Open file
-        $handle = fopen($file_path, 'r');
-        if (!$handle) {
-            throw new Exception('Could not open file');
+        $data = [
+            'headers' => [],
+            'rows'    => [],
+        ];
+
+        // Open the file
+        if ( ( $handle = fopen( $file_path, 'r' ) ) === false ) {
+            throw new Exception( 'Could not open file' );
         }
-        
-        // Detect delimiter
-        $delimiter = $this->detectDelimiter($file_path);
-        
+
+        // Detect the delimiter
+        $delimiter = $this->detectDelimiter( $file_path );
+
         // Read headers
-        $headers = fgetcsv($handle, 0, $delimiter);
-        if (!$headers) {
-            fclose($handle);
-            throw new Exception('Could not read headers from file');
+        $headers = fgetcsv( $handle, 0, $delimiter );
+        if ( $headers === false ) {
+            fclose( $handle );
+            throw new Exception( 'Could not read headers from file' );
         }
-        
-        // Clean headers - remove BOM and trim
-        $headers = array_map(function($header) {
-            // Remove BOM if present
-            $header = str_replace("\xEF\xBB\xBF", '', $header);
-            return trim($header);
-        }, $headers);
-        
-        $data['headers'] = $headers;
-        
+
+        // Clean headers
+        $data['headers'] = array_map( function ( $header ) {
+            // Remove BOM
+            $header = str_replace( "\xEF\xBB\xBF", '', $header );
+            return trim( $header );
+        }, $headers );
+
         // Read rows
-        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
+        while ( ( $row = fgetcsv( $handle, 0, $delimiter ) ) !== false ) {
             // Skip empty rows
-            if (empty(array_filter($row))) {
+            if ( empty( array_filter( $row ) ) ) {
                 continue;
             }
-            
-            $data['rows'][] = $row;
+            // If a row is parsed as a single column, try to parse it again
+            if (count($row) === 1 && is_string($row[0])) {
+                $sub_row = str_getcsv($row[0], $delimiter);
+                if(count($sub_row) > 1){
+                     $row = $sub_row;
+                }
+            }
+
+            $data['rows'][] = array_map( 'trim', $row );
         }
-        
-        fclose($handle);
-        
+
+        fclose( $handle );
+
         return $data;
     }
     
