@@ -20,8 +20,7 @@ class Club_Manager_Data_Validator {
     
     /**
      * Validate a single row of data based on type.
-     * 
-     * @param array $data The mapped data (field => value)
+     * * @param array $data The mapped data (field => value)
      * @param string $type Import type
      * @param int $row_index Row index for error reporting
      * @return array Validation result
@@ -111,29 +110,32 @@ class Club_Manager_Data_Validator {
             }
         }
         
-        // Check for duplicate if needed
-        if ($this->options['duplicateHandling'] === 'skip' && empty($errors)) {
+        // Check for duplicate if creating new records
+        if ($this->options['duplicateHandling'] !== 'update' && empty($errors)) {
             global $wpdb;
             $teams_table = Club_Manager_Database::get_table_name('teams');
             
             $existing = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $teams_table WHERE name = %s AND season = %s",
+                "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
                 $validated['name'],
-                $validated['season']
+                $validated['season'],
+                get_current_user_id()
             ));
             
             if ($existing) {
-                $errors[] = array(
-                    'row' => $row_index + 1,
-                    'field' => 'name',
-                    'message' => 'Team already exists for this season'
-                );
+                 if ($this->options['duplicateHandling'] === 'skip') {
+                    $errors[] = array(
+                        'row' => $row_index + 1,
+                        'field' => 'name',
+                        'message' => 'Team already exists and will be skipped'
+                    );
+                 }
             }
         }
         
         return array(
             'valid' => empty($errors),
-            'data' => $validated,
+            'data' => array_merge($data, $validated),
             'errors' => $errors
         );
     }
@@ -147,110 +149,75 @@ class Club_Manager_Data_Validator {
         
         // Validate first name
         if (empty($data['first_name'])) {
-            $errors[] = array(
-                'row' => $row_index + 1,
-                'field' => 'first_name',
-                'message' => 'First name is required'
-            );
+            $errors[] = ['row' => $row_index + 1, 'field' => 'first_name', 'message' => 'First name is required'];
         } else {
             $validated['first_name'] = sanitize_text_field($data['first_name']);
         }
         
         // Validate last name
         if (empty($data['last_name'])) {
-            $errors[] = array(
-                'row' => $row_index + 1,
-                'field' => 'last_name',
-                'message' => 'Last name is required'
-            );
+            $errors[] = ['row' => $row_index + 1, 'field' => 'last_name', 'message' => 'Last name is required'];
         } else {
             $validated['last_name'] = sanitize_text_field($data['last_name']);
         }
         
         // Validate email
         if (empty($data['email'])) {
-            $errors[] = array(
-                'row' => $row_index + 1,
-                'field' => 'email',
-                'message' => 'Email is required'
-            );
+            $errors[] = ['row' => $row_index + 1, 'field' => 'email', 'message' => 'Email is required'];
         } else {
             $email = sanitize_email($data['email']);
             if ($this->options['validateEmails'] && !is_email($email)) {
-                $errors[] = array(
-                    'row' => $row_index + 1,
-                    'field' => 'email',
-                    'message' => 'Invalid email address'
-                );
+                $errors[] = ['row' => $row_index + 1, 'field' => 'email', 'message' => 'Invalid email address'];
             } else {
                 $validated['email'] = $email;
             }
         }
         
         // Validate birth date
-        if (empty($data['birth_date'])) {
-            $errors[] = array(
-                'row' => $row_index + 1,
-                'field' => 'birth_date',
-                'message' => 'Birth date is required'
-            );
-        } else {
+        if (!empty($data['birth_date'])) {
             $date = $this->parseDate($data['birth_date']);
             if (!$date) {
-                $errors[] = array(
-                    'row' => $row_index + 1,
-                    'field' => 'birth_date',
-                    'message' => 'Invalid date format. Use ' . $this->options['dateFormat']
-                );
+                $errors[] = ['row' => $row_index + 1, 'field' => 'birth_date', 'message' => 'Invalid date format. Use ' . $this->options['dateFormat']];
             } else {
                 $validated['birth_date'] = $date->format('Y-m-d');
             }
         }
         
         // Optional fields
-        if (!empty($data['position'])) {
-            $validated['position'] = sanitize_text_field($data['position']);
-        }
-        
-        if (!empty($data['jersey_number'])) {
-            $jersey = intval($data['jersey_number']);
-            if ($jersey < 0 || $jersey > 999) {
-                $errors[] = array(
-                    'row' => $row_index + 1,
-                    'field' => 'jersey_number',
-                    'message' => 'Jersey number must be between 0 and 999'
-                );
-            } else {
-                $validated['jersey_number'] = $jersey;
-            }
-        }
-        
+        $validated['position'] = !empty($data['position']) ? sanitize_text_field($data['position']) : '';
+        $validated['jersey_number'] = !empty($data['jersey_number']) ? intval($data['jersey_number']) : null;
+        $validated['notes'] = !empty($data['notes']) ? sanitize_textarea_field($data['notes']) : '';
+
+        // Validate team name if provided
         if (!empty($data['team_name'])) {
             $validated['team_name'] = sanitize_text_field($data['team_name']);
-        }
-        
-        // Check for duplicate if needed
-        if ($this->options['duplicateHandling'] === 'skip' && empty($errors)) {
             global $wpdb;
-            $players_table = Club_Manager_Database::get_table_name('players');
-            
-            $existing = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $players_table WHERE email = %s",
-                $validated['email']
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            $season = get_user_meta(get_current_user_id(), 'cm_preferred_season', true) ?: '2024-2025';
+
+            $team_exists = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
+                $validated['team_name'], $season, get_current_user_id()
             ));
-            
-            if ($existing) {
-                $errors[] = array(
-                    'row' => $row_index + 1,
-                    'field' => 'email',
-                    'message' => 'Player with this email already exists'
-                );
+
+            if (!$team_exists) {
+                $errors[] = ['row' => $row_index + 1, 'field' => 'team_name', 'message' => "Team '{$validated['team_name']}' not found for season {$season}"];
+            }
+        }
+
+        // Check for duplicate if not updating
+        if ($this->options['duplicateHandling'] !== 'update' && empty($errors)) {
+            $existing_player_id = email_exists($validated['email']);
+            if ($existing_player_id) {
+                if ($this->options['duplicateHandling'] === 'skip') {
+                     $errors[] = ['row' => $row_index + 1, 'field' => 'email', 'message' => 'Player with this email already exists and will be skipped.'];
+                }
             }
         }
         
         return array(
             'valid' => empty($errors),
-            'data' => $validated,
+            'data' => array_merge($data, $validated),
             'errors' => $errors
         );
     }
@@ -284,9 +251,8 @@ class Club_Manager_Data_Validator {
         
         // Validate team names (optional)
         if (!empty($data['team_names'])) {
-            // Split by comma and clean
             $team_names = array_map('trim', explode(',', $data['team_names']));
-            $team_names = array_filter($team_names); // Remove empty values
+            $team_names = array_filter($team_names);
             
             if (!empty($team_names)) {
                 $validated['team_names'] = $team_names;
@@ -295,7 +261,7 @@ class Club_Manager_Data_Validator {
         
         return array(
             'valid' => empty($errors),
-            'data' => $validated,
+            'data' => array_merge($data, $validated),
             'errors' => $errors
         );
     }
@@ -306,29 +272,24 @@ class Club_Manager_Data_Validator {
     private function parseDate($date_string) {
         $date_string = trim($date_string);
         
-        // Try different date formats
         $formats = array(
-            'DD-MM-YYYY' => 'd-m-Y',
-            'MM-DD-YYYY' => 'm-d-Y',
-            'YYYY-MM-DD' => 'Y-m-d',
-            'DD/MM/YYYY' => 'd/m/Y',
-            'MM/DD/YYYY' => 'm/d/Y'
+            'd-m-Y', 'm-d-Y', 'Y-m-d',
+            'd/m/Y', 'm/d/Y', 'Y/m/d'
         );
         
-        // First try the configured format
-        $format = $formats[$this->options['dateFormat']] ?? 'd-m-Y';
-        $date = DateTime::createFromFormat($format, $date_string);
-        
-        if ($date && $date->format($format) === $date_string) {
-            return $date;
-        }
-        
-        // Try other formats
         foreach ($formats as $format) {
             $date = DateTime::createFromFormat($format, $date_string);
             if ($date && $date->format($format) === $date_string) {
                 return $date;
             }
+        }
+        
+        // Try to parse with strtotime as a fallback
+        $timestamp = strtotime($date_string);
+        if ($timestamp) {
+            $date = new DateTime();
+            $date->setTimestamp($timestamp);
+            return $date;
         }
         
         return false;
