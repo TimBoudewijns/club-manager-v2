@@ -69,27 +69,29 @@ window.clubManager = function() {
             }
         },
         
-        // API helper (shared across modules) - CORRECTED VERSION
+        // API helper (shared across modules) - FINAL CORRECTED VERSION
         async apiPost(action, data = {}) {
             const formData = new FormData();
             formData.append('action', action);
             formData.append('nonce', window.clubManagerAjax.nonce);
 
-            // Handle file uploads separately
+            // This handles both simple objects and FormData objects correctly
             if (data instanceof FormData) {
                 for (let [key, value] of data.entries()) {
                     formData.append(key, value);
                 }
             } else {
-                // For other data, stringify objects and arrays
-                Object.keys(data).forEach(key => {
-                    const value = data[key];
-                    if (typeof value === 'object' && value !== null) {
-                        formData.append(key, JSON.stringify(value));
-                    } else {
-                        formData.append(key, value);
+                for (const key in data) {
+                    if (Object.prototype.hasOwnProperty.call(data, key)) {
+                        const value = data[key];
+                        // Stringify complex data types (arrays, objects) for consistent handling in PHP
+                        if (typeof value === 'object' && value !== null) {
+                            formData.append(key, JSON.stringify(value));
+                        } else {
+                            formData.append(key, value);
+                        }
                     }
-                });
+                }
             }
 
             try {
@@ -102,15 +104,17 @@ window.clubManager = function() {
                 try {
                     const result = JSON.parse(resultText);
                     if (!result.success) {
-                        throw new Error(result.data.message || result.data || 'Request failed');
+                        const errorMessage = result.data?.message || result.data || 'An unknown error occurred.';
+                        throw new Error(errorMessage);
                     }
                     return result.data;
                 } catch (e) {
-                    console.error("Failed to parse JSON response. Server returned:", resultText);
-                    throw new Error("An unexpected server error occurred. Please check the browser console and server logs for more details.");
+                    console.error("Failed to parse JSON. Server returned non-JSON response:", resultText);
+                    throw new Error("An unexpected server error occurred. Please check the browser console and server logs.");
                 }
             } catch (error) {
                 console.error('API Error:', error);
+                alert('Error: ' + error.message);
                 throw error;
             }
         },

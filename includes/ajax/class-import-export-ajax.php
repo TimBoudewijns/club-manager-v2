@@ -34,19 +34,6 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             wp_send_json_error(['message' => 'Error parsing file: ' . $e->getMessage()]);
         }
     }
-    
-    /**
-     * Decode JSON data from POST.
-     */
-    private function get_json_post_data($key) {
-        $value = $this->get_post_data($key);
-        if (empty($value)) return [];
-        $decoded = json_decode(stripslashes($value), true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            wp_send_json_error(['message' => 'Invalid JSON format for key: ' . $key]);
-        }
-        return $decoded;
-    }
 
     /**
      * Validate import data.
@@ -54,9 +41,9 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     public function validate_import_data() {
         $this->verify_request(true);
         $type = $this->get_post_data('type');
-        $mapping = $this->get_json_post_data('mapping');
-        $options = $this->get_json_post_data('options');
-        $sample_data = $this->get_json_post_data('sample_data');
+        $mapping = $this->get_post_data('mapping');
+        $options = $this->get_post_data('options');
+        $sample_data = $this->get_post_data('sample_data');
 
         $validator = new Club_Manager_Data_Validator();
         $validator->setOptions($options);
@@ -80,13 +67,13 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     public function init_import_session() {
         $user_id = $this->verify_request(true);
         $session_id = wp_generate_uuid4();
-        $file_data = $this->get_json_post_data('file_data');
+        $file_data = $this->get_post_data('file_data');
 
         $session_data = [
             'user_id' => $user_id,
             'type' => $this->get_post_data('type'),
-            'mapping' => $this->get_json_post_data('mapping'),
-            'options' => $this->get_json_post_data('options'),
+            'mapping' => $this->get_post_data('mapping'),
+            'options' => $this->get_post_data('options'),
             'file_data' => $file_data,
             'status' => 'initialized',
             'progress' => ['total' => count($file_data['rows'] ?? []), 'processed' => 0, 'successful' => 0, 'failed' => 0],
@@ -192,7 +179,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         $user_id = $this->verify_request(true);
         $type = $this->get_post_data('type');
         $format = $this->get_post_data('format');
-        $filters = $this->get_json_post_data('filters');
+        $filters = $this->get_post_data('filters');
 
         try {
             $handler = new Club_Manager_Export_Handler();
