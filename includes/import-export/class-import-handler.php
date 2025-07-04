@@ -84,7 +84,6 @@ class Club_Manager_Import_Handler {
         global $wpdb;
         $teams_table = Club_Manager_Database::get_table_name('teams');
 
-        // Ensure required data is present
         if (empty($data['name']) || empty($data['coach']) || empty($data['season'])) {
             return ['success' => false, 'error' => 'Missing required fields: Team Name, Coach, and Season.'];
         }
@@ -96,25 +95,19 @@ class Club_Manager_Import_Handler {
 
         if ($existing) {
             if ($this->options['duplicateHandling'] === 'update') {
-                $updated = $wpdb->update($teams_table, ['coach' => $data['coach']], ['id' => $existing->id]);
-                if ($updated === false) {
-                    return ['success' => false, 'error' => 'Failed to update existing team.'];
-                }
+                $wpdb->update($teams_table, ['coach' => $data['coach']], ['id' => $existing->id]);
                 return ['success' => true, 'action' => 'updated', 'id' => $existing->id];
             }
             return ['success' => true, 'action' => 'skipped', 'id' => $existing->id];
         }
 
         $inserted = $wpdb->insert($teams_table, [
-            'name'       => $data['name'],
-            'coach'      => $data['coach'],
-            'season'     => $data['season'],
-            'created_by' => $user_id,
-            'created_at' => current_time('mysql')
+            'name' => $data['name'], 'coach' => $data['coach'], 'season' => $data['season'],
+            'created_by' => $user_id, 'created_at' => current_time('mysql')
         ]);
 
         if ($inserted === false) {
-            return ['success' => false, 'error' => 'Database error: Could not insert team. Last error: ' . $wpdb->last_error];
+            return ['success' => false, 'error' => 'Database error: Could not insert team.'];
         }
 
         return ['success' => true, 'action' => 'created', 'id' => $wpdb->insert_id];
@@ -128,75 +121,35 @@ class Club_Manager_Import_Handler {
         $players_table = Club_Manager_Database::get_table_name('players');
         $team_players_table = Club_Manager_Database::get_table_name('team_players');
         
-        $existing_player = $wpdb->get_row($wpdb->prepare(
-            "SELECT id FROM $players_table WHERE email = %s AND created_by = %d",
-            $data['email'],
-            $user_id
-        ));
-        $player_id = $existing_player ? $existing_player->id : null;
+        $player_id = email_exists($data['email']);
         $action = 'created';
 
         if ($player_id) {
-            if ($this->options['duplicateHandling'] === 'skip') {
-                // Player exists, but we might still need to add them to a team.
-                // Don't return here.
-            } elseif ($this->options['duplicateHandling'] === 'update') {
-                $update_data = [
-                    'first_name' => $data['first_name'],
-                    'last_name'  => $data['last_name'],
-                ];
-                if (!empty($data['birth_date'])) {
-                    $update_data['birth_date'] = $data['birth_date'];
-                }
-                $wpdb->update($players_table, $update_data, ['id' => $player_id]);
+            if ($this->options['duplicateHandling'] === 'update') {
+                $wpdb->update($players_table, ['first_name' => $data['first_name'], 'last_name' => $data['last_name']], ['id' => $player_id]);
                 $action = 'updated';
             }
         } else {
-            // Create new player if they don't exist
-            $inserted = $wpdb->insert($players_table, [
-                'first_name' => $data['first_name'],
-                'last_name'  => $data['last_name'],
-                'birth_date' => $data['birth_date'],
-                'email'      => $data['email'],
-                'created_by' => $user_id,
-                'created_at' => current_time('mysql')
+            $wpdb->insert($players_table, [
+                'first_name' => $data['first_name'], 'last_name' => $data['last_name'],
+                'birth_date' => $data['birth_date'], 'email' => $data['email'], 'created_by' => $user_id
             ]);
-            if ($inserted === false) {
-                return ['success' => false, 'error' => 'Could not create new player.'];
-            }
             $player_id = $wpdb->insert_id;
         }
 
         if ($player_id && !empty($data['team_name'])) {
             $teams_table = Club_Manager_Database::get_table_name('teams');
-            $season = !empty($data['season']) ? $data['season'] : (get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025');
+            $season = !empty($data['season']) ? $data['season'] : (get_user_meta($user_id, 'cm_preferred_season', true) ?: date('Y') . '-' . (date('Y') + 1));
 
-            $team_id = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
-                $data['team_name'], $season, $user_id
-            ));
+            $team_id = $wpdb->get_var($wpdb->prepare("SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d", $data['team_name'], $season, $user_id));
 
-            // If team does not exist, create it
             if (!$team_id) {
-                $wpdb->insert($teams_table, [
-                    'name' => $data['team_name'],
-                    'coach' => 'N/A', // Set default coach
-                    'season' => $season,
-                    'created_by' => $user_id,
-                    'created_at' => current_time('mysql')
-                ]);
+                $wpdb->insert($teams_table, ['name' => $data['team_name'], 'coach' => 'N/A', 'season' => $season, 'created_by' => $user_id]);
                 $team_id = $wpdb->insert_id;
             }
 
             if ($team_id) {
-                $wpdb->replace($team_players_table, [
-                    'team_id' => $team_id,
-                    'player_id' => $player_id,
-                    'season' => $season,
-                    'position' => $data['position'] ?? null,
-                    'jersey_number' => $data['jersey_number'] ?? null,
-                    'notes' => $data['notes'] ?? null,
-                ]);
+                $wpdb->replace($team_players_table, ['team_id' => $team_id, 'player_id' => $player_id, 'season' => $season]);
             }
         }
 
@@ -207,52 +160,33 @@ class Club_Manager_Import_Handler {
      * Process trainer import.
      */
     private function processTrainer($data, $user_id) {
+        if (empty($data['email'])) {
+            return ['success' => false, 'error' => 'Email is a required field for trainers.'];
+        }
+
         $user = get_user_by('email', $data['email']);
-        
         if ($user) {
-            if (!empty($data['team_names'])) {
-                $this->assignTrainerToTeams($user->ID, $data['team_names'], $user_id);
-            }
+            if (!empty($data['team_names'])) $this->assignTrainerToTeams($user->ID, $data['team_names'], $user_id);
             return ['success' => true, 'action' => 'skipped', 'id' => $user->ID];
         }
         
-        $trainer_to_invite = [
-            'email' => $data['email'],
-            'team_ids' => [],
-            'role' => 'trainer'
-        ];
+        $trainer_to_invite = ['email' => $data['email'], 'team_ids' => [], 'role' => 'trainer'];
         
         if (!empty($data['team_names'])) {
             global $wpdb;
             $teams_table = Club_Manager_Database::get_table_name('teams');
-            $season = get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025';
+            $season = get_user_meta($user_id, 'cm_preferred_season', true) ?: date('Y') . '-' . (date('Y') + 1);
             
-            // FIX: Explode comma-separated string of team names into an array
             $team_names = array_map('trim', explode(',', $data['team_names']));
 
             foreach ($team_names as $team_name) {
                 if (empty($team_name)) continue;
-
-                $team_id = $wpdb->get_var($wpdb->prepare(
-                    "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
-                    $team_name, $season, $user_id
-                ));
-
-                // If team does not exist, create it
+                $team_id = $wpdb->get_var($wpdb->prepare("SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d", $team_name, $season, $user_id));
                 if (!$team_id) {
-                    $wpdb->insert($teams_table, [
-                        'name' => $team_name,
-                        'coach' => 'N/A',
-                        'season' => $season,
-                        'created_by' => $user_id,
-                        'created_at' => current_time('mysql')
-                    ]);
+                    $wpdb->insert($teams_table, ['name' => $team_name, 'coach' => 'N/A', 'season' => $season, 'created_by' => $user_id]);
                     $team_id = $wpdb->insert_id;
                 }
-
-                if ($team_id) {
-                    $trainer_to_invite['team_ids'][] = $team_id;
-                }
+                if ($team_id) $trainer_to_invite['team_ids'][] = $team_id;
             }
         }
         
@@ -266,39 +200,19 @@ class Club_Manager_Import_Handler {
         global $wpdb;
         $teams_table = Club_Manager_Database::get_table_name('teams');
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
-        $season = get_user_meta($added_by, 'cm_preferred_season', true) ?: '2024-2025';
+        $season = get_user_meta($added_by, 'cm_preferred_season', true) ?: date('Y') . '-' . (date('Y') + 1);
         
         $team_names = array_map('trim', explode(',', $team_names_str));
 
         foreach ($team_names as $team_name) {
             if (empty($team_name)) continue;
-            
-            $team_id = $wpdb->get_var($wpdb->prepare(
-                "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
-                $team_name, $season, $added_by
-            ));
-
-            // If team does not exist, create it
+            $team_id = $wpdb->get_var($wpdb->prepare("SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d", $team_name, $season, $added_by));
             if (!$team_id) {
-                $wpdb->insert($teams_table, [
-                    'name' => $team_name,
-                    'coach' => 'N/A',
-                    'season' => $season,
-                    'created_by' => $added_by,
-                    'created_at' => current_time('mysql')
-                ]);
+                $wpdb->insert($teams_table, ['name' => $team_name, 'coach' => 'N/A', 'season' => $season, 'created_by' => $added_by]);
                 $team_id = $wpdb->insert_id;
             }
-            
             if ($team_id) {
-                $wpdb->replace($trainers_table, [
-                    'team_id' => $team_id,
-                    'trainer_id' => $trainer_id,
-                    'role' => 'trainer',
-                    'is_active' => 1,
-                    'added_by' => $added_by,
-                    'added_at' => current_time('mysql')
-                ]);
+                $wpdb->replace($trainers_table, ['team_id' => $team_id, 'trainer_id' => $trainer_id, 'role' => 'trainer', 'is_active' => 1, 'added_by' => $added_by]);
             }
         }
     }

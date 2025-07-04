@@ -62,22 +62,23 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
      * Validate import data.
      */
     public function validate_import_data() {
-        $_POST = stripslashes_deep($_POST); // Remove slashes added by WordPress
         $user_id = $this->verify_request();
         
         if (!Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
             wp_send_json_error('You do not have permission to import data');
-            return;
         }
-        
+
         $type = $this->get_post_data('type');
-        $mapping = isset($_POST['mapping']) ? json_decode($_POST['mapping'], true) : array();
-        $options = isset($_POST['options']) ? json_decode($_POST['options'], true) : array();
-        $sample_data = isset($_POST['sample_data']) ? json_decode($_POST['sample_data'], true) : array();
-        
+        $mapping = isset($_POST['mapping']) ? json_decode(stripslashes($_POST['mapping']), true) : array();
+        $options = isset($_POST['options']) ? json_decode(stripslashes($_POST['options']), true) : array();
+        $sample_data = isset($_POST['sample_data']) ? json_decode(stripslashes($_POST['sample_data']), true) : array();
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            wp_send_json_error('Invalid data format received from the client.');
+        }
+
         if (empty($mapping) || empty($sample_data)) {
             wp_send_json_error('Missing mapping or sample data');
-            return;
         }
         
         try {
@@ -98,12 +99,10 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 
                 $result = $validator->validateRow($mapped_data, $type, $index);
                 
-                $status = $result['valid'] ? 'valid' : 'error';
-                
                 $preview[] = array(
                     'row' => $index + 1,
                     'data' => $result['data'],
-                    'status' => $status,
+                    'status' => $result['valid'] ? 'valid' : 'error',
                     'errors' => $result['errors'] ?? []
                 );
             }
@@ -119,22 +118,19 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
      * Initialize import session.
      */
     public function init_import_session() {
-        $_POST = stripslashes_deep($_POST); // Remove slashes added by WordPress
         $user_id = $this->verify_request();
         
         if (!Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
             wp_send_json_error('You do not have permission to import data');
-            return;
         }
         
         $type = $this->get_post_data('type');
-        $mapping = isset($_POST['mapping']) ? json_decode($_POST['mapping'], true) : array();
-        $options = isset($_POST['options']) ? json_decode($_POST['options'], true) : array();
-        $file_data = isset($_POST['file_data']) ? json_decode($_POST['file_data'], true) : array();
+        $mapping = isset($_POST['mapping']) ? $_POST['mapping'] : array();
+        $options = isset($_POST['options']) ? $_POST['options'] : array();
+        $file_data = isset($_POST['file_data']) ? $_POST['file_data'] : array();
         
         if (empty($type) || empty($mapping) || empty($file_data)) {
-            wp_send_json_error('Missing required data');
-            return;
+            wp_send_json_error('Missing required data for session initialization.');
         }
         
         try {
@@ -152,8 +148,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 'created_at' => current_time('mysql')
             );
             
-            update_option('cm_import_session_' . $session_id, $session_data, false);
-            wp_schedule_single_event(time() + HOUR_IN_SECONDS, 'cm_cleanup_import_session', array($session_id));
+            set_transient('cm_import_session_' . $session_id, $session_data, DAY_IN_SECONDS);
             
             wp_send_json_success(array('session_id' => $session_id));
             
@@ -170,43 +165,42 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         
         if (!Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
             wp_send_json_error('You do not have permission to import data');
-            return;
         }
         
         $session_id = $this->get_post_data('session_id');
         
         if (empty($session_id)) {
             wp_send_json_error('Missing session ID');
-            return;
         }
         
-        $session_data = get_option('cm_import_session_' . $session_id);
+        $session_data = get_transient('cm_import_session_' . $session_id);
         
         if (!$session_data || $session_data['user_id'] != $user_id) {
             wp_send_json_error('Invalid or unauthorized session');
-            return;
         }
         
         try {
             $handler = new Club_Manager_Import_Handler();
             $handler->setOptions($session_data['options']);
             
-            $batch_size = 25;
-            $start_index = $session_data['progress']['current_batch'] * $batch_size;
+            $batch_size = 50;
+            $start_index = $session_data['progress']['processed'];
             $rows_to_process = array_slice($session_data['file_data']['rows'], $start_index, $batch_size);
             
             if(empty($rows_to_process)){
-                // Mark as complete if no more rows
                 $session_data['status'] = 'completed';
-                update_option('cm_import_session_' . $session_id, $session_data, false);
-                 wp_send_json_success(array(
+                if (!empty($session_data['options']['sendInvitations']) && !empty($session_data['trainers_to_invite'])) {
+                    wp_schedule_single_event(time() + 5, 'cm_send_bulk_trainer_invitations', [$session_data['trainers_to_invite'], $user_id, $session_id]);
+                }
+                set_transient('cm_import_session_' . $session_id, $session_data, DAY_IN_SECONDS);
+                wp_send_json_success([
                     'processed' => $session_data['progress']['processed'],
                     'successful' => $session_data['progress']['successful'],
                     'failed' => $session_data['progress']['failed'],
                     'errors' => [],
                     'complete' => true,
                     'results' => $session_data['results']
-                ));
+                ]);
                 return;
             }
 
@@ -214,9 +208,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             foreach ($rows_to_process as $row) {
                 $mapped_data = array();
                 foreach ($session_data['mapping'] as $field => $column_index) {
-                    if (isset($row[$column_index])) {
-                        $mapped_data[$field] = trim($row[$column_index]);
-                    }
+                    $mapped_data[$field] = isset($row[$column_index]) ? trim($row[$column_index]) : '';
                 }
                 $mapped_rows[] = $mapped_data;
             }
@@ -227,11 +219,12 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             $session_data['progress']['processed'] += count($rows_to_process);
             $session_data['progress']['successful'] += $batch_results['successful'];
             $session_data['progress']['failed'] += $batch_results['failed'];
-            $session_data['progress']['current_batch']++;
+            
             $session_data['results']['created'] += $batch_results['created'];
             $session_data['results']['updated'] += $batch_results['updated'];
             $session_data['results']['skipped'] += $batch_results['skipped'];
             $session_data['results']['failed'] += $batch_results['failed'];
+            
             if (!empty($batch_results['errors'])) {
                 $session_data['results']['errors'] = array_merge($session_data['results']['errors'], $batch_results['errors']);
             }
@@ -240,15 +233,15 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             }
             
             $complete = $session_data['progress']['processed'] >= $session_data['progress']['total'];
+            
             if ($complete) {
                 $session_data['status'] = 'completed';
                 if (!empty($session_data['options']['sendInvitations']) && !empty($session_data['trainers_to_invite'])) {
-                    // FIX: Schedule the invitations instead of running them directly
                     wp_schedule_single_event(time() + 5, 'cm_send_bulk_trainer_invitations', [$session_data['trainers_to_invite'], $user_id, $session_id]);
                 }
             }
             
-            update_option('cm_import_session_' . $session_id, $session_data, false);
+            set_transient('cm_import_session_' . $session_id, $session_data, DAY_IN_SECONDS);
             
             wp_send_json_success(array(
                 'processed' => $session_data['progress']['processed'],
@@ -271,7 +264,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         $user_id = $this->verify_request();
         $session_id = $this->get_post_data('session_id');
         if ($session_id) {
-            delete_option('cm_import_session_' . $session_id);
+            delete_transient('cm_import_session_' . $session_id);
         }
         wp_send_json_success();
     }
@@ -284,12 +277,11 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         
         if (!Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
             wp_send_json_error('You do not have permission to export data');
-            return;
         }
         
         $type = $this->get_post_data('type');
         $format = $this->get_post_data('format');
-        $filters = isset($_POST['filters']) ? $_POST['filters'] : array();
+        $filters = isset($_POST['filters']) ? json_decode(stripslashes($_POST['filters']), true) : array();
         
         try {
             $handler = new Club_Manager_Export_Handler();
@@ -300,18 +292,15 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             
             if (empty($data)) {
                 wp_send_json_error('No data found for the selected filters.');
-                return;
             }
             
             if ($format === 'csv') {
                 $content = $handler->generateCSV($data, $type);
                 $filename = 'club_manager_' . $type . '_' . date('Y-m-d') . '.csv';
+                 wp_send_json_success(['data' => $content, 'filename' => $filename]);
             } else {
                 wp_send_json_error('Excel export is not yet supported. Please choose CSV.');
-                return;
             }
-            
-            wp_send_json_success(array('data' => $content, 'filename' => $filename));
             
         } catch (Exception $e) {
             wp_send_json_error('Export error: ' . $e->getMessage());
@@ -324,7 +313,7 @@ add_action('cm_send_bulk_trainer_invitations', function($trainers, $inviter_id, 
     if (empty($trainers) || !class_exists('Club_Manager_Trainer_Ajax')) return;
 
     $trainer_ajax = new Club_Manager_Trainer_Ajax();
-    $session_data = get_option('cm_import_session_' . $session_id);
+    $session_data = get_transient('cm_import_session_' . $session_id);
     $errors = [];
 
     foreach ($trainers as $trainer_data) {
@@ -347,12 +336,6 @@ add_action('cm_send_bulk_trainer_invitations', function($trainers, $inviter_id, 
     if (!empty($errors) && $session_data) {
         $session_data['results']['failed'] += count($errors);
         $session_data['results']['errors'] = array_merge($session_data['results']['errors'], $errors);
-        update_option('cm_import_session_' . $session_id, $session_data, false);
+        set_transient('cm_import_session_' . $session_id, $session_data, DAY_IN_SECONDS);
     }
-}, 10, 3);
-
-
-// Add cleanup action for expired sessions
-add_action('cm_cleanup_import_session', function($session_id) {
-    delete_option('cm_import_session_' . $session_id);
 });
