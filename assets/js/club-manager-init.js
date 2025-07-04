@@ -21,72 +21,30 @@ window.clubManager = function() {
         // Initialize
         async init() {
             console.log('Club Manager initializing...');
-            console.log('User permissions:', this.userPermissions);
-            
-            // Initialize modules
             this.initializeModules();
-            
-            // Set initial tab based on permissions
             this.setInitialTab();
-            
-            // Load initial data
             await this.loadInitialData();
-            
-            // Watch for tab changes
-            this.$watch('activeTab', async (value) => {
-                await this.handleTabChange(value);
-            });
+            this.$watch('activeTab', (value) => this.handleTabChange(value));
         },
         
         // Initialize all modules
         initializeModules() {
-            // Check if modules exist in global scope
-            if (typeof TeamModule !== 'undefined') {
-                this.teamModule = new TeamModule(this);
-            }
-            
-            if (typeof PlayerModule !== 'undefined') {
-                this.playerModule = new PlayerModule(this);
-            }
-            
-            if (typeof EvaluationModule !== 'undefined') {
-                this.evaluationModule = new EvaluationModule(this);
-            }
-            
-            if (typeof PlayerCardModule !== 'undefined') {
-                this.playerCardModule = new PlayerCardModule(this);
-            }
-            
-            // Always initialize club teams module for owners/managers
-            if (this.userPermissions.can_view_club_teams && typeof ClubTeamsModule !== 'undefined') {
-                this.clubTeamsModule = new ClubTeamsModule(this);
-            }
-            
-            // Only initialize modules user has access to
-            if (this.userPermissions.can_manage_teams && typeof TeamManagementModule !== 'undefined') {
-                this.teamManagementModule = new TeamManagementModule(this);
-            }
-            
-            if (this.userPermissions.can_manage_trainers && typeof TrainerModule !== 'undefined') {
-                this.trainerModule = new TrainerModule(this);
-            }
-            
-            // Initialize import/export module for authorized users
-            if (this.userPermissions.can_import_export && typeof ImportExportModule !== 'undefined') {
-                this.importExportModule = new ImportExportModule(this);
-            }
+            if (typeof TeamModule !== 'undefined') this.teamModule = new TeamModule(this);
+            if (typeof PlayerModule !== 'undefined') this.playerModule = new PlayerModule(this);
+            if (typeof EvaluationModule !== 'undefined') this.evaluationModule = new EvaluationModule(this);
+            if (typeof PlayerCardModule !== 'undefined') this.playerCardModule = new PlayerCardModule(this);
+            if (this.userPermissions.can_view_club_teams && typeof ClubTeamsModule !== 'undefined') this.clubTeamsModule = new ClubTeamsModule(this);
+            if (this.userPermissions.can_manage_teams && typeof TeamManagementModule !== 'undefined') this.teamManagementModule = new TeamManagementModule(this);
+            if (this.userPermissions.can_manage_trainers && typeof TrainerModule !== 'undefined') this.trainerModule = new TrainerModule(this);
+            if (this.userPermissions.can_import_export && typeof ImportExportModule !== 'undefined') this.importExportModule = new ImportExportModule(this);
         },
         
         // Set initial tab based on user permissions
         setInitialTab() {
-            if (this.userPermissions.available_tabs && this.userPermissions.available_tabs.length > 0) {
-                // Default to player-management if available
-                if (this.userPermissions.available_tabs.includes('player-management')) {
-                    this.activeTab = 'player-management';
-                } else {
-                    // Otherwise use first available tab
-                    this.activeTab = this.userPermissions.available_tabs[0];
-                }
+            if (this.userPermissions.available_tabs && this.userPermissions.available_tabs.includes('player-management')) {
+                this.activeTab = 'player-management';
+            } else if (this.userPermissions.available_tabs && this.userPermissions.available_tabs.length > 0) {
+                this.activeTab = this.userPermissions.available_tabs[0];
             }
         },
         
@@ -99,147 +57,75 @@ window.clubManager = function() {
         async handleTabChange(tab) {
             switch (tab) {
                 case 'player-management':
-                    // Load both my teams and club teams
-                    if (this.teamModule) {
-                        await this.teamModule.loadMyTeams();
-                    }
-                    if (this.clubTeamsModule && this.userPermissions.can_view_club_teams) {
-                        await this.clubTeamsModule.loadClubTeams();
-                    }
+                    if (this.teamModule) await this.teamModule.loadMyTeams();
+                    if (this.clubTeamsModule) await this.clubTeamsModule.loadClubTeams();
                     break;
-                    
                 case 'team-management':
-                    if (this.teamManagementModule) {
-                        await this.teamManagementModule.loadManagedTeams();
-                    }
+                    if (this.teamManagementModule) await this.teamManagementModule.loadManagedTeams();
                     break;
-                    
                 case 'trainer-management':
-                    if (this.trainerModule) {
-                        await this.trainerModule.loadTrainerManagementData();
-                    }
-                    break;
-                    
-                case 'import-export':
-                    // No initial data load needed for import/export
+                    if (this.trainerModule) await this.trainerModule.loadTrainerManagementData();
                     break;
             }
         },
         
-        // API helper (shared across modules)
+        // API helper (shared across modules) - CORRECTED VERSION
         async apiPost(action, data = {}) {
-            // Handle FormData differently
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('nonce', window.clubManagerAjax.nonce);
+
+            // Handle file uploads separately
             if (data instanceof FormData) {
-                data.append('action', action);
-                data.append('nonce', window.clubManagerAjax.nonce);
-                
-                try {
-                    const response = await fetch(window.clubManagerAjax.ajax_url, {
-                        method: 'POST',
-                        body: data
-                    });
-                    
-                    const result = await response.json();
-                    
-                    if (!result.success) {
-                        throw new Error(result.data || 'Request failed');
-                    }
-                    
-                    return result.data;
-                } catch (error) {
-                    console.error('API Error:', error);
-                    throw error;
+                for (let [key, value] of data.entries()) {
+                    formData.append(key, value);
                 }
             } else {
-                // Regular data handling
-                const formData = new FormData();
-                formData.append('action', action);
-                formData.append('nonce', window.clubManagerAjax.nonce);
-                
+                // For other data, stringify objects and arrays
                 Object.keys(data).forEach(key => {
-                    if (Array.isArray(data[key])) {
-                        data[key].forEach(value => {
-                            formData.append(key + '[]', value);
-                        });
-                    } else if (typeof data[key] === 'object' && data[key] !== null) {
-                        formData.append(key, JSON.stringify(data[key]));
+                    const value = data[key];
+                    if (typeof value === 'object' && value !== null) {
+                        formData.append(key, JSON.stringify(value));
                     } else {
-                        formData.append(key, data[key]);
+                        formData.append(key, value);
                     }
                 });
+            }
+
+            try {
+                const response = await fetch(window.clubManagerAjax.ajax_url, {
+                    method: 'POST',
+                    body: formData
+                });
                 
+                const resultText = await response.text();
                 try {
-                    const response = await fetch(window.clubManagerAjax.ajax_url, {
-                        method: 'POST',
-                        body: formData
-                    });
-                    
-                    const result = await response.json();
-                    
+                    const result = JSON.parse(resultText);
                     if (!result.success) {
-                        throw new Error(result.data || 'Request failed');
+                        throw new Error(result.data.message || result.data || 'Request failed');
                     }
-                    
                     return result.data;
-                } catch (error) {
-                    console.error('API Error:', error);
-                    throw error;
+                } catch (e) {
+                    console.error("Failed to parse JSON response. Server returned:", resultText);
+                    throw new Error("An unexpected server error occurred. Please check the browser console and server logs for more details.");
                 }
+            } catch (error) {
+                console.error('API Error:', error);
+                throw error;
             }
         },
         
         // Season management
         async changeSeason() {
-            await this.apiPost('cm_save_season_preference', {
-                season: this.currentSeason
-            });
-            
-            // Reload data for current tab
+            await this.apiPost('cm_save_season_preference', { season: this.currentSeason });
             await this.handleTabChange(this.activeTab);
-            
-            // Reset selections
-            if (this.teamModule) {
-                this.teamModule.resetSelections();
-            }
-            if (this.teamManagementModule) {
-                this.teamManagementModule.resetSelections();
-            }
-            if (this.clubTeamsModule) {
-                this.clubTeamsModule.resetSelections();
-            }
+            if (this.teamModule) this.teamModule.resetSelections();
+            if (this.teamManagementModule) this.teamManagementModule.resetSelections();
+            if (this.clubTeamsModule) this.clubTeamsModule.resetSelections();
         },
         
-        // Helper method to check if user has permission for a feature
-        hasPermission(permission) {
-            return this.userPermissions[permission] === true;
-        },
-        
-        // Helper method to check if tab is available
-        isTabAvailable(tab) {
-            return this.userPermissions.available_tabs && 
-                   this.userPermissions.available_tabs.includes(tab);
-        }
+        // Permission helpers
+        hasPermission(permission) { return this.userPermissions[permission] === true; },
+        isTabAvailable(tab) { return this.userPermissions.available_tabs?.includes(tab); }
     };
-};
-
-// Module base class - andere modules kunnen dit gebruiken
-window.ClubManagerModule = class {
-    constructor(manager) {
-        this.manager = manager;
-    }
-    
-    // Shared API helper
-    async apiPost(action, data = {}) {
-        return this.manager.apiPost(action, data);
-    }
-    
-    // Get current season
-    get currentSeason() {
-        return this.manager.currentSeason;
-    }
-    
-    // Check permission
-    hasPermission(permission) {
-        return this.manager.hasPermission(permission);
-    }
 };
