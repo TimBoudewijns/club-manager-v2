@@ -306,13 +306,13 @@ class ImportExportModule {
             // Debug logging
             console.log('Validating with mapping:', this.app.importMapping);
             console.log('Import type:', this.app.importType);
-            console.log('Sample data:', this.app.importFileData.rows.slice(0, 3));
+            console.log('Sample data:', this.app.importFileData.rows.slice(0, 10));
             
             const data = {
                 type: this.app.importType,
-                mapping: this.app.importMapping,
-                options: this.app.importOptions,
-                sample_data: this.app.importFileData.rows.slice(0, 10) // Send first 10 rows for validation
+                mapping: JSON.stringify(this.app.importMapping),
+                options: JSON.stringify(this.app.importOptions),
+                sample_data: JSON.stringify(this.app.importFileData.rows.slice(0, 10)) // Send first 10 rows for validation
             };
             
             const response = await this.app.apiPost('cm_validate_import_data', data);
@@ -324,7 +324,7 @@ class ImportExportModule {
             console.log('Validation response:', response);
             
             this.app.importPreviewData = response.preview || [];
-            this.app.importProgress.total = response.total_rows || this.app.importFileData.rows.length;
+            this.app.importProgress.total = this.app.importFileData.rows.length;
             
             // Move to preview step
             this.app.importWizardStep = 4;
@@ -411,11 +411,22 @@ class ImportExportModule {
             
         } catch (error) {
             console.error('Batch processing error:', error);
+            // FIX: Update the UI to show the batch failed
             this.app.importProgress.errors.push({
-                row: this.app.importProgress.processed,
+                row: 0, // This is a batch error, not a row-specific one
                 message: 'Batch processing failed: ' + error.message
             });
+            // Mark all remaining rows as failed
+            const remaining = this.app.importProgress.total - this.app.importProgress.processed;
+            this.app.importProgress.failed += remaining;
+            this.app.importProgress.processed = this.app.importProgress.total;
+            
+            this.app.importResults.failed = this.app.importProgress.failed;
+            this.app.importResults.errors = this.app.importProgress.errors;
+            this.app.importResults.created = this.app.importProgress.successful;
+            
             this.app.importProgress.isProcessing = false;
+            this.app.importWizardStep = 6; // Go to results screen
         }
     }
     

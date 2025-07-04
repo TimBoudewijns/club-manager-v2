@@ -13,7 +13,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         add_action('wp_ajax_cm_get_pending_invitations', array($this, 'get_pending_invitations'));
         add_action('wp_ajax_cm_get_active_trainers', array($this, 'get_active_trainers'));
         add_action('wp_ajax_cm_get_available_trainers', array($this, 'get_available_trainers'));
-        add_action('wp_ajax_cm_invite_trainer', array($this, 'invite_trainer'));
+        add_action('wp_ajax_cm_invite_trainer', array($this, 'ajax_invite_trainer'));
         add_action('wp_ajax_cm_cancel_invitation', array($this, 'cancel_invitation'));
         add_action('wp_ajax_cm_update_trainer', array($this, 'update_trainer'));
         add_action('wp_ajax_cm_remove_trainer', array($this, 'remove_trainer'));
@@ -188,46 +188,61 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         
         wp_send_json_success(array_values($trainers));
     }
-    
+
     /**
-     * Invite a trainer using official WC Teams system.
+     * AJAX wrapper for inviting a trainer.
      */
-    public function invite_trainer() {
+    public function ajax_invite_trainer() {
         $user_id = $this->verify_request();
-        
-        if (!class_exists('Club_Manager_Teams_Helper') || !Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
-            wp_send_json_error('Unauthorized access');
-            return;
-        }
-        
-        if (!function_exists('wc_memberships_for_teams')) {
-            wp_send_json_error('WooCommerce Teams for Memberships is required');
-            return;
-        }
-        
         $email = $this->get_post_data('email', 'email');
         $team_ids = isset($_POST['teams']) ? array_map('intval', $_POST['teams']) : [];
         $role = $this->get_post_data('role');
         $message = $this->get_post_data('message', 'textarea');
+
+        $result = $this->invite_trainer($user_id, $email, $team_ids, $role, $message);
+
+        if ($result['success']) {
+            wp_send_json_success($result['data']);
+        } else {
+            wp_send_json_error($result['message']);
+        }
+    }
+    
+    /**
+     * Invite a trainer using official WC Teams system.
+     * Can be called internally or via AJAX.
+     *
+     * @param int $user_id The user ID of the inviter.
+     * @param string $email The email of the person to invite.
+     * @param array $team_ids Array of Club Manager team IDs.
+     * @param string $role The role for the trainer.
+     * @param string $message The personal message for the invitation.
+     * @return array ['success' => bool, 'message' => string, 'data' => array]
+     */
+    public function invite_trainer($user_id, $email, $team_ids, $role, $message) {
+        if (!class_exists('Club_Manager_Teams_Helper') || !Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
+            return ['success' => false, 'message' => 'Unauthorized access'];
+        }
+        
+        if (!function_exists('wc_memberships_for_teams')) {
+            return ['success' => false, 'message' => 'WooCommerce Teams for Memberships is required'];
+        }
         
         if (empty($email) || empty($team_ids)) {
-            wp_send_json_error('Email and teams are required');
-            return;
+            return ['success' => false, 'message' => 'Email and teams are required'];
         }
         
         // Get the first WC Team where user is owner/manager
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
         if (empty($managed_teams)) {
-            wp_send_json_error('Je hebt geen WooCommerce Team waar je trainers aan kunt toevoegen.');
-            return;
+            return ['success' => false, 'message' => 'You do not have a WooCommerce Team to which you can add trainers.'];
         }
         
         $wc_team_id = $managed_teams[0]['team_id'];
         $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
         
         if (!$wc_team) {
-            wp_send_json_error('Geen geldige WooCommerce Team gevonden.');
-            return;
+            return ['success' => false, 'message' => 'No valid WooCommerce Team found.'];
         }
         
         try {
@@ -235,8 +250,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
             
             if (!$invitations_instance || !method_exists($invitations_instance, 'create_invitation')) {
-                wp_send_json_error('Could not access invitations system');
-                return;
+                return ['success' => false, 'message' => 'Could not access invitations system'];
             }
             
             // Create invitation using the official API
@@ -249,8 +263,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             
             if (!$invitation || is_wp_error($invitation)) {
                 $error_message = is_wp_error($invitation) ? $invitation->get_error_message() : 'Could not create invitation';
-                wp_send_json_error($error_message);
-                return;
+                return ['success' => false, 'message' => $error_message];
             }
             
             // Store Club Manager specific data
@@ -281,13 +294,16 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 $message
             );
             
-            wp_send_json_success([
-                'message' => 'Uitnodiging succesvol verzonden',
-                'invitation_id' => $invitation->get_id()
-            ]);
+            return [
+                'success' => true,
+                'message' => 'Invitation sent successfully',
+                'data' => [
+                    'invitation_id' => $invitation->get_id()
+                ]
+            ];
             
         } catch (Exception $e) {
-            wp_send_json_error('Error creating invitation: ' . $e->getMessage());
+            return ['success' => false, 'message' => 'Error creating invitation: ' . $e->getMessage()];
         }
     }
     
@@ -317,22 +333,22 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         // Build email
-        $subject = sprintf('[%s] %s heeft je uitgenodigd als trainer', 
+        $subject = sprintf('[%s] %s has invited you to be a trainer', 
             get_bloginfo('name'), 
-            $inviter ? $inviter->display_name : 'Een beheerder'
+            $inviter ? $inviter->display_name : 'An administrator'
         );
         
-        $body = "Hallo,\n\n";
+        $body = "Hello,\n\n";
         
         if ($inviter) {
-            $body .= sprintf("%s heeft je uitgenodigd om trainer te worden bij %s.\n\n", 
+            $body .= sprintf("%s has invited you to become a trainer at %s.\n\n", 
                 $inviter->display_name, 
                 get_bloginfo('name')
             );
         }
         
         if (!empty($team_names)) {
-            $body .= "Je krijgt toegang tot de volgende teams:\n";
+            $body .= "You will get access to the following teams:\n";
             foreach ($team_names as $tn) {
                 $body .= "- " . $tn . "\n";
             }
@@ -340,13 +356,13 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         if (!empty($message)) {
-            $body .= "Persoonlijk bericht:\n" . $message . "\n\n";
+            $body .= "Personal message:\n" . $message . "\n\n";
         }
         
-        $body .= "Klik op de onderstaande link om de uitnodiging te accepteren:\n";
+        $body .= "Click the link below to accept the invitation:\n";
         $body .= $accept_url . "\n\n";
-        $body .= "Deze uitnodiging verloopt over 7 dagen.\n\n";
-        $body .= "Met vriendelijke groet,\n" . get_bloginfo('name');
+        $body .= "This invitation expires in 7 days.\n\n";
+        $body .= "Kind regards,\n" . get_bloginfo('name');
         
         // Add headers for better deliverability
         $headers = array(

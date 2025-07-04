@@ -227,7 +227,12 @@ class Club_Manager_Import_Handler {
             $teams_table = Club_Manager_Database::get_table_name('teams');
             $season = get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025';
             
-            foreach ($data['team_names'] as $team_name) {
+            // FIX: Explode comma-separated string of team names into an array
+            $team_names = array_map('trim', explode(',', $data['team_names']));
+
+            foreach ($team_names as $team_name) {
+                if (empty($team_name)) continue;
+
                 $team_id = $wpdb->get_var($wpdb->prepare(
                     "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
                     $team_name, $season, $user_id
@@ -257,13 +262,17 @@ class Club_Manager_Import_Handler {
     /**
      * Assign trainer to teams.
      */
-    private function assignTrainerToTeams($trainer_id, $team_names, $added_by) {
+    private function assignTrainerToTeams($trainer_id, $team_names_str, $added_by) {
         global $wpdb;
         $teams_table = Club_Manager_Database::get_table_name('teams');
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $season = get_user_meta($added_by, 'cm_preferred_season', true) ?: '2024-2025';
         
+        $team_names = array_map('trim', explode(',', $team_names_str));
+
         foreach ($team_names as $team_name) {
+            if (empty($team_name)) continue;
+            
             $team_id = $wpdb->get_var($wpdb->prepare(
                 "SELECT id FROM $teams_table WHERE name = %s AND season = %s AND created_by = %d",
                 $team_name, $season, $added_by

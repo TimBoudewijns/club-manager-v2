@@ -73,16 +73,16 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         $type = $this->get_post_data('type');
         $mapping = isset($_POST['mapping']) ? json_decode($_POST['mapping'], true) : array();
         $options = isset($_POST['options']) ? json_decode($_POST['options'], true) : array();
-        $raw_sample_data = isset($_POST['sample_data']) ? $_POST['sample_data'] : array();
+        $raw_sample_data = isset($_POST['sample_data']) ? json_decode($_POST['sample_data'], true) : array();
 
         $sample_data = [];
         if (!empty($raw_sample_data) && is_array($raw_sample_data)) {
-            foreach ($raw_sample_data as $row_string) {
-                 if (is_string($row_string)) {
-                    $sample_data[] = str_getcsv($row_string);
-                 } else {
-                    $sample_data[] = $row_string;
-                 }
+            foreach ($raw_sample_data as $row) {
+                if (is_array($row) && count($row) === 1 && is_string($row[0])) {
+                   $sample_data[] = str_getcsv($row[0]);
+                } else {
+                   $sample_data[] = $row;
+                }
             }
         }
         
@@ -223,6 +223,11 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
 
             $mapped_rows = array();
             foreach ($rows_to_process as $row) {
+                // Fix for incorrectly parsed CSV row
+                if (is_array($row) && count($row) === 1 && is_string($row[0])) {
+                    $row = str_getcsv($row[0]);
+                }
+
                 $mapped_data = array();
                 foreach ($session_data['mapping'] as $field => $column_index) {
                     if (isset($row[$column_index])) {
@@ -254,7 +259,8 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             if ($complete) {
                 $session_data['status'] = 'completed';
                 if (!empty($session_data['options']['sendInvitations']) && !empty($session_data['trainers_to_invite'])) {
-                    $this->sendBulkTrainerInvitations($session_data['trainers_to_invite'], $user_id);
+                    // FIX: Schedule the invitations instead of running them directly
+                    wp_schedule_single_event(time() + 5, 'cm_send_bulk_trainer_invitations', [$session_data['trainers_to_invite'], $user_id, $session_id]);
                 }
             }
             
@@ -327,35 +333,40 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             wp_send_json_error('Export error: ' . $e->getMessage());
         }
     }
-    
-    /**
-     * Send bulk trainer invitations.
-     */
-    private function sendBulkTrainerInvitations($trainers, $inviter_id) {
-        if (empty($trainers)) return;
-        
-        $trainer_ajax = new Club_Manager_Trainer_Ajax();
-        
-        foreach ($trainers as $trainer_data) {
-            try {
-                $_POST = [
-                    'email' => $trainer_data['email'],
-                    'teams' => $trainer_data['team_ids'],
-                    'role' => $trainer_data['role'] ?? 'trainer',
-                    'message' => 'You have been invited to join as a trainer through bulk import.',
-                    'nonce' => wp_create_nonce('club_manager_nonce')
-                ];
-                
-                ob_start();
-                $trainer_ajax->invite_trainer();
-                ob_end_clean();
-                
-            } catch (Exception $e) {
-                Club_Manager_Logger::log('Exception during trainer invitation: ' . $e->getMessage(), 'error', ['email' => $trainer_data['email']]);
-            }
+}
+
+// Add hook for sending bulk invitations
+add_action('cm_send_bulk_trainer_invitations', function($trainers, $inviter_id, $session_id) {
+    if (empty($trainers)) return;
+
+    $trainer_ajax = new Club_Manager_Trainer_Ajax();
+    $session_data = get_option('cm_import_session_' . $session_id);
+    $errors = [];
+
+    foreach ($trainers as $trainer_data) {
+        $result = $trainer_ajax->invite_trainer(
+            $inviter_id,
+            $trainer_data['email'],
+            $trainer_data['team_ids'],
+            $trainer_data['role'] ?? 'trainer',
+            'You have been invited to join as a trainer through bulk import.'
+        );
+
+        if (!$result['success']) {
+            $errors[] = [
+                'row' => 'N/A', // Row number is not easily available here
+                'message' => 'Failed to invite ' . $trainer_data['email'] . ': ' . $result['message']
+            ];
         }
     }
-}
+
+    if (!empty($errors) && $session_data) {
+        $session_data['results']['failed'] += count($errors);
+        $session_data['results']['errors'] = array_merge($session_data['results']['errors'], $errors);
+        update_option('cm_import_session_' . $session_id, $session_data, false);
+    }
+}, 10, 3);
+
 
 // Add cleanup action for expired sessions
 add_action('cm_cleanup_import_session', function($session_id) {
