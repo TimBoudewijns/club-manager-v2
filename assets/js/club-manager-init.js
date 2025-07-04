@@ -69,7 +69,7 @@ window.clubManager = function() {
             }
         },
         
-        // API helper (shared across modules) - FINAL CORRECTED VERSION
+        // API helper (shared across modules) - FINAL STABLE VERSION
         async apiPost(action, data = {}) {
             const formData = new FormData();
             formData.append('action', action);

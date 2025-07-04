@@ -1,121 +1,196 @@
 <?php
 
 /**
- * Base AJAX handler class.
+ * Handle import/export AJAX requests.
  */
-abstract class Club_Manager_Ajax_Handler {
+class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     
     /**
-     * Verify nonce and user permissions.
-     * The permission check is now optional to support all AJAX calls.
-     * @param bool $check_import_permissions Whether to check for import/export capabilities.
+     * Initialize AJAX actions.
      */
-    protected function verify_request($check_import_permissions = false) {
-        if (!check_ajax_referer('club_manager_nonce', 'nonce', false)) {
-            wp_send_json_error(['message' => 'Invalid security token']);
-        }
-        
-        if (!is_user_logged_in()) {
-            wp_send_json_error(['message' => 'You must be logged in']);
-        }
-
-        $user_id = get_current_user_id();
-
-        // Only check for specific import/export permissions when required.
-        if ($check_import_permissions && !Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
-            wp_send_json_error(['message' => 'You do not have permission for this action']);
-        }
-        
-        return $user_id;
+    public function init() {
+        add_action('wp_ajax_cm_parse_import_file', array($this, 'parse_import_file'));
+        add_action('wp_ajax_cm_validate_import_data', array($this, 'validate_import_data'));
+        add_action('wp_ajax_cm_init_import_session', array($this, 'init_import_session'));
+        add_action('wp_ajax_cm_process_import_batch', array($this, 'process_import_batch'));
+        add_action('wp_ajax_cm_cancel_import_session', array($this, 'cancel_import_session'));
+        add_action('wp_ajax_cm_export_data', array($this, 'export_data'));
     }
     
     /**
-     * Get and sanitize POST data.
-     * This function is now robust enough to handle plain values, arrays, and JSON strings.
+     * Parse uploaded import file.
      */
-    protected function get_post_data($key, $type = 'text', $default = '') {
-        if (!isset($_POST[$key])) {
-            return $default;
+    public function parse_import_file() {
+        $this->verify_request(true);
+        if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            wp_send_json_error(['message' => 'No file uploaded or upload error.']);
         }
+        
+        try {
+            $parser = new Club_Manager_CSV_Parser();
+            $data = $parser->parse($_FILES['file']['tmp_name'], $_FILES['file']['type']);
+            wp_send_json_success($data);
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => 'Error parsing file: ' . $e->getMessage()]);
+        }
+    }
 
-        $value = stripslashes_deep($_POST[$key]);
+    /**
+     * Validate import data.
+     */
+    public function validate_import_data() {
+        $this->verify_request(true);
+        $type = $this->get_post_data('type');
+        $mapping = $this->get_post_data('mapping');
+        $options = $this->get_post_data('options');
+        $sample_data = $this->get_post_data('sample_data');
 
-        // If the client sent a JSON string, decode it first.
-        if (is_string($value) && (strpos($value, '[') === 0 || strpos($value, '{') === 0)) {
-            $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE) {
-                // It's valid JSON, so we use the decoded array/object.
-                // Further sanitization should happen where this data is used.
-                return $decoded;
+        $validator = new Club_Manager_Data_Validator();
+        $validator->setOptions($options);
+        $preview = [];
+
+        foreach ($sample_data as $index => $row) {
+            $mapped_data = [];
+            foreach ($mapping as $field => $col_index) {
+                $mapped_data[$field] = $row[$col_index] ?? '';
             }
+            $result = $validator->validateRow($mapped_data, $type, $index);
+            $preview[] = ['row' => $index + 1, 'data' => $result['data'], 'status' => $result['valid'] ? 'valid' : 'error', 'errors' => $result['errors']];
         }
-
-        // If it's not JSON or is a plain array from form data (e.g., key[]), handle it.
-        if (is_array($value)) {
-            // Sanitize each item in the array recursively.
-            return array_map('sanitize_text_field', $value);
-        }
-
-        // For simple, non-JSON string values, sanitize based on type.
-        switch ($type) {
-            case 'int':
-                return intval($value);
-            case 'float':
-                return floatval($value);
-            case 'email':
-                return sanitize_email($value);
-            case 'textarea':
-                return sanitize_textarea_field($value);
-            case 'text':
-            default:
-                return sanitize_text_field($value);
-        }
-    }
-    
-    /**
-     * Verify team ownership.
-     */
-    protected function verify_team_ownership($team_id, $user_id) {
-        global $wpdb;
-        $table = Club_Manager_Database::get_table_name('teams');
-        $owner = $wpdb->get_var($wpdb->prepare("SELECT created_by FROM $table WHERE id = %d", $team_id));
-        if ($owner != $user_id) {
-            wp_send_json_error(['message' => 'Unauthorized access to team']);
-        }
-        return true;
-    }
-    
-    /**
-     * Verify team access - for both owners and assigned trainers.
-     */
-    protected function verify_team_access($team_id, $user_id) {
-        global $wpdb;
-        $teams_table = Club_Manager_Database::get_table_name('teams');
-        $owner = $wpdb->get_var($wpdb->prepare("SELECT created_by FROM $teams_table WHERE id = %d", $team_id));
-        if ($owner == $user_id) return true;
-
-        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
-        $trainer_access = $wpdb->get_var($wpdb->prepare("SELECT id FROM $trainers_table WHERE team_id = %d AND trainer_id = %d AND is_active = 1", $team_id, $user_id));
-        if ($trainer_access) return true;
         
-        wp_send_json_error(['message' => 'Unauthorized access to team']);
+        wp_send_json_success(['preview' => $preview]);
     }
     
     /**
-     * Verify player ownership.
+     * Initialize import session.
      */
-    protected function verify_player_ownership($player_id, $user_id) {
-        global $wpdb;
-        $table = Club_Manager_Database::get_table_name('players');
-        $owner = $wpdb->get_var($wpdb->prepare("SELECT created_by FROM $table WHERE id = %d", $player_id));
-        if ($owner != $user_id) {
-            wp_send_json_error(['message' => 'Unauthorized access to player']);
+    public function init_import_session() {
+        $user_id = $this->verify_request(true);
+        $session_id = wp_generate_uuid4();
+        $file_data = $this->get_post_data('file_data');
+
+        $session_data = [
+            'user_id' => $user_id,
+            'type' => $this->get_post_data('type'),
+            'mapping' => $this->get_post_data('mapping'),
+            'options' => $this->get_post_data('options'),
+            'file_data' => $file_data,
+            'status' => 'initialized',
+            'progress' => ['total' => count($file_data['rows'] ?? []), 'processed' => 0, 'successful' => 0, 'failed' => 0],
+            'results' => ['created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []],
+            'trainers_to_invite' => []
+        ];
+        
+        set_transient('cm_import_session_' . $session_id, $session_data, DAY_IN_SECONDS);
+        wp_send_json_success(['session_id' => $session_id]);
+    }
+    
+    /**
+     * Process import batch.
+     */
+    public function process_import_batch() {
+        $user_id = $this->verify_request(true);
+        $session_id = $this->get_post_data('session_id');
+        $session_data = get_transient('cm_import_session_' . $session_id);
+
+        if (!$session_data || $session_data['user_id'] != $user_id) {
+            wp_send_json_error(['message' => 'Invalid or unauthorized session.']);
         }
-        return true;
+        
+        $handler = new Club_Manager_Import_Handler();
+        $handler->setOptions($session_data['options']);
+        
+        $batch_size = 50;
+        $start_index = $session_data['progress']['processed'];
+        $rows_to_process = array_slice($session_data['file_data']['rows'], $start_index, $batch_size);
+        
+        if (empty($rows_to_process)) {
+            $this->finalize_import($session_id, $session_data);
+            return;
+        }
+
+        $mapped_rows = [];
+        foreach ($rows_to_process as $row) {
+            $mapped_data = [];
+            foreach ($session_data['mapping'] as $field => $col_index) {
+                $mapped_data[$field] = $row[$col_index] ?? '';
+            }
+            $mapped_rows[] = $mapped_data;
+        }
+
+        $batch_results = $handler->processBatch($mapped_rows, $session_data['type'], $start_index, $user_id);
+        
+        // Update session
+        $session_data['progress']['processed'] += count($rows_to_process);
+        foreach (['successful', 'failed', 'created', 'updated', 'skipped'] as $key) {
+            $session_data['progress'][$key] = ($session_data['progress'][$key] ?? 0) + $batch_results[$key];
+            $session_data['results'][$key] = ($session_data['results'][$key] ?? 0) + $batch_results[$key];
+        }
+        $session_data['results']['errors'] = array_merge($session_data['results']['errors'], $batch_results['errors']);
+        if (!empty($batch_results['trainers_to_invite'])) {
+            $session_data['trainers_to_invite'] = array_merge($session_data['trainers_to_invite'], $batch_results['trainers_to_invite']);
+        }
+        
+        set_transient('cm_import_session_' . $session_id, $session_data, DAY_IN_SECONDS);
+
+        $complete = $session_data['progress']['processed'] >= $session_data['progress']['total'];
+        if ($complete) {
+            $this->finalize_import($session_id, $session_data);
+            return;
+        }
+        
+        wp_send_json_success([
+            'processed' => $session_data['progress']['processed'],
+            'successful' => $session_data['progress']['successful'],
+            'failed' => $session_data['progress']['failed'],
+            'errors' => $batch_results['errors'],
+            'complete' => false,
+        ]);
+    }
+
+    private function finalize_import($session_id, $session_data) {
+        $session_data['status'] = 'completed';
+        if (!empty($session_data['options']['sendInvitations']) && !empty($session_data['trainers_to_invite'])) {
+            wp_schedule_single_event(time() + 5, 'cm_send_bulk_trainer_invitations', [$session_data['trainers_to_invite'], $session_data['user_id'], $session_id]);
+        }
+        set_transient('cm_import_session_' . $session_id, $session_data, DAY_IN_SECONDS);
+        wp_send_json_success([
+            'processed' => $session_data['progress']['processed'],
+            'successful' => $session_data['progress']['successful'],
+            'failed' => $session_data['progress']['failed'],
+            'complete' => true,
+            'results' => $session_data['results']
+        ]);
     }
     
     /**
-     * Register AJAX actions.
+     * Cancel import session.
      */
-    abstract public function init();
+    public function cancel_import_session() {
+        $this->verify_request();
+        delete_transient('cm_import_session_' . $this->get_post_data('session_id'));
+        wp_send_json_success();
+    }
+    
+    /**
+     * Export data.
+     */
+    public function export_data() {
+        $user_id = $this->verify_request(true);
+        $type = $this->get_post_data('type');
+        $format = $this->get_post_data('format');
+        $filters = $this->get_post_data('filters');
+
+        try {
+            $handler = new Club_Manager_Export_Handler();
+            $handler->setUserId($user_id);
+            $handler->setFilters($filters);
+            $data = $handler->getExportData($type);
+            $content = $handler->generateCSV($data, $type);
+            $filename = 'club_manager_' . $type . '_' . date('Y-m-d') . '.csv';
+            wp_send_json_success(['data' => $content, 'filename' => $filename]);
+        } catch (Exception $e) {
+            wp_send_json_error(['message' => 'Export error: ' . $e->getMessage()]);
+        }
+    }
 }
