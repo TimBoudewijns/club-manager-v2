@@ -73,18 +73,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         $type = $this->get_post_data('type');
         $mapping = isset($_POST['mapping']) ? json_decode($_POST['mapping'], true) : array();
         $options = isset($_POST['options']) ? json_decode($_POST['options'], true) : array();
-        $raw_sample_data = isset($_POST['sample_data']) ? json_decode($_POST['sample_data'], true) : array();
-
-        $sample_data = [];
-        if (!empty($raw_sample_data) && is_array($raw_sample_data)) {
-            foreach ($raw_sample_data as $row) {
-                if (is_array($row) && count($row) === 1 && is_string($row[0])) {
-                   $sample_data[] = str_getcsv($row[0]);
-                } else {
-                   $sample_data[] = $row;
-                }
-            }
-        }
+        $sample_data = isset($_POST['sample_data']) ? json_decode($_POST['sample_data'], true) : array();
         
         if (empty($mapping) || empty($sample_data)) {
             wp_send_json_error('Missing mapping or sample data');
@@ -223,11 +212,6 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
 
             $mapped_rows = array();
             foreach ($rows_to_process as $row) {
-                // Fix for incorrectly parsed CSV row
-                if (is_array($row) && count($row) === 1 && is_string($row[0])) {
-                    $row = str_getcsv($row[0]);
-                }
-
                 $mapped_data = array();
                 foreach ($session_data['mapping'] as $field => $column_index) {
                     if (isset($row[$column_index])) {
@@ -337,7 +321,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
 
 // Add hook for sending bulk invitations
 add_action('cm_send_bulk_trainer_invitations', function($trainers, $inviter_id, $session_id) {
-    if (empty($trainers)) return;
+    if (empty($trainers) || !class_exists('Club_Manager_Trainer_Ajax')) return;
 
     $trainer_ajax = new Club_Manager_Trainer_Ajax();
     $session_data = get_option('cm_import_session_' . $session_id);
