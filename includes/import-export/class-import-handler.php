@@ -99,7 +99,7 @@ class Club_Manager_Import_Handler {
 
         // Ensure required data is present
         if (empty($data['name']) || empty($data['coach']) || empty($data['season'])) {
-            return ['success' => false, 'error' => 'Missing required fields: Team Name, Coach, and Season.'];
+            return array('success' => false, 'error' => 'Missing required fields: Team Name, Coach, and Season.');
         }
 
         $existing = $wpdb->get_row($wpdb->prepare(
@@ -109,28 +109,28 @@ class Club_Manager_Import_Handler {
 
         if ($existing) {
             if ($this->options['duplicateHandling'] === 'update') {
-                $updated = $wpdb->update($teams_table, ['coach' => $data['coach']], ['id' => $existing->id]);
+                $updated = $wpdb->update($teams_table, array('coach' => $data['coach']), array('id' => $existing->id));
                 if ($updated === false) {
-                    return ['success' => false, 'error' => 'Failed to update existing team.'];
+                    return array('success' => false, 'error' => 'Failed to update existing team.');
                 }
-                return ['success' => true, 'action' => 'updated', 'id' => $existing->id];
+                return array('success' => true, 'action' => 'updated', 'id' => $existing->id);
             }
-            return ['success' => true, 'action' => 'skipped', 'id' => $existing->id];
+            return array('success' => true, 'action' => 'skipped', 'id' => $existing->id);
         }
 
-        $inserted = $wpdb->insert($teams_table, [
+        $inserted = $wpdb->insert($teams_table, array(
             'name'       => $data['name'],
             'coach'      => $data['coach'],
             'season'     => $data['season'],
             'created_by' => $user_id,
             'created_at' => current_time('mysql')
-        ]);
+        ));
 
         if ($inserted === false) {
-            return ['success' => false, 'error' => 'Database error: Could not insert team. Last error: ' . $wpdb->last_error];
+            return array('success' => false, 'error' => 'Database error: Could not insert team. Last error: ' . $wpdb->last_error);
         }
 
-        return ['success' => true, 'action' => 'created', 'id' => $wpdb->insert_id];
+        return array('success' => true, 'action' => 'created', 'id' => $wpdb->insert_id);
     }
     
     /**
@@ -154,28 +154,28 @@ class Club_Manager_Import_Handler {
                 // Player exists, but we might still need to add them to a team.
                 // Don't return here.
             } elseif ($this->options['duplicateHandling'] === 'update') {
-                $update_data = [
+                $update_data = array(
                     'first_name' => $data['first_name'],
                     'last_name'  => $data['last_name'],
-                ];
+                );
                 if (!empty($data['birth_date'])) {
                     $update_data['birth_date'] = $data['birth_date'];
                 }
-                $wpdb->update($players_table, $update_data, ['id' => $player_id]);
+                $wpdb->update($players_table, $update_data, array('id' => $player_id));
                 $action = 'updated';
             }
         } else {
             // Create new player if they don't exist
-            $inserted = $wpdb->insert($players_table, [
+            $inserted = $wpdb->insert($players_table, array(
                 'first_name' => $data['first_name'],
                 'last_name'  => $data['last_name'],
                 'birth_date' => $data['birth_date'],
                 'email'      => $data['email'],
                 'created_by' => $user_id,
                 'created_at' => current_time('mysql')
-            ]);
+            ));
             if ($inserted === false) {
-                return ['success' => false, 'error' => 'Could not create new player.'];
+                return array('success' => false, 'error' => 'Could not create new player.');
             }
             $player_id = $wpdb->insert_id;
         }
@@ -191,29 +191,29 @@ class Club_Manager_Import_Handler {
 
             // If team does not exist, create it
             if (!$team_id) {
-                $wpdb->insert($teams_table, [
+                $wpdb->insert($teams_table, array(
                     'name' => $data['team_name'],
                     'coach' => 'N/A', // Set default coach
                     'season' => $season,
                     'created_by' => $user_id,
                     'created_at' => current_time('mysql')
-                ]);
+                ));
                 $team_id = $wpdb->insert_id;
             }
 
             if ($team_id) {
-                $wpdb->replace($team_players_table, [
+                $wpdb->replace($team_players_table, array(
                     'team_id' => $team_id,
                     'player_id' => $player_id,
                     'season' => $season,
                     'position' => $data['position'] ?? null,
                     'jersey_number' => $data['jersey_number'] ?? null,
                     'notes' => $data['notes'] ?? null,
-                ]);
+                ));
             }
         }
 
-        return ['success' => true, 'action' => $action, 'id' => $player_id];
+        return array('success' => true, 'action' => $action, 'id' => $player_id);
     }
 
     /**
@@ -226,14 +226,14 @@ class Club_Manager_Import_Handler {
             if (!empty($data['team_names'])) {
                 $this->assignTrainerToTeams($user->ID, $data['team_names'], $user_id);
             }
-            return ['success' => true, 'action' => 'skipped', 'id' => $user->ID];
+            return array('success' => true, 'action' => 'skipped', 'id' => $user->ID);
         }
         
-        $trainer_to_invite = [
+        $trainer_to_invite = array(
             'email' => $data['email'],
-            'team_ids' => [],
+            'team_ids' => array(),
             'role' => 'trainer'
-        ];
+        );
         
         if (!empty($data['team_names'])) {
             global $wpdb;
@@ -248,13 +248,13 @@ class Club_Manager_Import_Handler {
 
                 // If team does not exist, create it
                 if (!$team_id) {
-                    $wpdb->insert($teams_table, [
+                    $wpdb->insert($teams_table, array(
                         'name' => $team_name,
                         'coach' => 'N/A',
                         'season' => $season,
                         'created_by' => $user_id,
                         'created_at' => current_time('mysql')
-                    ]);
+                    ));
                     $team_id = $wpdb->insert_id;
                 }
 
@@ -264,7 +264,7 @@ class Club_Manager_Import_Handler {
             }
         }
         
-        return ['success' => true, 'action' => 'created', 'trainer_to_invite' => $trainer_to_invite];
+        return array('success' => true, 'action' => 'created', 'trainer_to_invite' => $trainer_to_invite);
     }
     
     /**
@@ -284,25 +284,25 @@ class Club_Manager_Import_Handler {
 
             // If team does not exist, create it
             if (!$team_id) {
-                $wpdb->insert($teams_table, [
+                $wpdb->insert($teams_table, array(
                     'name' => $team_name,
                     'coach' => 'N/A',
                     'season' => $season,
                     'created_by' => $added_by,
                     'created_at' => current_time('mysql')
-                ]);
+                ));
                 $team_id = $wpdb->insert_id;
             }
             
             if ($team_id) {
-                $wpdb->replace($trainers_table, [
+                $wpdb->replace($trainers_table, array(
                     'team_id' => $team_id,
                     'trainer_id' => $trainer_id,
                     'role' => 'trainer',
                     'is_active' => 1,
                     'added_by' => $added_by,
                     'added_at' => current_time('mysql')
-                ]);
+                ));
             }
         }
     }
