@@ -177,7 +177,7 @@ class Club_Manager_Data_Validator {
     }
     
     /**
-     * Validate trainer data.
+     * Validate trainer data - UPDATED for semicolon separator.
      */
     private function validateTrainer($data, $row_index) {
         $errors = array();
@@ -195,10 +195,19 @@ class Club_Manager_Data_Validator {
             }
         }
         
-        // Validate team names (optional)
+        // Validate team names (optional) - now with semicolon
         if (!empty($data['team_names'])) {
-            $team_names = array_map('trim', explode(',', $data['team_names']));
-            $validated['team_names'] = array_filter($team_names);
+            // Keep the original string, parsing will be done during import
+            $validated['team_names'] = $data['team_names'];
+            
+            // Optionally validate team names exist
+            if (strpos($data['team_names'], ';') !== false) {
+                $team_names = explode(';', $data['team_names']);
+            } else {
+                $team_names = array($data['team_names']);
+            }
+            
+            $validated['parsed_team_names'] = array_map('trim', array_filter($team_names));
         }
         
         return array(

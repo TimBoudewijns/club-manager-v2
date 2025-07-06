@@ -9,18 +9,18 @@ class ImportExportModule {
         Object.assign(this.app, {
             // Import/Export state
             showImportExportModal: false,
-            importExportMode: 'import', // 'import' or 'export'
+            importExportMode: 'import',
             
             // Import wizard state
             importWizardStep: 1,
-            importType: '', // teams, players, teams-with-players, trainers, trainers-with-assignments
+            importType: '',
             importFile: null,
             importFileData: null,
-            importTempKey: null, // Store the temporary key
+            importTempKey: null,
             importMapping: {},
             importPreviewData: [],
             importOptions: {
-                duplicateHandling: 'skip', // skip, update, create
+                duplicateHandling: 'skip',
                 sendInvitations: true,
                 validateEmails: true,
                 dateFormat: 'DD-MM-YYYY'
@@ -44,33 +44,34 @@ class ImportExportModule {
             },
             
             // Export state
-            exportType: 'teams', // teams, players, trainers
+            exportType: 'teams',
             exportFilters: {
                 season: '',
                 teamIds: [],
                 includeEvaluations: false
             },
-            exportFormat: 'csv', // csv, xlsx
+            exportFormat: 'csv',
             
-            // Field mappings with common header variations
+            // Field mappings - these match EXACTLY what the CSV parser outputs (lowercase with underscores)
             fieldMappings: {
                 // Teams
-                'name': ['name', 'team_name', 'team name', 'teamname', 'naam'],
-                'coach': ['coach', 'coach_name', 'coach name', 'trainer', 'head_coach'],
+                'name': ['name', 'team_name', 'teamname', 'naam'],
+                'coach': ['coach', 'coach_name', 'trainer', 'head_coach'],
                 'season': ['season', 'year', 'seizoen'],
                 
                 // Players
-                'first_name': ['first_name', 'firstname', 'first name', 'voornaam', 'fname'],
-                'last_name': ['last_name', 'lastname', 'last name', 'achternaam', 'lname'],
-                'email': ['email', 'email_address', 'email address', 'e-mail', 'emailadres'],
-                'birth_date': ['birth_date', 'birthdate', 'birth date', 'date_of_birth', 'dob', 'geboortedatum'],
+                'first_name': ['first_name', 'firstname', 'voornaam', 'fname'],
+                'last_name': ['last_name', 'lastname', 'achternaam', 'lname'],
+                'email': ['email', 'email_address', 'e-mail', 'emailadres'],
+                'birth_date': ['birth_date', 'birthdate', 'date_of_birth', 'dob', 'geboortedatum'],
                 'position': ['position', 'pos', 'positie'],
                 'jersey_number': ['jersey_number', 'jersey', 'number', 'shirt_number', 'rugnummer'],
-                'team_name': ['team_name', 'team', 'team name', 'teamname'],
+                'team_name': ['team_name', 'team', 'teamname'],
                 
                 // Trainers
-                'team_names': ['team_names', 'teams', 'team names', 'assigned_teams']
+                'team_names': ['team_names', 'teams', 'assigned_teams']
             },
+            
             availableFields: {
                 teams: [
                     { key: 'name', label: 'Team Name', required: true },
@@ -88,28 +89,18 @@ class ImportExportModule {
                 ],
                 trainers: [
                     { key: 'email', label: 'Email', required: true },
-                    { key: 'team_names', label: 'Team Names (comma separated)', required: false }
-                ],
-                'teams-with-players': [
-                    { key: 'name', label: 'Team Name', required: true },
-                    { key: 'coach', label: 'Coach', required: true },
-                    { key: 'season', label: 'Season', required: true }
-                ],
-                'trainers-with-assignments': [
-                    { key: 'email', label: 'Email', required: true },
-                    { key: 'team_names', label: 'Team Names (comma separated)', required: false }
+                    { key: 'team_names', label: 'Team Names (semicolon separated)', required: false }
                 ]
             },
             
-            // Templates - Headers must match field keys EXACTLY
+            // CORRECTED Templates - NO QUOTES, proper formatting
             importTemplates: {
-                teams: 'name,coach,season\nExample Team,John Doe,2024-2025\nExample Team 2,Jane Smith,2024-2025\nExample Team 3,Bob Johnson,2024-2025',
-                players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\nJohn,Doe,john@example.com,01-01-2005,Forward,10,Example Team\nJane,Smith,jane@example.com,15-03-2006,Defense,5,Example Team\nBob,Johnson,bob@example.com,22-07-2005,Midfield,8,Example Team 2',
-                trainers: 'email,team_names\ntrainer1@example.com,Example Team\ntrainer2@example.com,Example Team;Example Team 2\ncoach@example.com,Example Team 3'
+                teams: 'name,coach,season\nHockey Team Alpha,John Doe,2024-2025\nHockey Team Beta,Jane Smith,2024-2025\nHockey Team Gamma,Bob Wilson,2024-2025',
+                players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\nJohn,Doe,john.doe@email.com,15-03-2005,Forward,10,Hockey Team Alpha\nJane,Smith,jane.smith@email.com,22-07-2006,Defense,5,Hockey Team Alpha\nBob,Johnson,bob.j@email.com,01-01-2005,Goalkeeper,1,Hockey Team Beta\nAlice,Wilson,alice.w@email.com,30-09-2005,Midfield,8,Hockey Team Beta',
+                trainers: 'email,team_names\ntrainer1@club.com,Hockey Team Alpha\ntrainer2@club.com,Hockey Team Alpha;Hockey Team Beta\nheadcoach@club.com,Hockey Team Gamma'
             }
         });
         
-        // Bind methods
         this.bindMethods();
     }
     
@@ -143,23 +134,17 @@ class ImportExportModule {
         this.app.getImportTypeFields = this.getImportTypeFields.bind(this);
     }
     
-    // Open import/export modal
     openImportExport(mode = 'import') {
         console.log('Opening import/export modal, mode:', mode);
-        console.log('User permissions:', this.app.userPermissions);
-        console.log('Can import/export:', this.app.hasPermission('can_import_export'));
-        
         this.app.importExportMode = mode;
         this.app.showImportExportModal = true;
         this.resetImportWizard();
         
-        // Load initial data if export mode
         if (mode === 'export') {
             this.loadExportData();
         }
     }
     
-    // Switch between import and export modes
     switchImportExportMode(mode) {
         this.app.importExportMode = mode;
         if (mode === 'export') {
@@ -167,34 +152,30 @@ class ImportExportModule {
         }
     }
     
-    // Select import type
     selectImportType(type) {
         this.app.importType = type;
         this.app.importWizardStep = 2;
     }
     
-    // Handle file upload
     async handleFileUpload(event) {
         const file = event.target.files[0];
         if (!file) return;
         
         try {
-            // Validate file type
-            const validTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+            // Validate file extension
             const fileExtension = file.name.split('.').pop().toLowerCase();
+            const validExtensions = ['csv'];
             
-            // Check by extension if MIME type check fails
-            const validExtensions = ['csv', 'xls', 'xlsx'];
-            if (!validTypes.includes(file.type) && !validExtensions.includes(fileExtension)) {
-                alert('Please upload a CSV or Excel file');
-                event.target.value = ''; // Reset input
+            if (!validExtensions.includes(fileExtension)) {
+                alert('Please upload a CSV file. Excel files are not supported yet.');
+                event.target.value = '';
                 return;
             }
             
             // Validate file size (max 10MB)
             if (file.size > 10 * 1024 * 1024) {
                 alert('File size must be less than 10MB');
-                event.target.value = ''; // Reset input
+                event.target.value = '';
                 return;
             }
             
@@ -206,11 +187,10 @@ class ImportExportModule {
         } catch (error) {
             console.error('File upload error:', error);
             alert('Error uploading file: ' + error.message);
-            event.target.value = ''; // Reset input
+            event.target.value = '';
         }
     }
     
-    // Parse import file
     async parseImportFile() {
         if (!this.app.importFile) return;
         
@@ -225,14 +205,10 @@ class ImportExportModule {
                 throw new Error('No response from server');
             }
             
-            // Debug logging
             console.log('Parsed file data:', response);
-            console.log('Headers:', response.headers);
-            console.log('Total rows:', response.total_rows);
-            console.log('Temp key:', response.temp_key);
             
             this.app.importFileData = response;
-            this.app.importTempKey = response.temp_key; // Store temp key
+            this.app.importTempKey = response.temp_key;
             
             // Auto-map columns
             this.autoMapColumns();
@@ -243,7 +219,6 @@ class ImportExportModule {
         } catch (error) {
             console.error('Error parsing file:', error);
             alert('Error parsing file: ' + error.message);
-            // Reset file input
             this.app.importFile = null;
             const fileInput = document.getElementById('import-file-input');
             if (fileInput) {
@@ -252,7 +227,6 @@ class ImportExportModule {
         }
     }
     
-    // Auto-map columns based on headers - ENHANCED with mapping variations
     autoMapColumns() {
         if (!this.app.importFileData || !this.app.importFileData.headers) return;
         
@@ -261,16 +235,24 @@ class ImportExportModule {
         
         this.app.importMapping = {};
         
+        console.log('Auto-mapping - Headers:', headers);
+        console.log('Auto-mapping - Fields:', fields);
+        
         // Try to match headers to fields
         headers.forEach((header, index) => {
-            const cleanHeader = header.toLowerCase().trim();
+            const cleanHeader = header.toLowerCase().trim().replace(/[_\s]+/g, '_');
             
-            // Check each field
             fields.forEach(field => {
                 // Skip if already mapped
                 if (this.app.importMapping[field.key] !== undefined) return;
                 
-                // Check if header matches any known variations for this field
+                // Direct match with field key
+                if (cleanHeader === field.key) {
+                    this.app.importMapping[field.key] = index;
+                    return;
+                }
+                
+                // Check known variations
                 if (this.app.fieldMappings[field.key]) {
                     const variations = this.app.fieldMappings[field.key];
                     if (variations.includes(cleanHeader)) {
@@ -278,44 +260,23 @@ class ImportExportModule {
                         return;
                     }
                 }
-                
-                // Try exact match with field key
-                if (cleanHeader === field.key || 
-                    cleanHeader === field.key.replace(/_/g, ' ')) {
-                    this.app.importMapping[field.key] = index;
-                    return;
-                }
-                
-                // Try normalized matching
-                const normalizedHeader = cleanHeader.replace(/[^a-z0-9]/g, '');
-                const normalizedField = field.label.toLowerCase().replace(/[^a-z0-9]/g, '');
-                const normalizedKey = field.key.replace(/_/g, '');
-                
-                if (normalizedHeader === normalizedField || normalizedHeader === normalizedKey) {
-                    this.app.importMapping[field.key] = index;
-                }
             });
         });
         
-        // Log mapping for debugging
-        console.log('Auto-mapping results:', this.app.importMapping);
-        console.log('Headers:', headers);
-        console.log('Fields:', fields);
+        console.log('Auto-mapping result:', this.app.importMapping);
     }
     
-    // Validate import data
     async validateImportData() {
         try {
-            // Debug logging
-            console.log('Validating with mapping:', this.app.importMapping);
-            console.log('Import type:', this.app.importType);
-            console.log('Temp key:', this.app.importTempKey);
+            console.log('Validating data...');
+            console.log('Mapping:', this.app.importMapping);
+            console.log('Type:', this.app.importType);
             
             const data = {
                 type: this.app.importType,
                 mapping: this.app.importMapping,
                 options: this.app.importOptions,
-                temp_key: this.app.importTempKey // Include temp key
+                temp_key: this.app.importTempKey
             };
             
             const response = await this.app.apiPost('cm_validate_import_data', data);
@@ -338,7 +299,6 @@ class ImportExportModule {
         }
     }
 
-    // Start import process
     async startImport() {
         if (this.app.importProgress.isProcessing) return;
         
@@ -347,15 +307,14 @@ class ImportExportModule {
         this.app.importWizardStep = 5;
         
         try {
-            // Initialize import session
             const sessionData = {
                 type: this.app.importType,
                 mapping: this.app.importMapping,
                 options: this.app.importOptions,
-                temp_key: this.app.importTempKey // Include temp key
+                temp_key: this.app.importTempKey
             };
             
-            console.log('Starting import with session data:', sessionData);
+            console.log('Starting import with:', sessionData);
             
             const initResponse = await this.app.apiPost('cm_init_import_session', sessionData);
             
@@ -364,7 +323,6 @@ class ImportExportModule {
             }
             
             this.app.importProgress.sessionId = initResponse.session_id;
-            console.log('Import session initialized:', this.app.importProgress.sessionId);
             
             // Process import in batches
             await this.processImportBatch();
@@ -379,7 +337,6 @@ class ImportExportModule {
         }
     }
     
-    // Process import batch
     async processImportBatch() {
         if (!this.app.importProgress.isProcessing || this.app.importProgress.isPaused) return;
         
@@ -391,8 +348,6 @@ class ImportExportModule {
             if (!response) {
                 throw new Error('No response from server');
             }
-            
-            console.log('Batch response:', response);
             
             // Update progress
             this.app.importProgress.processed = response.processed || 0;
@@ -410,7 +365,7 @@ class ImportExportModule {
                 this.app.importResults = response.results || this.app.importResults;
                 this.app.importWizardStep = 6;
                 
-                // Refresh data based on import type
+                // Refresh data
                 await this.refreshDataAfterImport();
             } else {
                 // Continue with next batch
@@ -427,18 +382,15 @@ class ImportExportModule {
         }
     }
     
-    // Pause import
     pauseImport() {
         this.app.importProgress.isPaused = true;
     }
     
-    // Resume import
     resumeImport() {
         this.app.importProgress.isPaused = false;
         this.processImportBatch();
     }
     
-    // Cancel import
     async cancelImport() {
         if (this.app.importProgress.sessionId) {
             try {
@@ -454,7 +406,6 @@ class ImportExportModule {
         this.app.showImportExportModal = false;
     }
     
-    // Reset import wizard
     resetImportWizard() {
         this.app.importWizardStep = 1;
         this.app.importType = '';
@@ -488,15 +439,11 @@ class ImportExportModule {
         }
     }
     
-    // Navigate wizard steps
     nextImportStep() {
         if (this.app.importWizardStep === 3) {
             // Validate mapping before proceeding
             const fields = this.getImportTypeFields();
             const requiredFields = fields.filter(f => f.required);
-            
-            console.log('Required fields:', requiredFields);
-            console.log('Current mapping:', this.app.importMapping);
             
             const missingFields = requiredFields.filter(f => 
                 this.app.importMapping[f.key] === undefined || 
@@ -522,7 +469,6 @@ class ImportExportModule {
         }
     }
     
-    // Download template
     downloadTemplate(type) {
         const template = this.app.importTemplates[type];
         if (!template) return;
@@ -542,7 +488,6 @@ class ImportExportModule {
         window.URL.revokeObjectURL(url);
     }
     
-    // Load export data
     async loadExportData() {
         try {
             // Load teams for export filter
@@ -561,7 +506,6 @@ class ImportExportModule {
         }
     }
     
-    // Export data
     async exportData() {
         try {
             const data = {
@@ -577,17 +521,14 @@ class ImportExportModule {
             }
             
             // Download file
-            if (response.download_url) {
-                window.location.href = response.download_url;
-            } else if (response.data) {
-                // Create blob and download
+            if (response.data) {
                 const blob = new Blob([response.data], { 
-                    type: this.app.exportFormat === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+                    type: 'text/csv;charset=utf-8' 
                 });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = response.filename || `club_manager_export_${this.app.exportType}_${Date.now()}.${this.app.exportFormat}`;
+                a.download = response.filename || `club_manager_export_${this.app.exportType}_${Date.now()}.csv`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -603,7 +544,6 @@ class ImportExportModule {
         }
     }
     
-    // Toggle team selection for export
     toggleExportTeam(teamId) {
         const index = this.app.exportFilters.teamIds.indexOf(teamId);
         if (index > -1) {
@@ -613,12 +553,10 @@ class ImportExportModule {
         }
     }
     
-    // Refresh data after import
     async refreshDataAfterImport() {
         switch (this.app.importType) {
             case 'teams':
-            case 'teams-with-players':
-                if (this.app.teamModule && typeof this.app.teamModule.loadMyTeams === 'function') {
+                if (this.app.teamModule) {
                     await this.app.teamModule.loadMyTeams();
                 }
                 if (this.app.hasPermission('can_view_club_teams') && this.app.clubTeamsModule) {
@@ -633,7 +571,6 @@ class ImportExportModule {
                 break;
                 
             case 'trainers':
-            case 'trainers-with-assignments':
                 if (this.app.activeTab === 'trainer-management' && this.app.trainerModule) {
                     await this.app.trainerModule.loadTrainerManagementData();
                 }
@@ -661,14 +598,10 @@ class ImportExportModule {
     }
     
     isTrainerImport() {
-        return this.app.importType === 'trainers' || 
-               this.app.importType === 'trainers-with-assignments';
+        return this.app.importType === 'trainers';
     }
     
     getImportTypeFields() {
-        const baseType = this.app.importType
-            .replace('-with-players', '')
-            .replace('-with-assignments', '');
-        return this.app.availableFields[baseType] || [];
+        return this.app.availableFields[this.app.importType] || [];
     }
 }

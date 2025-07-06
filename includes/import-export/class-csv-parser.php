@@ -13,31 +13,52 @@ class Club_Manager_CSV_Parser {
      * @return array Parsed data with headers and rows
      */
     public function parse($file_path, $mime_type) {
-        // For CSV files
-        if (strpos($mime_type, 'csv') !== false || 
-            strpos($mime_type, 'text/plain') !== false || 
-            strpos($mime_type, 'text/csv') !== false ||
-            strpos($mime_type, 'application/vnd.ms-excel') !== false) {
+        // Debug logging
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('CSV Parser - Starting parse for file: ' . basename($file_path));
+            error_log('CSV Parser - MIME type: ' . $mime_type);
+        }
+        
+        // For CSV files - check multiple MIME types because browsers are inconsistent
+        $csv_mime_types = array(
+            'text/csv',
+            'text/plain',
+            'application/csv',
+            'application/vnd.ms-excel',
+            'text/x-csv',
+            'text/comma-separated-values',
+            'application/octet-stream' // Sometimes CSV files come as this
+        );
+        
+        $is_csv = false;
+        foreach ($csv_mime_types as $csv_type) {
+            if (strpos($mime_type, $csv_type) !== false) {
+                $is_csv = true;
+                break;
+            }
+        }
+        
+        // Also check file extension
+        $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+        if ($extension === 'csv') {
+            $is_csv = true;
+        }
+        
+        if ($is_csv) {
             return $this->parseCSV($file_path);
         }
         
-        // For Excel files - would need PHPSpreadsheet library
+        // For Excel files
         if (strpos($mime_type, 'spreadsheet') !== false || 
-            strpos($mime_type, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') !== false) {
+            in_array($extension, array('xls', 'xlsx'))) {
             throw new Exception('Excel files are not supported yet. Please use CSV format.');
         }
         
-        // Try to detect by file extension if MIME type is not recognized
-        $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
-        if ($extension === 'csv') {
-            return $this->parseCSV($file_path);
-        }
-        
-        throw new Exception('Unsupported file type');
+        throw new Exception('Unsupported file type. Please upload a CSV file.');
     }
     
     /**
-     * Parse CSV file with better handling of different formats.
+     * Parse CSV file with robust handling.
      */
     private function parseCSV($file_path) {
         $data = array(
@@ -45,14 +66,10 @@ class Club_Manager_CSV_Parser {
             'rows' => array()
         );
         
-        // First, try to detect the encoding
+        // Read file content to check encoding and BOM
         $content = file_get_contents($file_path);
-        $encoding = mb_detect_encoding($content, ['UTF-8', 'ISO-8859-1', 'Windows-1252'], true);
-        
-        if ($encoding && $encoding !== 'UTF-8') {
-            $content = mb_convert_encoding($content, 'UTF-8', $encoding);
-            // Write back to temp file
-            file_put_contents($file_path, $content);
+        if ($content === false) {
+            throw new Exception('Could not read file content');
         }
         
         // Remove BOM if present
@@ -62,111 +79,118 @@ class Club_Manager_CSV_Parser {
             file_put_contents($file_path, $content);
         }
         
-        // Open file
-        $handle = fopen($file_path, 'r');
-        if (!$handle) {
-            throw new Exception('Could not open file');
-        }
+        // Detect line endings and normalize to \n
+        $content = str_replace("\r\n", "\n", $content);
+        $content = str_replace("\r", "\n", $content);
+        file_put_contents($file_path, $content);
         
         // Detect delimiter
         $delimiter = $this->detectDelimiter($file_path);
         
-        // Set locale for proper CSV parsing
-        $original_locale = setlocale(LC_ALL, 0);
-        setlocale(LC_ALL, 'en_US.UTF-8');
+        // Open file for reading
+        $handle = fopen($file_path, 'r');
+        if (!$handle) {
+            throw new Exception('Could not open file for reading');
+        }
         
         try {
             // Read headers
-            $headers = fgetcsv($handle, 0, $delimiter, '"', '"');
+            $headers = fgetcsv($handle, 0, $delimiter);
             if (!$headers) {
                 throw new Exception('Could not read headers from file');
             }
             
-            // Clean headers
+            // Clean headers - remove quotes, spaces, BOM
             $headers = array_map(function($header) {
-                // Remove any quotes, spaces, and special characters
-                $header = str_replace(['"', "'", "\xEF\xBB\xBF"], '', $header);
+                // Remove BOM
+                $header = str_replace("\xEF\xBB\xBF", '', $header);
+                // Remove quotes
+                $header = trim($header, '"\'');
+                // Trim spaces
                 $header = trim($header);
+                // Convert to lowercase for consistency
+                $header = strtolower($header);
+                // Replace spaces with underscores
+                $header = str_replace(' ', '_', $header);
                 return $header;
             }, $headers);
             
-            // Ensure headers are not empty
-            $headers = array_filter($headers, function($header) {
-                return !empty($header);
-            });
+            // Remove empty headers
+            $headers = array_filter($headers, function($h) { return !empty($h); });
             
             if (empty($headers)) {
                 throw new Exception('No valid headers found in CSV file');
             }
             
             $data['headers'] = array_values($headers);
+            $header_count = count($data['headers']);
             
-            // Log headers for debugging
+            // Debug headers
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('CSV Parser - Headers found: ' . json_encode($data['headers']));
-                error_log('CSV Parser - Delimiter used: ' . ($delimiter === "\t" ? 'TAB' : "'{$delimiter}'"));
+                error_log('CSV Parser - Headers: ' . json_encode($data['headers']));
+                error_log('CSV Parser - Delimiter: ' . ($delimiter === "\t" ? 'TAB' : $delimiter));
             }
             
-            // Read rows
+            // Read data rows
             $row_number = 0;
-            while (($row = fgetcsv($handle, 0, $delimiter, '"', '"')) !== false) {
+            while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
                 $row_number++;
                 
-                // Skip completely empty rows
-                $non_empty_values = array_filter($row, function($value) {
-                    return $value !== '' && $value !== null;
-                });
-                
-                if (empty($non_empty_values)) {
+                // Skip empty rows
+                if (count(array_filter($row, function($v) { return $v !== ''; })) === 0) {
                     continue;
                 }
                 
-                // Ensure row has same number of columns as headers
-                $row = array_slice(array_pad($row, count($headers), ''), 0, count($headers));
+                // Ensure row has correct number of columns
+                if (count($row) < $header_count) {
+                    $row = array_pad($row, $header_count, '');
+                } elseif (count($row) > $header_count) {
+                    $row = array_slice($row, 0, $header_count);
+                }
                 
                 // Clean values
                 $row = array_map(function($value) {
-                    // Remove quotes and trim
-                    $value = str_replace(['"', "'"], '', $value);
+                    // Remove quotes
+                    $value = trim($value, '"\'');
+                    // Trim spaces
                     return trim($value);
                 }, $row);
                 
-                // Log first few rows for debugging
+                $data['rows'][] = $row;
+                
+                // Debug first few rows
                 if (defined('WP_DEBUG') && WP_DEBUG && $row_number <= 3) {
                     error_log('CSV Parser - Row ' . $row_number . ': ' . json_encode($row));
                 }
-                
-                $data['rows'][] = $row;
             }
             
         } finally {
             fclose($handle);
-            setlocale(LC_ALL, $original_locale);
-        }
-        
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('CSV Parser - Total rows parsed: ' . count($data['rows']));
         }
         
         if (empty($data['rows'])) {
             throw new Exception('No data rows found in CSV file');
         }
         
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('CSV Parser - Total rows parsed: ' . count($data['rows']));
+        }
+        
         return $data;
     }
     
     /**
-     * Improved delimiter detection.
+     * Detect CSV delimiter.
      */
     private function detectDelimiter($file_path) {
         $delimiters = array(',', ';', "\t", '|');
         $handle = fopen($file_path, 'r');
         
         if (!$handle) {
-            return ','; // Default to comma
+            return ',';
         }
         
-        // Read first few lines for better detection
+        // Read first 5 lines
         $lines = array();
         for ($i = 0; $i < 5 && !feof($handle); $i++) {
             $line = fgets($handle);
@@ -177,53 +201,41 @@ class Club_Manager_CSV_Parser {
         fclose($handle);
         
         if (empty($lines)) {
-            return ','; // Default to comma
+            return ',';
         }
         
-        $delimiter_scores = array();
+        $scores = array();
         
         foreach ($delimiters as $delimiter) {
-            $scores = array();
+            $counts = array();
             
             foreach ($lines as $line) {
-                // Count occurrences in quotes vs outside quotes
-                $in_quotes = false;
-                $count = 0;
-                $chars = str_split($line);
-                
-                for ($i = 0; $i < count($chars); $i++) {
-                    if ($chars[$i] === '"' && ($i === 0 || $chars[$i-1] !== '\\')) {
-                        $in_quotes = !$in_quotes;
-                    } elseif (!$in_quotes && $chars[$i] === $delimiter) {
-                        $count++;
-                    }
+                $count = substr_count($line, $delimiter);
+                if ($count > 0) {
+                    $counts[] = $count;
                 }
-                
-                $scores[] = $count;
             }
             
-            // Check consistency
-            if (count(array_unique($scores)) === 1 && $scores[0] > 0) {
-                // All lines have same count, good indicator
-                $delimiter_scores[$delimiter] = $scores[0] * 10; // High score for consistency
+            if (empty($counts)) {
+                $scores[$delimiter] = 0;
             } else {
-                // Variable counts, less reliable
-                $delimiter_scores[$delimiter] = array_sum($scores) / count($scores);
+                // Check consistency - all lines should have same count
+                $unique_counts = array_unique($counts);
+                if (count($unique_counts) === 1) {
+                    // Consistent count across lines = good delimiter
+                    $scores[$delimiter] = $counts[0] * 100; // High score for consistency
+                } else {
+                    // Inconsistent = lower score
+                    $scores[$delimiter] = array_sum($counts) / count($counts);
+                }
             }
         }
         
-        if (empty($delimiter_scores) || max($delimiter_scores) === 0) {
-            return ','; // Default to comma
+        if (empty($scores) || max($scores) === 0) {
+            return ',';
         }
         
-        // Get delimiter with highest score
-        arsort($delimiter_scores);
-        $detected = key($delimiter_scores);
-        
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('CSV Parser - Detected delimiter: ' . ($detected === "\t" ? 'TAB' : "'{$detected}'") . ' (score: ' . $delimiter_scores[$detected] . ')');
-        }
-        
-        return $detected;
+        arsort($scores);
+        return key($scores);
     }
 }

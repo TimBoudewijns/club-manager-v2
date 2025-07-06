@@ -44,9 +44,9 @@ class Club_Manager_Import_Handler {
             $row_number = $start_index + $index + 1;
             
             try {
-                // Log the row being processed
+                // Debug logging
                 if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log('Processing row ' . $row_number . ': ' . json_encode($row));
+                    error_log('Import Handler - Processing row ' . $row_number . ': ' . json_encode($row));
                 }
                 
                 // Row is already mapped, so we can use it directly
@@ -260,7 +260,7 @@ class Club_Manager_Import_Handler {
     }
 
     /**
-     * Process trainer import.
+     * Process trainer import - UPDATED for semicolon separator.
      */
     private function processTrainer($data, $user_id) {
         // Check if email exists
@@ -322,9 +322,9 @@ class Club_Manager_Import_Handler {
         
         return array('success' => true, 'action' => 'created', 'trainer_to_invite' => $trainer_to_invite);
     }
-
+    
     /**
-     * Parse team names from string, supporting multiple separators.
+     * Parse team names from string - UPDATED to use semicolon.
      */
     private function parseTeamNames($team_names_string) {
         if (is_array($team_names_string)) {
@@ -333,15 +333,11 @@ class Club_Manager_Import_Handler {
         
         $team_names = array();
         
-        // First try semicolon
+        // Use semicolon as primary separator
         if (strpos($team_names_string, ';') !== false) {
             $team_names = explode(';', $team_names_string);
         }
-        // Then try comma but only if no semicolon
-        elseif (strpos($team_names_string, ',') !== false) {
-            $team_names = explode(',', $team_names_string);
-        }
-        // Otherwise treat as single team
+        // If no semicolon, treat as single team
         else {
             $team_names = array($team_names_string);
         }

@@ -45,7 +45,7 @@ class Club_Manager_Export_Handler {
         global $wpdb;
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        $query = "SELECT name, coach, season, id FROM $teams_table WHERE 1=1";
+        $query = "SELECT name, coach, season FROM $teams_table WHERE 1=1";
         $params = array();
         
         if (!empty($this->filters['season'])) {
@@ -57,6 +57,8 @@ class Club_Manager_Export_Handler {
             $query .= " AND created_by = %d";
             $params[] = $this->user_id;
         }
+        
+        $query .= " ORDER BY name";
         
         if (!empty($params)) {
             return $wpdb->get_results($wpdb->prepare($query, ...$params), ARRAY_A);
@@ -73,7 +75,14 @@ class Club_Manager_Export_Handler {
         $team_players_table = Club_Manager_Database::get_table_name('team_players');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        $query = "SELECT p.id, p.first_name, p.last_name, p.email, p.birth_date, tp.position, tp.jersey_number, tp.notes, t.name as team_name
+        $query = "SELECT 
+                    p.first_name, 
+                    p.last_name, 
+                    p.email, 
+                    p.birth_date, 
+                    tp.position, 
+                    tp.jersey_number, 
+                    t.name as team_name
                   FROM $players_table p
                   LEFT JOIN $team_players_table tp ON p.id = tp.player_id
                   LEFT JOIN $teams_table t ON tp.team_id = t.id
@@ -91,6 +100,13 @@ class Club_Manager_Export_Handler {
             $query .= " AND tp.season = %s";
             $params[] = $this->filters['season'];
         }
+        
+        if (!Club_Manager_User_Permissions_Helper::is_club_owner_or_manager($this->user_id)) {
+            $query .= " AND p.created_by = %d";
+            $params[] = $this->user_id;
+        }
+        
+        $query .= " ORDER BY p.last_name, p.first_name";
 
         if (!empty($params)) {
             return $wpdb->get_results($wpdb->prepare($query, ...$params), ARRAY_A);
@@ -106,7 +122,9 @@ class Club_Manager_Export_Handler {
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        $query = "SELECT DISTINCT u.user_email as email, GROUP_CONCAT(t.name SEPARATOR ';') as team_names
+        $query = "SELECT DISTINCT 
+                    u.user_email as email, 
+                    GROUP_CONCAT(t.name SEPARATOR ';') as team_names
                   FROM $trainers_table tt
                   INNER JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
                   INNER JOIN $teams_table t ON tt.team_id = t.id
@@ -119,13 +137,12 @@ class Club_Manager_Export_Handler {
             $params[] = $this->filters['season'];
         }
         
-        // Add user filter if not admin/manager
         if (!Club_Manager_User_Permissions_Helper::is_club_owner_or_manager($this->user_id)) {
             $query .= " AND t.created_by = %d";
             $params[] = $this->user_id;
         }
         
-        $query .= " GROUP BY u.ID";
+        $query .= " GROUP BY u.ID ORDER BY u.user_email";
 
         if (!empty($params)) {
             return $wpdb->get_results($wpdb->prepare($query, ...$params), ARRAY_A);
@@ -139,16 +156,24 @@ class Club_Manager_Export_Handler {
     public function generateCSV($data, $type) {
         if (empty($data)) return '';
         
+        // Get headers based on type
         $headers = $this->getHeaders($type);
+        
+        // Start output buffering
         ob_start();
         $output = fopen('php://output', 'w');
+        
+        // Add UTF-8 BOM for Excel compatibility
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Write headers
         fputcsv($output, array_keys($headers));
         
+        // Write data rows
         foreach ($data as $row) {
-            $csv_row = [];
-            foreach ($headers as $field => $header_label) {
-                $csv_row[] = $row[$field] ?? '';
+            $csv_row = array();
+            foreach ($headers as $field => $label) {
+                $csv_row[] = isset($row[$field]) ? $row[$field] : '';
             }
             fputcsv($output, $csv_row);
         }
@@ -158,23 +183,34 @@ class Club_Manager_Export_Handler {
     }
     
     /**
-     * Generate Excel content.
-     */
-    public function generateExcel($data, $type) {
-        return $this->generateCSV($data, $type);
-    }
-    
-    /**
-     * Get headers for export type.
+     * Get headers for export type - MUST match import field keys.
      */
     private function getHeaders($type) {
         switch ($type) {
             case 'teams':
-                return ['id' => 'ID', 'name' => 'Name', 'coach' => 'Coach', 'season' => 'Season'];
+                return array(
+                    'name' => 'name',
+                    'coach' => 'coach',
+                    'season' => 'season'
+                );
+                
             case 'players':
-                return ['id' => 'ID', 'first_name' => 'First Name', 'last_name' => 'Last Name', 'email' => 'Email', 'birth_date' => 'Birth Date', 'position' => 'Position', 'jersey_number' => 'Jersey Number', 'team_name' => 'Team Name', 'notes' => 'Notes'];
+                return array(
+                    'first_name' => 'first_name',
+                    'last_name' => 'last_name',
+                    'email' => 'email',
+                    'birth_date' => 'birth_date',
+                    'position' => 'position',
+                    'jersey_number' => 'jersey_number',
+                    'team_name' => 'team_name'
+                );
+                
             case 'trainers':
-                return ['email' => 'Email', 'team_names' => 'Team Names'];
+                return array(
+                    'email' => 'email',
+                    'team_names' => 'team_names'
+                );
+                
             default:
                 return array();
         }
