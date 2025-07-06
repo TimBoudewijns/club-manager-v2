@@ -381,26 +381,45 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     private function sendBulkTrainerInvitations($trainers, $inviter_id) {
         if (empty($trainers)) return;
         
-        $trainer_ajax = new Club_Manager_Trainer_Ajax();
+        // Save the original $_POST data
+        $original_post = $_POST;
         
         foreach ($trainers as $trainer_data) {
             try {
+                // Create a new AJAX request context for each trainer
                 $_POST = array(
                     'email' => $trainer_data['email'],
                     'teams' => $trainer_data['team_ids'],
                     'role' => $trainer_data['role'] ?? 'trainer',
                     'message' => 'You have been invited to join as a trainer through bulk import.',
-                    'nonce' => wp_create_nonce('club_manager_nonce')
+                    'nonce' => wp_create_nonce('club_manager_nonce'),
+                    'action' => 'cm_invite_trainer'
                 );
                 
+                // Call the trainer AJAX handler directly
+                $trainer_ajax = new Club_Manager_Trainer_Ajax();
+                
+                // Capture any output
                 ob_start();
                 $trainer_ajax->invite_trainer();
-                ob_end_clean();
+                $response = ob_get_clean();
+                
+                // Log the response for debugging
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    Club_Manager_Logger::log('Trainer invitation sent', 'info', array(
+                        'email' => $trainer_data['email'],
+                        'teams' => $trainer_data['team_ids'],
+                        'response' => $response
+                    ));
+                }
                 
             } catch (Exception $e) {
                 Club_Manager_Logger::log('Exception during trainer invitation: ' . $e->getMessage(), 'error', array('email' => $trainer_data['email']));
             }
         }
+        
+        // Restore the original $_POST data
+        $_POST = $original_post;
     }
 }
 
