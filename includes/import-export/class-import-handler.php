@@ -273,8 +273,7 @@ class Club_Manager_Import_Handler {
         if ($user) {
             // User exists, assign to teams if specified
             if (!empty($data['team_names'])) {
-                $team_names = is_array($data['team_names']) ? $data['team_names'] : explode(',', $data['team_names']);
-                $team_names = array_map('trim', $team_names);
+                $team_names = $this->parseTeamNames($data['team_names']);
                 $this->assignTrainerToTeams($user->ID, $team_names, $user_id);
             }
             return array('success' => true, 'action' => 'skipped', 'id' => $user->ID);
@@ -292,7 +291,7 @@ class Club_Manager_Import_Handler {
             $teams_table = Club_Manager_Database::get_table_name('teams');
             $season = $this->getCurrentSeason($user_id);
             
-            $team_names = is_array($data['team_names']) ? $data['team_names'] : explode(',', $data['team_names']);
+            $team_names = $this->parseTeamNames($data['team_names']);
             
             foreach ($team_names as $team_name) {
                 $team_name = trim($team_name);
@@ -322,6 +321,33 @@ class Club_Manager_Import_Handler {
         }
         
         return array('success' => true, 'action' => 'created', 'trainer_to_invite' => $trainer_to_invite);
+    }
+
+    /**
+     * Parse team names from string, supporting multiple separators.
+     */
+    private function parseTeamNames($team_names_string) {
+        if (is_array($team_names_string)) {
+            return $team_names_string;
+        }
+        
+        $team_names = array();
+        
+        // First try semicolon
+        if (strpos($team_names_string, ';') !== false) {
+            $team_names = explode(';', $team_names_string);
+        }
+        // Then try comma but only if no semicolon
+        elseif (strpos($team_names_string, ',') !== false) {
+            $team_names = explode(',', $team_names_string);
+        }
+        // Otherwise treat as single team
+        else {
+            $team_names = array($team_names_string);
+        }
+        
+        // Clean up team names
+        return array_map('trim', array_filter($team_names));
     }
     
     /**

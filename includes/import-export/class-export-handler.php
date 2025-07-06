@@ -102,12 +102,11 @@ class Club_Manager_Export_Handler {
      * Get trainers data for export.
      */
     private function getTrainersData() {
-        // This function remains the same as it exports emails and team names, which is correct.
         global $wpdb;
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        $query = "SELECT DISTINCT u.user_email as email, GROUP_CONCAT(t.name SEPARATOR ', ') as team_names
+        $query = "SELECT DISTINCT u.user_email as email, GROUP_CONCAT(t.name SEPARATOR ';') as team_names
                   FROM $trainers_table tt
                   INNER JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
                   INNER JOIN $teams_table t ON tt.team_id = t.id
@@ -118,6 +117,12 @@ class Club_Manager_Export_Handler {
         if (!empty($this->filters['season'])) {
             $query .= " AND t.season = %s";
             $params[] = $this->filters['season'];
+        }
+        
+        // Add user filter if not admin/manager
+        if (!Club_Manager_User_Permissions_Helper::is_club_owner_or_manager($this->user_id)) {
+            $query .= " AND t.created_by = %d";
+            $params[] = $this->user_id;
         }
         
         $query .= " GROUP BY u.ID";

@@ -105,7 +105,7 @@ class ImportExportModule {
             importTemplates: {
                 teams: 'name,coach,season\nExample Team,John Doe,2024-2025\nExample Team 2,Jane Smith,2024-2025\nExample Team 3,Bob Johnson,2024-2025',
                 players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\nJohn,Doe,john@example.com,01-01-2005,Forward,10,Example Team\nJane,Smith,jane@example.com,15-03-2006,Defense,5,Example Team\nBob,Johnson,bob@example.com,22-07-2005,Midfield,8,Example Team 2',
-                trainers: 'email,team_names\ntrainer1@example.com,Example Team\ntrainer2@example.com,"Example Team,Example Team 2"\ncoach@example.com,Example Team 3'
+                trainers: 'email,team_names\ntrainer1@example.com,Example Team\ntrainer2@example.com,Example Team;Example Team 2\ncoach@example.com,Example Team 3'
             }
         });
         
