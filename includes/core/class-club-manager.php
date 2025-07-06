@@ -133,25 +133,23 @@ class Club_Manager {
         // Shortcode
         $this->loader->add_action('init', $plugin_shortcode, 'register_shortcode');
         
-        // AJAX Handlers
+        // AJAX Handlers - Initialize directly for proper WordPress AJAX hook registration
         $team_ajax = new Club_Manager_Team_Ajax();
         $player_ajax = new Club_Manager_Player_Ajax();
         $evaluation_ajax = new Club_Manager_Evaluation_Ajax();
         $ai_ajax = new Club_Manager_AI_Ajax();
         $club_ajax = new Club_Manager_Club_Ajax();
+        $trainer_ajax = new Club_Manager_Trainer_Ajax();
         $import_export_ajax = new Club_Manager_Import_Export_Ajax();
         
-        // Initialize AJAX handlers
-        $this->loader->add_action('init', $team_ajax, 'init');
-        $this->loader->add_action('init', $player_ajax, 'init');
-        $this->loader->add_action('init', $evaluation_ajax, 'init');
-        $this->loader->add_action('init', $ai_ajax, 'init');
-        $this->loader->add_action('init', $club_ajax, 'init');
-        $this->loader->add_action('init', $import_export_ajax, 'init');
-        
-        // Trainer AJAX - special handling to ensure email hooks are registered early
-        $trainer_ajax = new Club_Manager_Trainer_Ajax();
-        $this->loader->add_action('init', $trainer_ajax, 'init');
+        // Initialize AJAX handlers immediately
+        $team_ajax->init();
+        $player_ajax->init();
+        $evaluation_ajax->init();
+        $ai_ajax->init();
+        $club_ajax->init();
+        $trainer_ajax->init();
+        $import_export_ajax->init();
         
         // AI Manager
         $ai_manager = new Club_Manager_AI_Manager();

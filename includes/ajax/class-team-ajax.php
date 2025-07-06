@@ -15,6 +15,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         add_action('wp_ajax_cm_get_all_club_teams', array($this, 'get_all_club_teams'));
         add_action('wp_ajax_cm_create_club_team', array($this, 'create_club_team'));
         add_action('wp_ajax_cm_get_team_trainers', array($this, 'get_team_trainers'));
+        add_action('wp_ajax_cm_get_available_trainers', array($this, 'get_available_trainers'));
         add_action('wp_ajax_cm_assign_trainer_to_team', array($this, 'assign_trainer_to_team'));
         add_action('wp_ajax_cm_remove_trainer_from_team', array($this, 'remove_trainer_from_team'));
         add_action('wp_ajax_cm_update_team', array($this, 'update_team'));
@@ -136,6 +137,84 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         wp_send_json_success($teams);
+    }
+    
+    /**
+     * Get available trainers for a season.
+     */
+    public function get_available_trainers() {
+        $user_id = $this->verify_request();
+        
+        // Check if user can manage teams
+        if (!Club_Manager_User_Permissions_Helper::is_club_owner_or_manager($user_id)) {
+            wp_send_json_error('Unauthorized access');
+            return;
+        }
+        
+        $season = $this->get_post_data('season');
+        
+        // Get all trainers that can be assigned to teams
+        global $wpdb;
+        
+        // Get all users who are members of the WC Team
+        $available_trainers = array();
+        
+        // Get managed teams to find team members
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        
+        if (!empty($managed_teams)) {
+            $wc_team_id = $managed_teams[0]['team_id']; // Use first team
+            
+            // Get all members of this WC Team
+            if (function_exists('wc_memberships_for_teams_get_team')) {
+                $team = wc_memberships_for_teams_get_team($wc_team_id);
+                
+                if ($team && is_object($team) && method_exists($team, 'get_members')) {
+                    $members = $team->get_members();
+                    
+                    foreach ($members as $member) {
+                        if (method_exists($member, 'get_user_id')) {
+                            $member_user_id = $member->get_user_id();
+                            $member_user = get_user_by('id', $member_user_id);
+                            
+                            if ($member_user) {
+                                $available_trainers[] = array(
+                                    'id' => $member_user->ID,
+                                    'display_name' => $member_user->display_name,
+                                    'email' => $member_user->user_email,
+                                    'first_name' => get_user_meta($member_user->ID, 'first_name', true),
+                                    'last_name' => get_user_meta($member_user->ID, 'last_name', true)
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // If no members found through API, get from Club Manager trainers table
+        if (empty($available_trainers)) {
+            $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            
+            // Get unique trainers from teams owned by current user
+            $trainers = $wpdb->get_results($wpdb->prepare(
+                "SELECT DISTINCT u.ID, u.display_name, u.user_email as email,
+                        um1.meta_value as first_name, um2.meta_value as last_name
+                FROM {$wpdb->users} u
+                INNER JOIN $trainers_table tt ON u.ID = tt.trainer_id
+                INNER JOIN $teams_table t ON tt.team_id = t.id
+                LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
+                LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
+                WHERE t.created_by = %d AND tt.is_active = 1
+                ORDER BY u.display_name",
+                $user_id
+            ), ARRAY_A);
+            
+            $available_trainers = $trainers;
+        }
+        
+        wp_send_json_success($available_trainers);
     }
     
     /**

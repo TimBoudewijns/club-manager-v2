@@ -17,6 +17,13 @@ if (!defined('ABSPATH')) {
 class Club_Manager_Teams_Helper {
     
     /**
+     * Check if Teams plugin is active
+     */
+    public static function is_teams_plugin_active() {
+        return function_exists('wc_memberships_for_teams');
+    }
+    
+    /**
      * Check if user can view club teams
      * 
      * @param int $user_id User ID
@@ -31,6 +38,12 @@ class Club_Manager_Teams_Helper {
             return false;
         }
         
+        // Check if Teams plugin is active
+        if (!self::is_teams_plugin_active()) {
+            error_log('Club Manager: Teams for WooCommerce Memberships is not active');
+            return false;
+        }
+        
         // First check if Teams for WooCommerce Memberships is active
         if (!post_type_exists('wc_memberships_team')) {
             return false;
@@ -38,46 +51,54 @@ class Club_Manager_Teams_Helper {
         
         // Method 1: Try the official function if it exists
         if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            // Get all teams for user
-            $teams = wc_memberships_for_teams_get_user_teams($user_id);
-            
-            if (!empty($teams)) {
-                foreach ($teams as $team) {
-                    if (is_object($team)) {
-                        // Try multiple ways to check member role
-                        $is_owner_or_manager = false;
-                        
-                        // Check method 1: get_member
-                        if (method_exists($team, 'get_member')) {
-                            $member = $team->get_member($user_id);
-                            if ($member && method_exists($member, 'get_role')) {
-                                $role = $member->get_role();
-                                if (in_array($role, array('owner', 'manager'))) {
+            try {
+                // Get all teams for user
+                $teams = wc_memberships_for_teams_get_user_teams($user_id);
+                
+                if (!empty($teams)) {
+                    foreach ($teams as $team) {
+                        if (is_object($team)) {
+                            // Try multiple ways to check member role
+                            $is_owner_or_manager = false;
+                            
+                            // Check method 1: get_member
+                            if (method_exists($team, 'get_member')) {
+                                $member = $team->get_member($user_id);
+                                if ($member && method_exists($member, 'get_role')) {
+                                    $role = $member->get_role();
+                                    if (in_array($role, array('owner', 'manager'))) {
+                                        return true;
+                                    }
+                                }
+                            }
+                            
+                            // Check method 2: Post author
+                            if (method_exists($team, 'get_id')) {
+                                $team_post = get_post($team->get_id());
+                                if ($team_post && $team_post->post_author == $user_id) {
                                     return true;
                                 }
                             }
                         }
-                        
-                        // Check method 2: Post author
-                        if (method_exists($team, 'get_id')) {
-                            $team_post = get_post($team->get_id());
-                            if ($team_post && $team_post->post_author == $user_id) {
-                                return true;
-                            }
-                        }
                     }
                 }
+            } catch (Exception $e) {
+                error_log('Club Manager Teams Helper Error: ' . $e->getMessage());
             }
         }
         
         // Alternative method using different function
         if (function_exists('wc_memberships_for_teams_get_teams')) {
-            $teams = wc_memberships_for_teams_get_teams($user_id, array(
-                'role' => 'owner,manager'
-            ));
-            
-            if (!empty($teams)) {
-                return true;
+            try {
+                $teams = wc_memberships_for_teams_get_teams($user_id, array(
+                    'role' => 'owner,manager'
+                ));
+                
+                if (!empty($teams)) {
+                    return true;
+                }
+            } catch (Exception $e) {
+                error_log('Club Manager Teams Helper Error: ' . $e->getMessage());
             }
         }
         
@@ -135,60 +156,73 @@ class Club_Manager_Teams_Helper {
             return array();
         }
         
+        // Check if Teams plugin is active
+        if (!self::is_teams_plugin_active()) {
+            return array();
+        }
+        
         $managed_teams = array();
         
         // Method 1: Try the official function
         if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            // Get all teams for user
-            $teams = wc_memberships_for_teams_get_user_teams($user_id);
-            
-            if (!empty($teams)) {
-                foreach ($teams as $team) {
-                    if (is_object($team)) {
-                        // Get user's member object
-                        if (method_exists($team, 'get_member')) {
-                            $member = $team->get_member($user_id);
-                            if ($member && method_exists($member, 'get_role')) {
-                                $role = $member->get_role();
-                                if (in_array($role, array('owner', 'manager'))) {
-                                    $managed_teams[] = array(
-                                        'team_id' => $team->get_id(),
-                                        'team_name' => $team->get_name(),
-                                        'role' => $role
-                                    );
+            try {
+                // Get all teams for user
+                $teams = wc_memberships_for_teams_get_user_teams($user_id);
+                
+                if (!empty($teams)) {
+                    foreach ($teams as $team) {
+                        if (is_object($team)) {
+                            // Get user's member object
+                            if (method_exists($team, 'get_member') && method_exists($team, 'get_id') && method_exists($team, 'get_name')) {
+                                $member = $team->get_member($user_id);
+                                if ($member && method_exists($member, 'get_role')) {
+                                    $role = $member->get_role();
+                                    if (in_array($role, array('owner', 'manager'))) {
+                                        $managed_teams[] = array(
+                                            'team_id' => $team->get_id(),
+                                            'team_name' => $team->get_name(),
+                                            'role' => $role
+                                        );
+                                    }
                                 }
                             }
                         }
                     }
                 }
+            } catch (Exception $e) {
+                error_log('Club Manager Teams Helper Error: ' . $e->getMessage());
             }
         }
         
         // Alternative method
         if (empty($managed_teams) && function_exists('wc_memberships_for_teams_get_teams')) {
-            $teams = wc_memberships_for_teams_get_teams($user_id, array(
-                'role' => 'owner,manager'
-            ));
-            
-            if (!empty($teams)) {
-                foreach ($teams as $team) {
-                    if (is_object($team) && method_exists($team, 'get_id') && method_exists($team, 'get_name')) {
-                        // Get user's role in this team
-                        $role = 'member';
-                        if (method_exists($team, 'get_member')) {
-                            $member = $team->get_member($user_id);
-                            if ($member && method_exists($member, 'get_role')) {
-                                $role = $member->get_role();
+            try {
+                $teams = wc_memberships_for_teams_get_teams($user_id, array(
+                    'role' => 'owner,manager'
+                ));
+                
+                if (!empty($teams)) {
+                    foreach ($teams as $team) {
+                        if (is_object($team) && method_exists($team, 'get_id') && method_exists($team, 'get_name')) {
+                            // Get user's role in this team
+                            $role = 'member';
+                            if (method_exists($team, 'get_member')) {
+                                $member = $team->get_member($user_id);
+                                if ($member && method_exists($member, 'get_role')) {
+                                    $role = $member->get_role();
+                                }
                             }
+                            
+                            $managed_teams[] = array(
+                                'team_id' => $team->get_id(),
+                                'team_name' => $team->get_name(),
+                                'role' => $role
+                            );
                         }
-                        
-                        $managed_teams[] = array(
-                            'team_id' => $team->get_id(),
-                            'team_name' => $team->get_name(),
-                            'role' => $role
-                        );
                     }
                 }
+            } catch (Exception $e) {
+                error_log('Club Manager Teams Helper Error: ' . $e->getMessage());
             }
         }
         
@@ -259,16 +293,25 @@ class Club_Manager_Teams_Helper {
             return false;
         }
         
+        // Check if Teams plugin is active
+        if (!self::is_teams_plugin_active()) {
+            return false;
+        }
+        
         // Method 1: Try official function
         if (function_exists('wc_memberships_for_teams_get_team')) {
-            $team = wc_memberships_for_teams_get_team($team_id);
-            
-            if ($team && is_object($team) && method_exists($team, 'get_member')) {
-                $member = $team->get_member($user_id);
+            try {
+                $team = wc_memberships_for_teams_get_team($team_id);
                 
-                if ($member && method_exists($member, 'get_role')) {
-                    return $member->get_role();
+                if ($team && is_object($team) && method_exists($team, 'get_member')) {
+                    $member = $team->get_member($user_id);
+                    
+                    if ($member && method_exists($member, 'get_role')) {
+                        return $member->get_role();
+                    }
                 }
+            } catch (Exception $e) {
+                error_log('Club Manager Teams Helper Error: ' . $e->getMessage());
             }
         }
         
@@ -316,10 +359,19 @@ class Club_Manager_Teams_Helper {
             return false;
         }
         
+        // Check if Teams plugin is active
+        if (!self::is_teams_plugin_active()) {
+            return false;
+        }
+        
         // Try official function first
         if (function_exists('wc_memberships_for_teams_get_user_teams')) {
-            $teams = wc_memberships_for_teams_get_user_teams($user_id);
-            return !empty($teams);
+            try {
+                $teams = wc_memberships_for_teams_get_user_teams($user_id);
+                return !empty($teams);
+            } catch (Exception $e) {
+                error_log('Club Manager Teams Helper Error: ' . $e->getMessage());
+            }
         }
         
         // Fallback to database check

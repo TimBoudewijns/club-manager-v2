@@ -22,6 +22,7 @@ window.clubManager = function() {
         async init() {
             console.log('Club Manager initializing...');
             console.log('User permissions:', this.userPermissions);
+            console.log('AJAX URL:', window.clubManagerAjax?.ajax_url);
             
             // Initialize modules
             this.initializeModules();
@@ -97,6 +98,8 @@ window.clubManager = function() {
         
         // Handle tab changes
         async handleTabChange(tab) {
+            console.log('Tab changed to:', tab);
+            
             switch (tab) {
                 case 'player-management':
                     // Load both my teams and club teams
@@ -126,8 +129,31 @@ window.clubManager = function() {
             }
         },
         
-        // API helper (shared across modules)
+        // API helper (shared across modules) with enhanced debugging
         async apiPost(action, data = {}) {
+            console.log('AJAX Call:', action, data);
+            
+            // Validate action name
+            if (!action.startsWith('cm_')) {
+                console.warn('AJAX action should start with cm_:', action);
+            }
+            
+            // Check if we have required data
+            if (!window.clubManagerAjax) {
+                console.error('clubManagerAjax not available');
+                throw new Error('AJAX configuration not available');
+            }
+            
+            if (!window.clubManagerAjax.ajax_url) {
+                console.error('AJAX URL not configured');
+                throw new Error('AJAX URL not configured');
+            }
+            
+            if (!window.clubManagerAjax.nonce) {
+                console.error('Security nonce not available');
+                throw new Error('Security nonce not available');
+            }
+            
             // Handle FormData differently
             if (data instanceof FormData) {
                 data.append('action', action);
@@ -139,13 +165,33 @@ window.clubManager = function() {
                         body: data
                     });
                     
-                    const result = await response.json();
+                    // Get response as text first for debugging
+                    const responseText = await response.text();
+                    console.log('Raw response:', responseText);
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        console.error('JSON Parse error:', e);
+                        console.error('Response was:', responseText);
+                        
+                        // Check for common WordPress errors
+                        if (responseText.includes('<!DOCTYPE html>') || responseText.includes('<html')) {
+                            throw new Error('Received HTML instead of JSON. Check if you are logged in.');
+                        }
+                        
+                        throw new Error('Invalid JSON response from server');
+                    }
                     
                     if (!result.success) {
+                        console.error('AJAX Error:', result.data);
                         throw new Error(result.data || 'Request failed');
                     }
                     
+                    console.log('AJAX Success:', result.data);
                     return result.data;
+                    
                 } catch (error) {
                     console.error('API Error:', error);
                     throw error;
@@ -174,13 +220,33 @@ window.clubManager = function() {
                         body: formData
                     });
                     
-                    const result = await response.json();
+                    // Get response as text first for debugging
+                    const responseText = await response.text();
+                    console.log('Raw response:', responseText);
+                    
+                    let result;
+                    try {
+                        result = JSON.parse(responseText);
+                    } catch (e) {
+                        console.error('JSON Parse error:', e);
+                        console.error('Response was:', responseText);
+                        
+                        // Check for common WordPress errors
+                        if (responseText.includes('<!DOCTYPE html>') || responseText.includes('<html')) {
+                            throw new Error('Received HTML instead of JSON. Check if you are logged in.');
+                        }
+                        
+                        throw new Error('Invalid JSON response from server');
+                    }
                     
                     if (!result.success) {
+                        console.error('AJAX Error:', result.data);
                         throw new Error(result.data || 'Request failed');
                     }
                     
+                    console.log('AJAX Success:', result.data);
                     return result.data;
+                    
                 } catch (error) {
                     console.error('API Error:', error);
                     throw error;
@@ -190,22 +256,27 @@ window.clubManager = function() {
         
         // Season management
         async changeSeason() {
-            await this.apiPost('cm_save_season_preference', {
-                season: this.currentSeason
-            });
-            
-            // Reload data for current tab
-            await this.handleTabChange(this.activeTab);
-            
-            // Reset selections
-            if (this.teamModule) {
-                this.teamModule.resetSelections();
-            }
-            if (this.teamManagementModule) {
-                this.teamManagementModule.resetSelections();
-            }
-            if (this.clubTeamsModule) {
-                this.clubTeamsModule.resetSelections();
+            try {
+                await this.apiPost('cm_save_season_preference', {
+                    season: this.currentSeason
+                });
+                
+                // Reload data for current tab
+                await this.handleTabChange(this.activeTab);
+                
+                // Reset selections
+                if (this.teamModule) {
+                    this.teamModule.resetSelections();
+                }
+                if (this.teamManagementModule) {
+                    this.teamManagementModule.resetSelections();
+                }
+                if (this.clubTeamsModule) {
+                    this.clubTeamsModule.resetSelections();
+                }
+            } catch (error) {
+                console.error('Error changing season:', error);
+                alert('Error changing season: ' + error.message);
             }
         },
         
@@ -243,3 +314,11 @@ window.ClubManagerModule = class {
         return this.manager.hasPermission(permission);
     }
 };
+
+// Debug helper for development
+if (window.clubManagerAjax && window.clubManagerAjax.debug) {
+    console.log('Club Manager Debug Mode Enabled');
+    window.addEventListener('error', function(e) {
+        console.error('JavaScript Error:', e.message, 'at', e.filename, ':', e.lineno);
+    });
+}
