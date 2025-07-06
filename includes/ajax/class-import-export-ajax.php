@@ -47,10 +47,15 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
             
+            // Store parsed data in a temporary option for later use
+            $temp_key = 'cm_import_temp_' . wp_generate_uuid4();
+            set_transient($temp_key, $data, HOUR_IN_SECONDS);
+            
             wp_send_json_success(array(
                 'headers' => $data['headers'],
                 'rows' => $data['rows'],
-                'total_rows' => count($data['rows'])
+                'total_rows' => count($data['rows']),
+                'temp_key' => $temp_key
             ));
             
         } catch (Exception $e) {
@@ -62,7 +67,6 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
      * Validate import data.
      */
     public function validate_import_data() {
-        $_POST = stripslashes_deep($_POST); // Remove slashes added by WordPress
         $user_id = $this->verify_request();
         
         if (!Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
@@ -71,25 +75,24 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $type = $this->get_post_data('type');
-        $mapping = isset($_POST['mapping']) ? json_decode($_POST['mapping'], true) : array();
-        $options = isset($_POST['options']) ? json_decode($_POST['options'], true) : array();
-        $raw_sample_data = isset($_POST['sample_data']) ? $_POST['sample_data'] : array();
-
-        $sample_data = [];
-        if (!empty($raw_sample_data) && is_array($raw_sample_data)) {
-            foreach ($raw_sample_data as $row_string) {
-                 if (is_string($row_string)) {
-                    $sample_data[] = str_getcsv($row_string);
-                 } else {
-                    $sample_data[] = $row_string;
-                 }
-            }
-        }
+        $mapping = isset($_POST['mapping']) ? json_decode(stripslashes($_POST['mapping']), true) : array();
+        $options = isset($_POST['options']) ? json_decode(stripslashes($_POST['options']), true) : array();
+        $temp_key = $this->get_post_data('temp_key');
         
-        if (empty($mapping) || empty($sample_data)) {
-            wp_send_json_error('Missing mapping or sample data');
+        if (empty($mapping)) {
+            wp_send_json_error('Missing mapping data');
             return;
         }
+        
+        // Get the parsed data from transient
+        $file_data = get_transient($temp_key);
+        if (!$file_data) {
+            wp_send_json_error('Import session expired. Please upload the file again.');
+            return;
+        }
+        
+        // Get sample data for preview
+        $sample_data = array_slice($file_data['rows'], 0, 10);
         
         try {
             $validator = new Club_Manager_Data_Validator();
@@ -101,7 +104,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 $mapped_data = array();
                 foreach ($mapping as $field => $column_index) {
                     if ($column_index !== '' && $column_index !== null && isset($row[$column_index])) {
-                        $mapped_data[$field] = $row[$column_index];
+                        $mapped_data[$field] = trim($row[$column_index]);
                     } else {
                         $mapped_data[$field] = '';
                     }
@@ -119,7 +122,10 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 );
             }
             
-            wp_send_json_success(array('preview' => $preview));
+            wp_send_json_success(array(
+                'preview' => $preview,
+                'total_rows' => count($file_data['rows'])
+            ));
             
         } catch (Exception $e) {
             wp_send_json_error('Validation error: ' . $e->getMessage());
@@ -130,7 +136,6 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
      * Initialize import session.
      */
     public function init_import_session() {
-        $_POST = stripslashes_deep($_POST); // Remove slashes added by WordPress
         $user_id = $this->verify_request();
         
         if (!Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
@@ -139,32 +144,72 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $type = $this->get_post_data('type');
-        $mapping = isset($_POST['mapping']) ? json_decode($_POST['mapping'], true) : array();
-        $options = isset($_POST['options']) ? json_decode($_POST['options'], true) : array();
-        $file_data = isset($_POST['file_data']) ? json_decode($_POST['file_data'], true) : array();
+        $mapping = isset($_POST['mapping']) ? json_decode(stripslashes($_POST['mapping']), true) : array();
+        $options = isset($_POST['options']) ? json_decode(stripslashes($_POST['options']), true) : array();
+        $temp_key = $this->get_post_data('temp_key');
         
-        if (empty($type) || empty($mapping) || empty($file_data)) {
+        if (empty($type) || empty($mapping)) {
             wp_send_json_error('Missing required data');
+            return;
+        }
+        
+        // Get the parsed data from transient
+        $file_data = get_transient($temp_key);
+        if (!$file_data) {
+            wp_send_json_error('Import session expired. Please upload the file again.');
             return;
         }
         
         try {
             $session_id = wp_generate_uuid4();
             
+            // Process and map all rows before storing
+            $mapped_rows = array();
+            foreach ($file_data['rows'] as $row) {
+                $mapped_data = array();
+                foreach ($mapping as $field => $column_index) {
+                    if ($column_index !== '' && $column_index !== null && isset($row[$column_index])) {
+                        $mapped_data[$field] = trim($row[$column_index]);
+                    } else {
+                        $mapped_data[$field] = '';
+                    }
+                }
+                $mapped_rows[] = $mapped_data;
+            }
+            
             $session_data = array(
                 'user_id' => $user_id,
                 'type' => $type,
                 'mapping' => $mapping,
                 'options' => $options,
-                'file_data' => $file_data,
+                'mapped_rows' => $mapped_rows, // Store pre-mapped data
+                'total_rows' => count($mapped_rows),
                 'status' => 'initialized',
-                'progress' => ['total' => count($file_data['rows']), 'processed' => 0, 'successful' => 0, 'failed' => 0, 'current_batch' => 0],
-                'results' => ['created' => 0, 'updated' => 0, 'skipped' => 0, 'failed' => 0, 'errors' => []],
+                'progress' => array(
+                    'total' => count($mapped_rows),
+                    'processed' => 0,
+                    'successful' => 0,
+                    'failed' => 0,
+                    'current_batch' => 0
+                ),
+                'results' => array(
+                    'created' => 0,
+                    'updated' => 0,
+                    'skipped' => 0,
+                    'failed' => 0,
+                    'errors' => []
+                ),
                 'created_at' => current_time('mysql')
             );
             
+            // Store session data
             update_option('cm_import_session_' . $session_id, $session_data, false);
+            
+            // Schedule cleanup
             wp_schedule_single_event(time() + HOUR_IN_SECONDS, 'cm_cleanup_import_session', array($session_id));
+            
+            // Delete the temporary file data
+            delete_transient($temp_key);
             
             wp_send_json_success(array('session_id' => $session_id));
             
@@ -204,13 +249,16 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             
             $batch_size = 25;
             $start_index = $session_data['progress']['current_batch'] * $batch_size;
-            $rows_to_process = array_slice($session_data['file_data']['rows'], $start_index, $batch_size);
             
-            if(empty($rows_to_process)){
+            // Get pre-mapped rows for this batch
+            $rows_to_process = array_slice($session_data['mapped_rows'], $start_index, $batch_size);
+            
+            if (empty($rows_to_process)) {
                 // Mark as complete if no more rows
                 $session_data['status'] = 'completed';
                 update_option('cm_import_session_' . $session_id, $session_data, false);
-                 wp_send_json_success(array(
+                
+                wp_send_json_success(array(
                     'processed' => $session_data['progress']['processed'],
                     'successful' => $session_data['progress']['successful'],
                     'failed' => $session_data['progress']['failed'],
@@ -220,39 +268,41 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 ));
                 return;
             }
-
-            $mapped_rows = array();
-            foreach ($rows_to_process as $row) {
-                $mapped_data = array();
-                foreach ($session_data['mapping'] as $field => $column_index) {
-                    if (isset($row[$column_index])) {
-                        $mapped_data[$field] = trim($row[$column_index]);
-                    }
-                }
-                $mapped_rows[] = $mapped_data;
-            }
             
-            $batch_results = $handler->processBatch($mapped_rows, $session_data['type'], $start_index, $user_id);
+            // Process the batch with pre-mapped data
+            $batch_results = $handler->processBatch($rows_to_process, $session_data['type'], $start_index, $user_id);
             
             // Update session data
             $session_data['progress']['processed'] += count($rows_to_process);
             $session_data['progress']['successful'] += $batch_results['successful'];
             $session_data['progress']['failed'] += $batch_results['failed'];
             $session_data['progress']['current_batch']++;
+            
             $session_data['results']['created'] += $batch_results['created'];
             $session_data['results']['updated'] += $batch_results['updated'];
             $session_data['results']['skipped'] += $batch_results['skipped'];
             $session_data['results']['failed'] += $batch_results['failed'];
+            
             if (!empty($batch_results['errors'])) {
-                $session_data['results']['errors'] = array_merge($session_data['results']['errors'], $batch_results['errors']);
+                $session_data['results']['errors'] = array_merge(
+                    $session_data['results']['errors'],
+                    $batch_results['errors']
+                );
             }
+            
             if (!empty($batch_results['trainers_to_invite'])) {
-                $session_data['trainers_to_invite'] = array_merge($session_data['trainers_to_invite'] ?? [], $batch_results['trainers_to_invite']);
+                $session_data['trainers_to_invite'] = array_merge(
+                    $session_data['trainers_to_invite'] ?? [],
+                    $batch_results['trainers_to_invite']
+                );
             }
             
             $complete = $session_data['progress']['processed'] >= $session_data['progress']['total'];
+            
             if ($complete) {
                 $session_data['status'] = 'completed';
+                
+                // Send trainer invitations if needed
                 if (!empty($session_data['options']['sendInvitations']) && !empty($session_data['trainers_to_invite'])) {
                     $this->sendBulkTrainerInvitations($session_data['trainers_to_invite'], $user_id);
                 }
@@ -280,9 +330,11 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     public function cancel_import_session() {
         $user_id = $this->verify_request();
         $session_id = $this->get_post_data('session_id');
+        
         if ($session_id) {
             delete_option('cm_import_session_' . $session_id);
         }
+        
         wp_send_json_success();
     }
     
@@ -321,7 +373,10 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
             
-            wp_send_json_success(array('data' => $content, 'filename' => $filename));
+            wp_send_json_success(array(
+                'data' => $content,
+                'filename' => $filename
+            ));
             
         } catch (Exception $e) {
             wp_send_json_error('Export error: ' . $e->getMessage());
@@ -338,20 +393,28 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         
         foreach ($trainers as $trainer_data) {
             try {
-                $_POST = [
+                // Save current POST data
+                $original_post = $_POST;
+                
+                // Set up POST data for invitation
+                $_POST = array(
                     'email' => $trainer_data['email'],
                     'teams' => $trainer_data['team_ids'],
                     'role' => $trainer_data['role'] ?? 'trainer',
                     'message' => 'You have been invited to join as a trainer through bulk import.',
                     'nonce' => wp_create_nonce('club_manager_nonce')
-                ];
+                );
                 
+                // Capture output to prevent it from being sent
                 ob_start();
                 $trainer_ajax->invite_trainer();
-                ob_end_clean();
+                $response = ob_get_clean();
+                
+                // Restore original POST data
+                $_POST = $original_post;
                 
             } catch (Exception $e) {
-                Club_Manager_Logger::log('Exception during trainer invitation: ' . $e->getMessage(), 'error', ['email' => $trainer_data['email']]);
+                Club_Manager_Logger::log('Exception during trainer invitation: ' . $e->getMessage(), 'error', array('email' => $trainer_data['email']));
             }
         }
     }

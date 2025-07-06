@@ -238,7 +238,77 @@ class Club_Manager_Import_Handler {
                     $wpdb->insert($teams_table, [
                         'name' => $team_name,
                         'coach' => 'N/A',
-                        'season' => $season,
+                        'season' /**
+ * Process a batch of import rows.
+ * 
+ * @param array $rows Pre-mapped rows with field names as keys
+ * @param string $type Import type
+ * @param int $start_index Starting row index for error reporting
+ * @param int $user_id User performing the import
+ * @return array Results array
+ */
+public function processBatch($rows, $type, $start_index = 0, $user_id = 0) {
+    $results = array(
+        'successful' => 0,
+        'failed' => 0,
+        'created' => 0,
+        'updated' => 0,
+        'skipped' => 0,
+        'errors' => array(),
+        'trainers_to_invite' => array()
+    );
+
+    $base_type = str_replace(array('-with-players', '-with-assignments'), '', $type);
+    
+    foreach ($rows as $index => $row) {
+        $row_number = $start_index + $index + 1;
+        
+        try {
+            // Row is already mapped, so we can use it directly
+            switch ($base_type) {
+                case 'teams':
+                    $result = $this->processTeam($row, $user_id);
+                    break;
+                    
+                case 'players':
+                    $result = $this->processPlayer($row, $user_id);
+                    break;
+                    
+                case 'trainers':
+                    $result = $this->processTrainer($row, $user_id);
+                    if ($result['success'] && !empty($result['trainer_to_invite'])) {
+                        $results['trainers_to_invite'][] = $result['trainer_to_invite'];
+                    }
+                    break;
+                    
+                default:
+                    throw new Exception('Unknown import type: ' . $type);
+            }
+            
+            if ($result['success']) {
+                $results['successful']++;
+                if ($result['action'] === 'created') $results['created']++;
+                elseif ($result['action'] === 'updated') $results['updated']++;
+                elseif ($result['action'] === 'skipped') $results['skipped']++;
+            } else {
+                $results['failed']++;
+                $results['errors'][] = array(
+                    'row' => $row_number,
+                    'message' => $result['error'] ?? 'Unknown error'
+                );
+            }
+            
+        } catch (Exception $e) {
+            $results['failed']++;
+            $results['errors'][] = array(
+                'row' => $row_number,
+                'message' => $e->getMessage()
+            );
+        }
+    }
+    
+    return $results;
+}=> $season,
                         'created_by' => $user_id,
                         'created_at' => current_time('mysql')
                     ]);

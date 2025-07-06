@@ -230,6 +230,7 @@ class ImportExportModule {
             console.log('First row:', response.rows[0]);
             
             this.app.importFileData = response;
+            this.app.importTempKey = response.temp_key; // Store temp key
             
             // Auto-map columns
             this.autoMapColumns();
@@ -239,7 +240,7 @@ class ImportExportModule {
             
         } catch (error) {
             console.error('Error parsing file:', error);
-            alert('Error parsing file: ' + error.message);
+            alert('Error parsing file: ' . error.message);
             // Reset file input
             this.app.importFile = null;
             const fileInput = document.getElementById('import-file-input');
@@ -306,13 +307,12 @@ class ImportExportModule {
             // Debug logging
             console.log('Validating with mapping:', this.app.importMapping);
             console.log('Import type:', this.app.importType);
-            console.log('Sample data:', this.app.importFileData.rows.slice(0, 3));
             
             const data = {
                 type: this.app.importType,
                 mapping: this.app.importMapping,
                 options: this.app.importOptions,
-                sample_data: this.app.importFileData.rows.slice(0, 10) // Send first 10 rows for validation
+                temp_key: this.app.importTempKey // Include temp key
             };
             
             const response = await this.app.apiPost('cm_validate_import_data', data);
@@ -334,7 +334,7 @@ class ImportExportModule {
             alert('Validation error: ' + error.message);
         }
     }
-    
+
     // Start import process
     async startImport() {
         if (this.app.importProgress.isProcessing) return;
@@ -349,7 +349,7 @@ class ImportExportModule {
                 type: this.app.importType,
                 mapping: this.app.importMapping,
                 options: this.app.importOptions,
-                file_data: this.app.importFileData
+                temp_key: this.app.importTempKey // Include temp key
             };
             
             const initResponse = await this.app.apiPost('cm_init_import_session', sessionData);
