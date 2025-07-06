@@ -381,45 +381,159 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     private function sendBulkTrainerInvitations($trainers, $inviter_id) {
         if (empty($trainers)) return;
         
-        // Save the original $_POST data
-        $original_post = $_POST;
+        // Get managed teams to find WC Team ID
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($inviter_id);
+        if (empty($managed_teams)) {
+            Club_Manager_Logger::log('No managed teams found for bulk trainer invitations', 'error', array('inviter_id' => $inviter_id));
+            return;
+        }
+        
+        $wc_team_id = $managed_teams[0]['team_id'];
+        $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
+        
+        if (!$wc_team) {
+            Club_Manager_Logger::log('No WC Team found for bulk trainer invitations', 'error', array('wc_team_id' => $wc_team_id));
+            return;
+        }
         
         foreach ($trainers as $trainer_data) {
             try {
-                // Create a new AJAX request context for each trainer
-                $_POST = array(
+                // Create invitation directly using WC Teams API
+                $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
+                
+                if (!$invitations_instance || !method_exists($invitations_instance, 'create_invitation')) {
+                    Club_Manager_Logger::log('Could not access invitations system', 'error');
+                    continue;
+                }
+                
+                // Create invitation
+                $invitation = $invitations_instance->create_invitation(array(
+                    'team_id' => $wc_team->get_id(),
                     'email' => $trainer_data['email'],
-                    'teams' => $trainer_data['team_ids'],
-                    'role' => $trainer_data['role'] ?? 'trainer',
-                    'message' => 'You have been invited to join as a trainer through bulk import.',
-                    'nonce' => wp_create_nonce('club_manager_nonce'),
-                    'action' => 'cm_invite_trainer'
+                    'sender_id' => $inviter_id,
+                    'role' => 'member' // WC Teams only supports 'member' role
+                ));
+                
+                if (!$invitation || is_wp_error($invitation)) {
+                    $error_message = is_wp_error($invitation) ? $invitation->get_error_message() : 'Could not create invitation';
+                    Club_Manager_Logger::log('Failed to create invitation', 'error', array(
+                        'email' => $trainer_data['email'],
+                        'error' => $error_message
+                    ));
+                    continue;
+                }
+                
+                // Store Club Manager specific data
+                update_post_meta($invitation->get_id(), '_cm_team_ids', $trainer_data['team_ids']);
+                update_post_meta($invitation->get_id(), '_cm_role', $trainer_data['role'] ?? 'trainer');
+                update_post_meta($invitation->get_id(), '_cm_message', 'You have been invited to join as a trainer through bulk import.');
+                
+                // Get team names for email
+                $team_names = [];
+                global $wpdb;
+                $teams_table = Club_Manager_Database::get_table_name('teams');
+                foreach ($trainer_data['team_ids'] as $team_id) {
+                    $team_name = $wpdb->get_var($wpdb->prepare(
+                        "SELECT name FROM $teams_table WHERE id = %d",
+                        $team_id
+                    ));
+                    if ($team_name) {
+                        $team_names[] = $team_name;
+                    }
+                }
+                
+                // Send custom email
+                $this->sendTrainerInvitationEmail(
+                    $trainer_data['email'],
+                    $invitation->get_token(),
+                    $inviter_id,
+                    $team_names,
+                    'You have been invited to join as a trainer through bulk import.'
                 );
                 
-                // Call the trainer AJAX handler directly
-                $trainer_ajax = new Club_Manager_Trainer_Ajax();
-                
-                // Capture any output
-                ob_start();
-                $trainer_ajax->invite_trainer();
-                $response = ob_get_clean();
-                
-                // Log the response for debugging
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    Club_Manager_Logger::log('Trainer invitation sent', 'info', array(
-                        'email' => $trainer_data['email'],
-                        'teams' => $trainer_data['team_ids'],
-                        'response' => $response
-                    ));
-                }
+                Club_Manager_Logger::log('Trainer invitation sent successfully', 'info', array(
+                    'email' => $trainer_data['email'],
+                    'teams' => $trainer_data['team_ids'],
+                    'invitation_id' => $invitation->get_id()
+                ));
                 
             } catch (Exception $e) {
                 Club_Manager_Logger::log('Exception during trainer invitation: ' . $e->getMessage(), 'error', array('email' => $trainer_data['email']));
             }
         }
+    }
+    
+    /**
+     * Send custom trainer invitation email
+     */
+    private function sendTrainerInvitationEmail($email, $token, $inviter_id, $team_names, $message) {
+        $inviter = get_user_by('id', $inviter_id);
         
-        // Restore the original $_POST data
-        $_POST = $original_post;
+        // Get accept URL
+        global $wpdb;
+        $page_id = $wpdb->get_var(
+            "SELECT ID FROM {$wpdb->posts} 
+             WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
+             AND post_status = 'publish' 
+             AND post_type = 'page' 
+             LIMIT 1"
+        );
+        
+        if ($page_id && $token) {
+            $accept_url = add_query_arg([
+                'wc_invite' => $token
+            ], get_permalink($page_id));
+        } else {
+            // Fallback
+            $accept_url = home_url('/invitation/?wc_invite=' . $token);
+        }
+        
+        // Build email
+        $subject = sprintf('[%s] %s heeft je uitgenodigd als trainer', 
+            get_bloginfo('name'), 
+            $inviter ? $inviter->display_name : 'Een beheerder'
+        );
+        
+        $body = "Hallo,\n\n";
+        
+        if ($inviter) {
+            $body .= sprintf("%s heeft je uitgenodigd om trainer te worden bij %s.\n\n", 
+                $inviter->display_name, 
+                get_bloginfo('name')
+            );
+        }
+        
+        if (!empty($team_names)) {
+            $body .= "Je krijgt toegang tot de volgende teams:\n";
+            foreach ($team_names as $tn) {
+                $body .= "- " . $tn . "\n";
+            }
+            $body .= "\n";
+        }
+        
+        if (!empty($message)) {
+            $body .= "Persoonlijk bericht:\n" . $message . "\n\n";
+        }
+        
+        $body .= "Klik op de onderstaande link om de uitnodiging te accepteren:\n";
+        $body .= $accept_url . "\n\n";
+        $body .= "Deze uitnodiging verloopt over 7 dagen.\n\n";
+        $body .= "Met vriendelijke groet,\n" . get_bloginfo('name');
+        
+        // Add headers for better deliverability
+        $headers = array(
+            'Content-Type: text/plain; charset=UTF-8',
+            'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>'
+        );
+        
+        // Send email
+        $sent = wp_mail($email, $subject, $body, $headers);
+        
+        if (!$sent) {
+            error_log('Club Manager: Failed to send invitation email to ' . $email);
+        }
+        
+        return $sent;
     }
 }
 
