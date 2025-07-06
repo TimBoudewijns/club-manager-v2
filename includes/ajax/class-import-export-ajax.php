@@ -37,6 +37,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $file = $_FILES['file'];
+        $type = $this->get_post_data('type');
         
         try {
             $parser = new Club_Manager_CSV_Parser();
@@ -47,10 +48,20 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
             
-            wp_send_json_success(array(
+            // Store file data temporarily
+            $temp_key = 'cm_import_temp_' . wp_generate_uuid4();
+            set_transient($temp_key, array(
                 'headers' => $data['headers'],
                 'rows' => $data['rows'],
-                'total_rows' => count($data['rows'])
+                'type' => $type,
+                'user_id' => $user_id
+            ), HOUR_IN_SECONDS);
+            
+            wp_send_json_success(array(
+                'headers' => $data['headers'],
+                'rows' => array_slice($data['rows'], 0, 10), // Only send first 10 rows for preview
+                'total_rows' => count($data['rows']),
+                'temp_key' => $temp_key
             ));
             
         } catch (Exception $e) {
@@ -62,7 +73,6 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
      * Validate import data.
      */
     public function validate_import_data() {
-        $_POST = stripslashes_deep($_POST); // Remove slashes added by WordPress
         $user_id = $this->verify_request();
         
         if (!Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
@@ -71,23 +81,19 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $type = $this->get_post_data('type');
-        $mapping = isset($_POST['mapping']) ? json_decode($_POST['mapping'], true) : array();
-        $options = isset($_POST['options']) ? json_decode($_POST['options'], true) : array();
-        $raw_sample_data = isset($_POST['sample_data']) ? $_POST['sample_data'] : array();
-
-        $sample_data = [];
-        if (!empty($raw_sample_data) && is_array($raw_sample_data)) {
-            foreach ($raw_sample_data as $row_string) {
-                if (is_string($row_string)) {
-                    $sample_data[] = str_getcsv($row_string);
-                } else if (is_array($row_string)) {
-                    $sample_data[] = $row_string;
-                }
-            }
+        $mapping = isset($_POST['mapping']) ? json_decode(stripslashes($_POST['mapping']), true) : array();
+        $options = isset($_POST['options']) ? json_decode(stripslashes($_POST['options']), true) : array();
+        $temp_key = $this->get_post_data('temp_key');
+        
+        if (empty($mapping) || empty($temp_key)) {
+            wp_send_json_error('Missing mapping or temporary data key');
+            return;
         }
         
-        if (empty($mapping) || empty($sample_data)) {
-            wp_send_json_error('Missing mapping or sample data');
+        // Get stored file data
+        $temp_data = get_transient($temp_key);
+        if (!$temp_data) {
+            wp_send_json_error('Temporary data expired. Please re-upload the file.');
             return;
         }
         
@@ -96,8 +102,9 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             $validator->setOptions($options);
             
             $preview = array();
+            $rows_to_validate = array_slice($temp_data['rows'], 0, 10); // Validate first 10 rows
             
-            foreach ($sample_data as $index => $row) {
+            foreach ($rows_to_validate as $index => $row) {
                 $mapped_data = array();
                 foreach ($mapping as $field => $column_index) {
                     if ($column_index !== '' && $column_index !== null && isset($row[$column_index])) {
@@ -119,7 +126,15 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 );
             }
             
-            wp_send_json_success(array('preview' => $preview));
+            // Update temp data with mapping
+            $temp_data['mapping'] = $mapping;
+            $temp_data['options'] = $options;
+            set_transient($temp_key, $temp_data, HOUR_IN_SECONDS);
+            
+            wp_send_json_success(array(
+                'preview' => $preview,
+                'total_rows' => count($temp_data['rows'])
+            ));
             
         } catch (Exception $e) {
             wp_send_json_error('Validation error: ' . $e->getMessage());
@@ -130,7 +145,6 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
      * Initialize import session.
      */
     public function init_import_session() {
-        $_POST = stripslashes_deep($_POST); // Remove slashes added by WordPress
         $user_id = $this->verify_request();
         
         if (!Club_Manager_User_Permissions_Helper::can_import_export($user_id)) {
@@ -139,12 +153,19 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $type = $this->get_post_data('type');
-        $mapping = isset($_POST['mapping']) ? json_decode($_POST['mapping'], true) : array();
-        $options = isset($_POST['options']) ? json_decode($_POST['options'], true) : array();
-        $file_data = isset($_POST['file_data']) ? json_decode($_POST['file_data'], true) : array();
+        $mapping = isset($_POST['mapping']) ? json_decode(stripslashes($_POST['mapping']), true) : array();
+        $options = isset($_POST['options']) ? json_decode(stripslashes($_POST['options']), true) : array();
+        $temp_key = $this->get_post_data('temp_key');
         
-        if (empty($type) || empty($mapping) || empty($file_data)) {
+        if (empty($type) || empty($mapping) || empty($temp_key)) {
             wp_send_json_error('Missing required data');
+            return;
+        }
+        
+        // Get stored file data
+        $temp_data = get_transient($temp_key);
+        if (!$temp_data) {
+            wp_send_json_error('Temporary data expired. Please re-upload the file.');
             return;
         }
         
@@ -156,10 +177,10 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 'type' => $type,
                 'mapping' => $mapping,
                 'options' => $options,
-                'file_data' => $file_data,
+                'rows' => $temp_data['rows'], // Store all rows
                 'status' => 'initialized',
                 'progress' => array(
-                    'total' => count($file_data['rows']), 
+                    'total' => count($temp_data['rows']), 
                     'processed' => 0, 
                     'successful' => 0, 
                     'failed' => 0, 
@@ -176,6 +197,11 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             );
             
             update_option('cm_import_session_' . $session_id, $session_data, false);
+            
+            // Clean up temp data
+            delete_transient($temp_key);
+            
+            // Schedule cleanup
             wp_schedule_single_event(time() + HOUR_IN_SECONDS, 'cm_cleanup_import_session', array($session_id));
             
             wp_send_json_success(array('session_id' => $session_id));
@@ -216,9 +242,9 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             
             $batch_size = 25;
             $start_index = $session_data['progress']['current_batch'] * $batch_size;
-            $rows_to_process = array_slice($session_data['file_data']['rows'], $start_index, $batch_size);
+            $rows_to_process = array_slice($session_data['rows'], $start_index, $batch_size);
             
-            if(empty($rows_to_process)){
+            if (empty($rows_to_process)) {
                 // Mark as complete if no more rows
                 $session_data['status'] = 'completed';
                 update_option('cm_import_session_' . $session_id, $session_data, false);
@@ -233,7 +259,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
 
-            // Map the raw rows to field names
+            // Map the raw rows to field names using the stored mapping
             $mapped_rows = array();
             foreach ($rows_to_process as $row) {
                 $mapped_data = array();
@@ -247,6 +273,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 $mapped_rows[] = $mapped_data;
             }
             
+            // Process the batch
             $batch_results = $handler->processBatch($mapped_rows, $session_data['type'], $start_index, $user_id);
             
             // Update session data
@@ -319,7 +346,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         
         $type = $this->get_post_data('type');
         $format = $this->get_post_data('format');
-        $filters = isset($_POST['filters']) ? $_POST['filters'] : array();
+        $filters = isset($_POST['filters']) ? json_decode(stripslashes($_POST['filters']), true) : array();
         
         try {
             $handler = new Club_Manager_Export_Handler();

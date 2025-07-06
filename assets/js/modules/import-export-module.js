@@ -16,6 +16,7 @@ class ImportExportModule {
             importType: '', // teams, players, teams-with-players, trainers, trainers-with-assignments
             importFile: null,
             importFileData: null,
+            importTempKey: null, // Store the temporary key
             importMapping: {},
             importPreviewData: [],
             importOptions: {
@@ -54,7 +55,7 @@ class ImportExportModule {
             // Field mappings with common header variations
             fieldMappings: {
                 // Teams
-                'name': ['name', 'team_name', 'team name', 'teamname'],
+                'name': ['name', 'team_name', 'team name', 'teamname', 'naam'],
                 'coach': ['coach', 'coach_name', 'coach name', 'trainer', 'head_coach'],
                 'season': ['season', 'year', 'seizoen'],
                 
@@ -227,7 +228,8 @@ class ImportExportModule {
             // Debug logging
             console.log('Parsed file data:', response);
             console.log('Headers:', response.headers);
-            console.log('First row:', response.rows[0]);
+            console.log('Total rows:', response.total_rows);
+            console.log('Temp key:', response.temp_key);
             
             this.app.importFileData = response;
             this.app.importTempKey = response.temp_key; // Store temp key
@@ -240,7 +242,7 @@ class ImportExportModule {
             
         } catch (error) {
             console.error('Error parsing file:', error);
-            alert('Error parsing file: ' . error.message);
+            alert('Error parsing file: ' + error.message);
             // Reset file input
             this.app.importFile = null;
             const fileInput = document.getElementById('import-file-input');
@@ -307,6 +309,7 @@ class ImportExportModule {
             // Debug logging
             console.log('Validating with mapping:', this.app.importMapping);
             console.log('Import type:', this.app.importType);
+            console.log('Temp key:', this.app.importTempKey);
             
             const data = {
                 type: this.app.importType,
@@ -324,7 +327,7 @@ class ImportExportModule {
             console.log('Validation response:', response);
             
             this.app.importPreviewData = response.preview || [];
-            this.app.importProgress.total = response.total_rows || this.app.importFileData.rows.length;
+            this.app.importProgress.total = response.total_rows || this.app.importFileData.total_rows;
             
             // Move to preview step
             this.app.importWizardStep = 4;
@@ -352,6 +355,8 @@ class ImportExportModule {
                 temp_key: this.app.importTempKey // Include temp key
             };
             
+            console.log('Starting import with session data:', sessionData);
+            
             const initResponse = await this.app.apiPost('cm_init_import_session', sessionData);
             
             if (!initResponse || !initResponse.session_id) {
@@ -359,6 +364,7 @@ class ImportExportModule {
             }
             
             this.app.importProgress.sessionId = initResponse.session_id;
+            console.log('Import session initialized:', this.app.importProgress.sessionId);
             
             // Process import in batches
             await this.processImportBatch();
@@ -385,6 +391,8 @@ class ImportExportModule {
             if (!response) {
                 throw new Error('No response from server');
             }
+            
+            console.log('Batch response:', response);
             
             // Update progress
             this.app.importProgress.processed = response.processed || 0;
@@ -452,6 +460,7 @@ class ImportExportModule {
         this.app.importType = '';
         this.app.importFile = null;
         this.app.importFileData = null;
+        this.app.importTempKey = null;
         this.app.importMapping = {};
         this.app.importPreviewData = [];
         this.app.importProgress = {
@@ -578,7 +587,7 @@ class ImportExportModule {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `club_manager_export_${this.app.exportType}_${Date.now()}.${this.app.exportFormat}`;
+                a.download = response.filename || `club_manager_export_${this.app.exportType}_${Date.now()}.${this.app.exportFormat}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
