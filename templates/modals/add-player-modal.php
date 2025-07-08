@@ -23,7 +23,7 @@
                 <h3 class="font-bold text-xl md:text-2xl">Add New Player</h3>
                 <p class="text-orange-100 mt-1 text-sm md:text-base">Create a new player profile for <span x-text="selectedTeam?.name"></span></p>
             </div>
-            <form @submit.prevent="createPlayer" class="p-4 md:p-6 max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">
+            <form @submit.prevent="createPlayer($event)" class="p-4 md:p-6 max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     <div class="form-control w-full">
                         <label class="label">

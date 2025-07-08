@@ -40,7 +40,7 @@
             
             <!-- Scrollable Content -->
             <div class="max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">
-                <form @submit.prevent="createTeam" class="p-6">
+                <form @submit.prevent="createTeam($event)" class="p-6">
                     <div class="space-y-6">
                         <div class="form-control w-full">
                             <label class="label">

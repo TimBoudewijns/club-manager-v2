@@ -108,34 +108,41 @@ class TrainerModule {
         return true;
     }
     
-    async inviteTrainer() {
+    async inviteTrainer(event) {
         if (!this.app.newTrainerInvite.selectedTeams || this.app.newTrainerInvite.selectedTeams.length === 0) {
             alert('Please select at least one team for the trainer');
             return;
         }
         
-        try {
-            await this.app.apiPost('cm_invite_trainer', {
-                email: this.app.newTrainerInvite.email,
-                teams: this.app.newTrainerInvite.selectedTeams,
-                role: this.app.newTrainerInvite.role,
-                message: this.app.newTrainerInvite.message
-            });
-            
-            this.app.showInviteTrainerModal = false;
-            this.app.newTrainerInvite = {
-                email: '',
-                selectedTeams: [],
-                role: 'trainer',
-                message: ''
-            };
-            
-            await this.loadTrainerManagementData();
-            alert('Invitation sent successfully!');
-            
-        } catch (error) {
-            alert('Error sending invitation: ' + (error.message || 'Unknown error'));
-        }
+        const button = event?.target?.closest('button');
+        this.app.setButtonLoading(button, true, 'Send Invitation');
+        
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_invite_trainer', {
+                    email: this.app.newTrainerInvite.email,
+                    teams: this.app.newTrainerInvite.selectedTeams,
+                    role: this.app.newTrainerInvite.role,
+                    message: this.app.newTrainerInvite.message
+                });
+                
+                this.app.showInviteTrainerModal = false;
+                this.app.newTrainerInvite = {
+                    email: '',
+                    selectedTeams: [],
+                    role: 'trainer',
+                    message: ''
+                };
+                
+                await this.loadTrainerManagementData();
+                alert('Invitation sent successfully!');
+                
+            } catch (error) {
+                alert('Error sending invitation: ' + (error.message || 'Unknown error'));
+            } finally {
+                this.app.setButtonLoading(button, false, 'Send Invitation');
+            }
+        }, `Sending invitation to ${this.app.newTrainerInvite.email}...`);
     }
     
     async cancelInvitation(invitationId) {
@@ -143,16 +150,18 @@ class TrainerModule {
             return;
         }
         
-        try {
-            await this.app.apiPost('cm_cancel_invitation', {
-                invitation_id: invitationId
-            });
-            
-            await this.loadTrainerManagementData();
-            
-        } catch (error) {
-            alert('Error canceling invitation');
-        }
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_cancel_invitation', {
+                    invitation_id: invitationId
+                });
+                
+                await this.loadTrainerManagementData();
+                
+            } catch (error) {
+                alert('Error canceling invitation');
+            }
+        }, 'Canceling invitation...');
     }
     
     async editTrainer(trainer) {
@@ -164,32 +173,39 @@ class TrainerModule {
         this.app.showEditTrainerModal = true;
     }
     
-    async updateTrainer() {
+    async updateTrainer(event) {
         if (!this.app.editTrainerData.selectedTeams || this.app.editTrainerData.selectedTeams.length === 0) {
             alert('Please select at least one team for the trainer');
             return;
         }
         
-        try {
-            await this.app.apiPost('cm_update_trainer', {
-                trainer_id: this.app.editingTrainer.id,
-                teams: this.app.editTrainerData.selectedTeams,
-                role: this.app.editTrainerData.role
-            });
-            
-            this.app.showEditTrainerModal = false;
-            this.app.editingTrainer = null;
-            this.app.editTrainerData = {
-                selectedTeams: [],
-                role: 'trainer'
-            };
-            
-            await this.loadTrainerManagementData();
-            alert('Trainer updated successfully!');
-            
-        } catch (error) {
-            alert('Error updating trainer: ' + (error.message || 'Unknown error'));
-        }
+        const button = event?.target?.closest('button');
+        this.app.setButtonLoading(button, true, 'Update Trainer');
+        
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_update_trainer', {
+                    trainer_id: this.app.editingTrainer.id,
+                    teams: this.app.editTrainerData.selectedTeams,
+                    role: this.app.editTrainerData.role
+                });
+                
+                this.app.showEditTrainerModal = false;
+                this.app.editingTrainer = null;
+                this.app.editTrainerData = {
+                    selectedTeams: [],
+                    role: 'trainer'
+                };
+                
+                await this.loadTrainerManagementData();
+                alert('Trainer updated successfully!');
+                
+            } catch (error) {
+                alert('Error updating trainer: ' + (error.message || 'Unknown error'));
+            } finally {
+                this.app.setButtonLoading(button, false, 'Update Trainer');
+            }
+        }, 'Updating trainer...');
     }
     
     async removeTrainer(trainer) {
@@ -197,15 +213,17 @@ class TrainerModule {
             return;
         }
         
-        try {
-            await this.app.apiPost('cm_remove_trainer', {
-                trainer_id: trainer.id
-            });
-            
-            await this.loadTrainerManagementData();
-            
-        } catch (error) {
-            alert('Error removing trainer');
-        }
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_remove_trainer', {
+                    trainer_id: trainer.id
+                });
+                
+                await this.loadTrainerManagementData();
+                
+            } catch (error) {
+                alert('Error removing trainer');
+            }
+        }, `Removing ${trainer.display_name}...`);
     }
 }

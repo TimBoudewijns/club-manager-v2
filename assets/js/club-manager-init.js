@@ -8,6 +8,10 @@ window.clubManager = function() {
         currentSeason: window.clubManagerAjax?.preferred_season || '2024-2025',
         userPermissions: window.clubManagerAjax?.permissions || {},
         
+        // Global loading state
+        globalLoading: false,
+        loadingMessage: '',
+        
         // Module instances
         teamModule: null,
         playerModule: null,
@@ -100,32 +104,65 @@ window.clubManager = function() {
         async handleTabChange(tab) {
             console.log('Tab changed to:', tab);
             
-            switch (tab) {
-                case 'player-management':
-                    // Load both my teams and club teams
-                    if (this.teamModule) {
-                        await this.teamModule.loadMyTeams();
-                    }
-                    if (this.clubTeamsModule && this.userPermissions.can_view_club_teams) {
-                        await this.clubTeamsModule.loadClubTeams();
-                    }
-                    break;
-                    
-                case 'team-management':
-                    if (this.teamManagementModule) {
-                        await this.teamManagementModule.loadManagedTeams();
-                    }
-                    break;
-                    
-                case 'trainer-management':
-                    if (this.trainerModule) {
-                        await this.trainerModule.loadTrainerManagementData();
-                    }
-                    break;
-                    
-                case 'import-export':
-                    // No initial data load needed for import/export
-                    break;
+            await this.withLoading(async () => {
+                switch (tab) {
+                    case 'player-management':
+                        // Load both my teams and club teams
+                        if (this.teamModule) {
+                            await this.teamModule.loadMyTeams();
+                        }
+                        if (this.clubTeamsModule && this.userPermissions.can_view_club_teams) {
+                            await this.clubTeamsModule.loadClubTeams();
+                        }
+                        break;
+                        
+                    case 'team-management':
+                        if (this.teamManagementModule) {
+                            await this.teamManagementModule.loadManagedTeams();
+                        }
+                        break;
+                        
+                    case 'trainer-management':
+                        if (this.trainerModule) {
+                            await this.trainerModule.loadTrainerManagementData();
+                        }
+                        break;
+                        
+                    case 'import-export':
+                        // No initial data load needed for import/export
+                        break;
+                }
+            }, 'Loading data...');
+        },
+        
+        // Loading helper with message
+        async withLoading(asyncFn, message = 'Loading...') {
+            this.globalLoading = true;
+            this.loadingMessage = message;
+            try {
+                return await asyncFn();
+            } finally {
+                this.globalLoading = false;
+                this.loadingMessage = '';
+            }
+        },
+        
+        // Button loading state helper
+        setButtonLoading(button, isLoading, originalText) {
+            if (!button) return;
+            
+            if (isLoading) {
+                button.disabled = true;
+                button.dataset.originalText = originalText || button.innerHTML;
+                button.innerHTML = `
+                    <svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                `;
+            } else {
+                button.disabled = false;
+                button.innerHTML = button.dataset.originalText || originalText;
             }
         },
         
@@ -256,28 +293,30 @@ window.clubManager = function() {
         
         // Season management
         async changeSeason() {
-            try {
-                await this.apiPost('cm_save_season_preference', {
-                    season: this.currentSeason
-                });
-                
-                // Reload data for current tab
-                await this.handleTabChange(this.activeTab);
-                
-                // Reset selections
-                if (this.teamModule) {
-                    this.teamModule.resetSelections();
+            await this.withLoading(async () => {
+                try {
+                    await this.apiPost('cm_save_season_preference', {
+                        season: this.currentSeason
+                    });
+                    
+                    // Reload data for current tab
+                    await this.handleTabChange(this.activeTab);
+                    
+                    // Reset selections
+                    if (this.teamModule) {
+                        this.teamModule.resetSelections();
+                    }
+                    if (this.teamManagementModule) {
+                        this.teamManagementModule.resetSelections();
+                    }
+                    if (this.clubTeamsModule) {
+                        this.clubTeamsModule.resetSelections();
+                    }
+                } catch (error) {
+                    console.error('Error changing season:', error);
+                    alert('Error changing season: ' + error.message);
                 }
-                if (this.teamManagementModule) {
-                    this.teamManagementModule.resetSelections();
-                }
-                if (this.clubTeamsModule) {
-                    this.clubTeamsModule.resetSelections();
-                }
-            } catch (error) {
-                console.error('Error changing season:', error);
-                alert('Error changing season: ' + error.message);
-            }
+            }, 'Changing season...');
         },
         
         // Helper method to check if user has permission for a feature
@@ -312,6 +351,16 @@ window.ClubManagerModule = class {
     // Check permission
     hasPermission(permission) {
         return this.manager.hasPermission(permission);
+    }
+    
+    // Use loading wrapper
+    async withLoading(asyncFn, message) {
+        return this.manager.withLoading(asyncFn, message);
+    }
+    
+    // Set button loading
+    setButtonLoading(button, isLoading, originalText) {
+        return this.manager.setButtonLoading(button, isLoading, originalText);
     }
 };
 

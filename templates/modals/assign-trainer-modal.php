@@ -37,7 +37,7 @@
             
             <!-- Scrollable Content -->
             <div class="max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">
-                <form @submit.prevent="trainerAssignment.teamId = selectedManagedTeam?.id; trainerAssignment.trainerId && assignTrainerToTeam()" class="p-6">
+                <form @submit.prevent="trainerAssignment.teamId = selectedManagedTeam?.id; trainerAssignment.trainerId && assignTrainerToTeam($event)" class="p-6">
                     <div class="form-control w-full">
                         <label class="label">
                             <span class="label-text font-semibold text-gray-700">Select Trainer</span>

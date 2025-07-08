@@ -50,7 +50,10 @@ class PlayerModule {
         this.app.handleRemoveClick = this.handleRemoveClick.bind(this);
     }
     
-    async createPlayer() {
+    async createPlayer(event) {
+        const button = event?.target?.closest('button');
+        this.app.setButtonLoading(button, true, 'Add Player');
+        
         try {
             const playerData = Object.assign({}, this.app.newPlayer, {
                 team_id: this.app.selectedTeam.id,
@@ -74,6 +77,8 @@ class PlayerModule {
             
         } catch (error) {
             alert('Error creating player');
+        } finally {
+            this.app.setButtonLoading(button, false, 'Add Player');
         }
     }
     
@@ -100,7 +105,10 @@ class PlayerModule {
         this.app.playerSearch = '';
     }
     
-    async addExistingPlayerToTeam() {
+    async addExistingPlayerToTeam(event) {
+        const button = event?.target?.closest('button');
+        this.app.setButtonLoading(button, true, 'Add to Team');
+        
         try {
             const data = Object.assign({}, this.app.existingPlayerTeamData, {
                 team_id: this.app.selectedTeam.id,
@@ -115,6 +123,8 @@ class PlayerModule {
             
         } catch (error) {
             alert('Error adding player to team');
+        } finally {
+            this.app.setButtonLoading(button, false, 'Add to Team');
         }
     }
     
@@ -135,24 +145,26 @@ class PlayerModule {
             return;
         }
         
-        try {
-            await this.app.apiPost('cm_remove_player_from_team', {
-                team_id: this.app.selectedTeam.id,
-                player_id: player.id,
-                season: this.app.currentSeason
-            });
-            
-            // Hide player card if this player was being viewed
-            if (this.app.viewingPlayer && this.app.viewingPlayer.id === player.id) {
-                this.app.viewingPlayer = null;
-                this.app.selectedPlayerCard = null;
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_remove_player_from_team', {
+                    team_id: this.app.selectedTeam.id,
+                    player_id: player.id,
+                    season: this.app.currentSeason
+                });
+                
+                // Hide player card if this player was being viewed
+                if (this.app.viewingPlayer && this.app.viewingPlayer.id === player.id) {
+                    this.app.viewingPlayer = null;
+                    this.app.selectedPlayerCard = null;
+                }
+                
+                await this.app.teamModule.loadTeamPlayers();
+                
+            } catch (error) {
+                alert('Error removing player from team');
             }
-            
-            await this.app.teamModule.loadTeamPlayers();
-            
-        } catch (error) {
-            alert('Error removing player from team');
-        }
+        }, 'Removing player...');
     }
     
     async viewPlayerHistory(playerId, isClubView = false) {

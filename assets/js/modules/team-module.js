@@ -54,11 +54,14 @@ class TeamModule {
         return this.app.userPermissions.can_create_teams === true;
     }
     
-    async createTeam() {
+    async createTeam(event) {
         if (!this.canCreateTeam()) {
             alert('You do not have permission to create teams');
             return;
         }
+        
+        const button = event?.target?.closest('button');
+        this.app.setButtonLoading(button, true, 'Create Team');
         
         try {
             await this.app.apiPost('cm_create_team', {
@@ -73,29 +76,33 @@ class TeamModule {
             
         } catch (error) {
             alert('Error creating team: ' + (error.message || 'Unknown error'));
+        } finally {
+            this.app.setButtonLoading(button, false, 'Create Team');
         }
     }
     
     async selectTeam(team) {
-        // Reset club team selection when selecting a personal team
-        this.app.selectedClubTeam = null;
-        this.app.isViewingClubTeam = false;
-        this.app.viewingClubPlayer = null;
-        this.app.selectedClubPlayerCard = null;
-        
-        // Set personal team selection
-        this.app.selectedTeam = team;
-        this.app.viewingPlayer = null;
-        this.app.selectedPlayerCard = null;
-        
-        // Load team players
-        await this.loadTeamPlayers();
-        
-        // Show team details modal after loading players
-        // Use nextTick to ensure DOM is updated
-        this.app.$nextTick(() => {
-            this.app.showTeamDetailsModal = true;
-        });
+        await this.app.withLoading(async () => {
+            // Reset club team selection when selecting a personal team
+            this.app.selectedClubTeam = null;
+            this.app.isViewingClubTeam = false;
+            this.app.viewingClubPlayer = null;
+            this.app.selectedClubPlayerCard = null;
+            
+            // Set personal team selection
+            this.app.selectedTeam = team;
+            this.app.viewingPlayer = null;
+            this.app.selectedPlayerCard = null;
+            
+            // Load team players
+            await this.loadTeamPlayers();
+            
+            // Show team details modal after loading players
+            // Use nextTick to ensure DOM is updated
+            this.app.$nextTick(() => {
+                this.app.showTeamDetailsModal = true;
+            });
+        }, `Loading ${team.name}...`);
     }
     
     async loadTeamPlayers() {

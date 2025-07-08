@@ -41,25 +41,27 @@ class ClubTeamsModule {
     }
     
     async selectClubTeam(team) {
-        // Reset personal team selection when selecting a club team
-        this.app.selectedTeam = null;
-        this.app.viewingPlayer = null;
-        this.app.selectedPlayerCard = null;
-        this.app.teamPlayers = []; // Clear my team players
-        
-        // Set club team selection
-        this.app.selectedClubTeam = team;
-        this.app.viewingClubPlayer = null;
-        this.app.selectedClubPlayerCard = null;
-        this.app.isViewingClubTeam = true;
-        
-        // Load team players INTO teamPlayers array (hergebruik dezelfde array)
-        await this.loadClubTeamPlayers();
-        
-        // Show the SAME team details modal
-        this.app.$nextTick(() => {
-            this.app.showTeamDetailsModal = true;
-        });
+        await this.app.withLoading(async () => {
+            // Reset personal team selection when selecting a club team
+            this.app.selectedTeam = null;
+            this.app.viewingPlayer = null;
+            this.app.selectedPlayerCard = null;
+            this.app.teamPlayers = []; // Clear my team players
+            
+            // Set club team selection
+            this.app.selectedClubTeam = team;
+            this.app.viewingClubPlayer = null;
+            this.app.selectedClubPlayerCard = null;
+            this.app.isViewingClubTeam = true;
+            
+            // Load team players INTO teamPlayers array (hergebruik dezelfde array)
+            await this.loadClubTeamPlayers();
+            
+            // Show the SAME team details modal
+            this.app.$nextTick(() => {
+                this.app.showTeamDetailsModal = true;
+            });
+        }, `Loading ${team.name}...`);
     }
     
     async loadClubTeamPlayers() {

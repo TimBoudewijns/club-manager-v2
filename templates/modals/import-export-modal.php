@@ -7,7 +7,8 @@
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
      class="fixed inset-0 z-50 overflow-y-auto" 
-     style="display: none;">
+     style="display: none;"
+     x-cloak>
     <div class="modal-container">
         <div class="modal-backdrop" @click="showImportExportModal = false"></div>
         

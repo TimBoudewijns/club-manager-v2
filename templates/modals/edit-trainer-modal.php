@@ -37,7 +37,7 @@
             
             <!-- Scrollable Content -->
             <div class="max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">
-                <form @submit.prevent="updateTrainer" class="p-6">
+                <form @submit.prevent="updateTrainer($event)" class="p-6">
                     <div class="space-y-6">
                         <!-- Trainer Info (Read-only) -->
                         <div class="bg-gray-50 rounded-lg p-4">

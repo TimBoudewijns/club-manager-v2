@@ -68,7 +68,7 @@
                 </div>
                 
                 <!-- Selected Player Form -->
-                <form x-show="selectedExistingPlayer" @submit.prevent="addExistingPlayerToTeam">
+                <form x-show="selectedExistingPlayer" @submit.prevent="addExistingPlayerToTeam($event)">
                     <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
                         <div class="flex items-center space-x-3">
                             <div class="flex-shrink-0 h-12 w-12 bg-orange-200 rounded-full flex items-center justify-center">

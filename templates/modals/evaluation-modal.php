@@ -101,7 +101,7 @@
                                 class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6 order-2 sm:order-1" 
                                 @click="closeEvaluationModal">Cancel</button>
                         <button type="button" 
-                                @click="saveEvaluation"
+                                @click="saveEvaluation($event)"
                                 class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg order-1 sm:order-2">
                             Save Evaluation
                         </button>

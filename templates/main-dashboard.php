@@ -304,6 +304,7 @@
     
     <!-- Include ALL Modals OUTSIDE the tab content divs -->
     <?php 
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/components/loading-overlay.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/create-team-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/team-details-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/add-player-modal.php';

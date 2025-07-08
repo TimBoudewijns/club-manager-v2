@@ -76,33 +76,42 @@ class TeamManagementModule {
         }
     }
     
-    async createClubTeam() {
-        try {
-            const result = await this.app.apiPost('cm_create_club_team', {
-                name: this.app.newClubTeam.name,
-                coach: this.app.newClubTeam.coach,
-                season: this.app.currentSeason,
-                trainers: this.app.newClubTeam.trainers
-            });
-            
-            this.app.showCreateClubTeamModal = false;
-            this.app.newClubTeam = {
-                name: '',
-                coach: '',
-                trainers: []
-            };
-            
-            await this.loadManagedTeams();
-            alert('Team created successfully!');
-            
-        } catch (error) {
-            alert('Error creating team: ' + (error.message || 'Unknown error'));
-        }
+    async createClubTeam(event) {
+        const button = event?.target?.closest('button');
+        this.app.setButtonLoading(button, true, 'Create Team');
+        
+        await this.app.withLoading(async () => {
+            try {
+                const result = await this.app.apiPost('cm_create_club_team', {
+                    name: this.app.newClubTeam.name,
+                    coach: this.app.newClubTeam.coach,
+                    season: this.app.currentSeason,
+                    trainers: this.app.newClubTeam.trainers
+                });
+                
+                this.app.showCreateClubTeamModal = false;
+                this.app.newClubTeam = {
+                    name: '',
+                    coach: '',
+                    trainers: []
+                };
+                
+                await this.loadManagedTeams();
+                alert('Team created successfully!');
+                
+            } catch (error) {
+                alert('Error creating team: ' + (error.message || 'Unknown error'));
+            } finally {
+                this.app.setButtonLoading(button, false, 'Create Team');
+            }
+        }, 'Creating club team...');
     }
     
     async selectManagedTeam(team) {
-        this.app.selectedManagedTeam = team;
-        await this.loadTeamTrainers(team.id);
+        await this.app.withLoading(async () => {
+            this.app.selectedManagedTeam = team;
+            await this.loadTeamTrainers(team.id);
+        }, `Loading ${team.name} details...`);
     }
     
     async loadTeamTrainers(teamId) {
@@ -115,28 +124,35 @@ class TeamManagementModule {
         }
     }
     
-    async assignTrainerToTeam() {
-        try {
-            await this.app.apiPost('cm_assign_trainer_to_team', {
-                team_id: this.app.trainerAssignment.teamId,
-                trainer_id: this.app.trainerAssignment.trainerId
-            });
-            
-            this.app.showAssignTrainerModal = false;
-            this.app.trainerAssignment = {
-                teamId: null,
-                trainerId: null
-            };
-            
-            if (this.app.selectedManagedTeam) {
-                await this.loadTeamTrainers(this.app.selectedManagedTeam.id);
+    async assignTrainerToTeam(event) {
+        const button = event?.target?.closest('button');
+        this.app.setButtonLoading(button, true, 'Assign Trainer');
+        
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_assign_trainer_to_team', {
+                    team_id: this.app.trainerAssignment.teamId,
+                    trainer_id: this.app.trainerAssignment.trainerId
+                });
+                
+                this.app.showAssignTrainerModal = false;
+                this.app.trainerAssignment = {
+                    teamId: null,
+                    trainerId: null
+                };
+                
+                if (this.app.selectedManagedTeam) {
+                    await this.loadTeamTrainers(this.app.selectedManagedTeam.id);
+                }
+                
+                alert('Trainer assigned successfully!');
+                
+            } catch (error) {
+                alert('Error assigning trainer: ' + (error.message || 'Unknown error'));
+            } finally {
+                this.app.setButtonLoading(button, false, 'Assign Trainer');
             }
-            
-            alert('Trainer assigned successfully!');
-            
-        } catch (error) {
-            alert('Error assigning trainer: ' + (error.message || 'Unknown error'));
-        }
+        }, 'Assigning trainer...');
     }
     
     async removeTrainerFromTeam(teamId, trainerId) {
@@ -144,19 +160,21 @@ class TeamManagementModule {
             return;
         }
         
-        try {
-            await this.app.apiPost('cm_remove_trainer_from_team', {
-                team_id: teamId,
-                trainer_id: trainerId
-            });
-            
-            if (this.app.selectedManagedTeam) {
-                await this.loadTeamTrainers(this.app.selectedManagedTeam.id);
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_remove_trainer_from_team', {
+                    team_id: teamId,
+                    trainer_id: trainerId
+                });
+                
+                if (this.app.selectedManagedTeam) {
+                    await this.loadTeamTrainers(this.app.selectedManagedTeam.id);
+                }
+                
+            } catch (error) {
+                alert('Error removing trainer: ' + (error.message || 'Unknown error'));
             }
-            
-        } catch (error) {
-            alert('Error removing trainer: ' + (error.message || 'Unknown error'));
-        }
+        }, 'Removing trainer...');
     }
     
     async editManagedTeam(team) {
@@ -171,32 +189,39 @@ class TeamManagementModule {
         });
     }
     
-    async updateManagedTeam() {
+    async updateManagedTeam(event) {
         if (!this.app.editingTeam || !this.app.editTeamData.name || !this.app.editTeamData.coach) {
             alert('Please fill in all fields');
             return;
         }
         
-        try {
-            await this.app.apiPost('cm_update_team', {
-                team_id: this.app.editingTeam.id,
-                name: this.app.editTeamData.name,
-                coach: this.app.editTeamData.coach
-            });
-            
-            this.app.showEditTeamModal = false;
-            this.app.editingTeam = null;
-            this.app.editTeamData = {
-                name: '',
-                coach: ''
-            };
-            
-            await this.loadManagedTeams();
-            alert('Team updated successfully!');
-            
-        } catch (error) {
-            alert('Error updating team: ' + (error.message || 'Unknown error'));
-        }
+        const button = event?.target?.closest('button');
+        this.app.setButtonLoading(button, true, 'Update Team');
+        
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_update_team', {
+                    team_id: this.app.editingTeam.id,
+                    name: this.app.editTeamData.name,
+                    coach: this.app.editTeamData.coach
+                });
+                
+                this.app.showEditTeamModal = false;
+                this.app.editingTeam = null;
+                this.app.editTeamData = {
+                    name: '',
+                    coach: ''
+                };
+                
+                await this.loadManagedTeams();
+                alert('Team updated successfully!');
+                
+            } catch (error) {
+                alert('Error updating team: ' + (error.message || 'Unknown error'));
+            } finally {
+                this.app.setButtonLoading(button, false, 'Update Team');
+            }
+        }, 'Updating team...');
     }
     
     async deleteManagedTeam(teamId) {
@@ -204,21 +229,23 @@ class TeamManagementModule {
             return;
         }
         
-        try {
-            await this.app.apiPost('cm_delete_team', {
-                team_id: teamId
-            });
-            
-            await this.loadManagedTeams();
-            
-            if (this.app.selectedManagedTeam && this.app.selectedManagedTeam.id === teamId) {
-                this.app.selectedManagedTeam = null;
-                this.app.teamTrainers = [];
+        await this.app.withLoading(async () => {
+            try {
+                await this.app.apiPost('cm_delete_team', {
+                    team_id: teamId
+                });
+                
+                await this.loadManagedTeams();
+                
+                if (this.app.selectedManagedTeam && this.app.selectedManagedTeam.id === teamId) {
+                    this.app.selectedManagedTeam = null;
+                    this.app.teamTrainers = [];
+                }
+                
+            } catch (error) {
+                alert('Error deleting team: ' + (error.message || 'Unknown error'));
             }
-            
-        } catch (error) {
-            alert('Error deleting team: ' + (error.message || 'Unknown error'));
-        }
+        }, 'Deleting team...');
     }
     
     resetSelections() {
