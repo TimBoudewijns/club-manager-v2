@@ -21,7 +21,11 @@ class PlayerCardModule {
             // Modal specific data
             showPlayerCardModal: false,
             modalViewingPlayer: null,
-            modalIsClubView: false
+            modalIsClubView: false,
+            
+            // Loading states for player card
+            playerCardLoading: false,
+            playerCardLoadingMessage: ''
         });
         
         this.bindMethods();
@@ -60,33 +64,50 @@ class PlayerCardModule {
         const player = players.find(p => p.id == playerId);
         if (!player) return;
         
-        // Set modal player and view type
-        this.app.modalViewingPlayer = player;
-        this.app.modalIsClubView = isClubView;
-        
-        // Destroy existing modal chart if any
-        if (this.app.modalPlayerCardChart) {
-            this.app.modalPlayerCardChart.destroy();
-            this.app.modalPlayerCardChart = null;
-        }
-        
-        // Load evaluations first
-        await this.app.evaluationModule.loadEvaluations(player, isClubView);
-        await this.loadEvaluationHistory(player, isClubView);
-        
-        // Load AI advice
-        await this.loadPlayerAdvice(player, isClubView);
-        
-        // Show modal
-        this.app.showPlayerCardModal = true;
-        
-        // Wait for Alpine to update the DOM
-        await this.app.$nextTick();
-        
-        // Wait a bit more for the DOM to be ready and try to create chart
-        setTimeout(() => {
-            this.createModalSpiderChart();
-        }, 500);
+        // Show loading state
+        await this.app.withLoading(async () => {
+            // Set modal player and view type
+            this.app.modalViewingPlayer = player;
+            this.app.modalIsClubView = isClubView;
+            
+            // Destroy existing modal chart if any
+            if (this.app.modalPlayerCardChart) {
+                this.app.modalPlayerCardChart.destroy();
+                this.app.modalPlayerCardChart = null;
+            }
+            
+            // Set specific loading message
+            this.app.playerCardLoading = true;
+            this.app.playerCardLoadingMessage = 'Loading evaluations...';
+            
+            try {
+                // Load evaluations first
+                await this.app.evaluationModule.loadEvaluations(player, isClubView);
+                
+                this.app.playerCardLoadingMessage = 'Loading evaluation history...';
+                await this.loadEvaluationHistory(player, isClubView);
+                
+                this.app.playerCardLoadingMessage = 'Loading AI advice...';
+                // Load AI advice
+                await this.loadPlayerAdvice(player, isClubView);
+                
+            } finally {
+                this.app.playerCardLoading = false;
+                this.app.playerCardLoadingMessage = '';
+            }
+            
+            // Show modal
+            this.app.showPlayerCardModal = true;
+            
+            // Wait for Alpine to update the DOM
+            await this.app.$nextTick();
+            
+            // Wait a bit more for the DOM to be ready and try to create chart
+            setTimeout(() => {
+                this.createModalSpiderChart();
+            }, 500);
+            
+        }, `Loading player card for ${player.first_name} ${player.last_name}...`);
     }
     
     closePlayerCardModal() {
@@ -104,6 +125,8 @@ class PlayerCardModule {
         this.app.playerAdvice = null;
         this.app.adviceStatus = 'no_evaluations';
         this.app.adviceLoading = false;
+        this.app.playerCardLoading = false;
+        this.app.playerCardLoadingMessage = '';
     }
     
     async viewPlayerCard(player, isClubView = false) {
@@ -124,34 +147,36 @@ class PlayerCardModule {
             return;
         }
         
-        // Destroy existing chart if any
-        if (this.app.playerCardChart) {
-            this.app.playerCardChart.destroy();
-            this.app.playerCardChart = null;
-        }
-        
-        if (isClubView) {
-            this.app.viewingClubPlayer = player;
-            this.app.selectedClubPlayerCard = this.app.selectedClubTeam;
-        } else {
-            this.app.viewingPlayer = player;
-            this.app.selectedPlayerCard = this.app.selectedTeam;
-        }
-        
-        // Load evaluations first
-        await this.app.evaluationModule.loadEvaluations(player, isClubView);
-        await this.loadEvaluationHistory(player, isClubView);
-        
-        // Load AI advice
-        await this.loadPlayerAdvice(player, isClubView);
-        
-        // Wait for Alpine to update the DOM
-        await this.app.$nextTick();
-        
-        // Wait a bit more for the DOM to be ready and try to create chart
-        setTimeout(() => {
-            this.createSpiderChart(isClubView);
-        }, 500);
+        await this.app.withLoading(async () => {
+            // Destroy existing chart if any
+            if (this.app.playerCardChart) {
+                this.app.playerCardChart.destroy();
+                this.app.playerCardChart = null;
+            }
+            
+            if (isClubView) {
+                this.app.viewingClubPlayer = player;
+                this.app.selectedClubPlayerCard = this.app.selectedClubTeam;
+            } else {
+                this.app.viewingPlayer = player;
+                this.app.selectedPlayerCard = this.app.selectedTeam;
+            }
+            
+            // Load evaluations first
+            await this.app.evaluationModule.loadEvaluations(player, isClubView);
+            await this.loadEvaluationHistory(player, isClubView);
+            
+            // Load AI advice
+            await this.loadPlayerAdvice(player, isClubView);
+            
+            // Wait for Alpine to update the DOM
+            await this.app.$nextTick();
+            
+            // Wait a bit more for the DOM to be ready and try to create chart
+            setTimeout(() => {
+                this.createSpiderChart(isClubView);
+            }, 500);
+        }, `Loading player card for ${player.first_name} ${player.last_name}...`);
     }
     
     createModalSpiderChart() {
