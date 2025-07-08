@@ -155,6 +155,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         
         global $wpdb;
         $available_trainers = array();
+        $processed_emails = array(); // Track processed emails to avoid duplicates
         
         // Get user's WC Teams
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
@@ -177,26 +178,17 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                                 $member_user_id = $member->get_user_id();
                                 $member_user = get_user_by('id', $member_user_id);
                                 
-                                if ($member_user) {
-                                    // Check if this user is already in our list
-                                    $already_added = false;
-                                    foreach ($available_trainers as $trainer) {
-                                        if ($trainer['id'] == $member_user->ID) {
-                                            $already_added = true;
-                                            break;
-                                        }
-                                    }
+                                if ($member_user && !in_array($member_user->user_email, $processed_emails)) {
+                                    $processed_emails[] = $member_user->user_email;
                                     
-                                    if (!$already_added) {
-                                        $available_trainers[] = array(
-                                            'id' => $member_user->ID,
-                                            'display_name' => $member_user->display_name,
-                                            'email' => $member_user->user_email,
-                                            'first_name' => get_user_meta($member_user->ID, 'first_name', true),
-                                            'last_name' => get_user_meta($member_user->ID, 'last_name', true),
-                                            'type' => 'active'
-                                        );
-                                    }
+                                    $available_trainers[] = array(
+                                        'id' => $member_user->ID,
+                                        'display_name' => $member_user->display_name,
+                                        'email' => $member_user->user_email,
+                                        'first_name' => get_user_meta($member_user->ID, 'first_name', true),
+                                        'last_name' => get_user_meta($member_user->ID, 'last_name', true),
+                                        'type' => 'active'
+                                    );
                                 }
                             }
                         }
@@ -204,14 +196,18 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 }
             }
             
-            // 2. Get pending invitations
+            // 2. Get pending invitations with proper email retrieval
             if (!empty($wc_team_ids)) {
                 $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
                 
+                // Fixed query to properly get email from postmeta
                 $pending_invitations = $wpdb->get_results($wpdb->prepare(
-                    "SELECT p.ID, pm_email.meta_value as email
+                    "SELECT p.ID, 
+                            pm_email.meta_value as email,
+                            pm_token.meta_value as token
                     FROM {$wpdb->posts} p
-                    LEFT JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_email'
+                    INNER JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_email'
+                    LEFT JOIN {$wpdb->postmeta} pm_token ON p.ID = pm_token.post_id AND pm_token.meta_key = '_token'
                     WHERE p.post_type = 'wc_team_invitation'
                     AND p.post_status = 'wcmti-pending'
                     AND p.post_parent IN ($placeholders)
@@ -222,27 +218,19 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 foreach ($pending_invitations as $invitation) {
                     // Check if this is a Club Manager invitation
                     $cm_team_ids = get_post_meta($invitation->ID, '_cm_team_ids', true);
-                    if ($cm_team_ids) {
-                        // Check if this email is already in our list
-                        $already_added = false;
-                        foreach ($available_trainers as $trainer) {
-                            if (isset($trainer['email']) && $trainer['email'] == $invitation->email) {
-                                $already_added = true;
-                                break;
-                            }
-                        }
+                    
+                    if ($cm_team_ids && !empty($invitation->email) && !in_array($invitation->email, $processed_emails)) {
+                        $processed_emails[] = $invitation->email;
                         
-                        if (!$already_added) {
-                            $available_trainers[] = array(
-                                'id' => 'pending_' . $invitation->ID,
-                                'display_name' => $invitation->email,
-                                'email' => $invitation->email,
-                                'first_name' => '',
-                                'last_name' => '',
-                                'type' => 'pending',
-                                'invitation_id' => $invitation->ID
-                            );
-                        }
+                        $available_trainers[] = array(
+                            'id' => 'pending_' . $invitation->ID,
+                            'display_name' => $invitation->email,
+                            'email' => $invitation->email,
+                            'first_name' => '',
+                            'last_name' => '',
+                            'type' => 'pending',
+                            'invitation_id' => $invitation->ID
+                        );
                     }
                 }
             }
@@ -274,16 +262,26 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 ));
                 
                 foreach ($trainers as $trainer) {
-                    $available_trainers[] = array(
-                        'id' => $trainer->ID,
-                        'display_name' => $trainer->display_name,
-                        'email' => $trainer->email,
-                        'first_name' => $trainer->first_name,
-                        'last_name' => $trainer->last_name,
-                        'type' => 'active'
-                    );
+                    if (!in_array($trainer->email, $processed_emails)) {
+                        $processed_emails[] = $trainer->email;
+                        
+                        $available_trainers[] = array(
+                            'id' => $trainer->ID,
+                            'display_name' => $trainer->display_name,
+                            'email' => $trainer->email,
+                            'first_name' => $trainer->first_name,
+                            'last_name' => $trainer->last_name,
+                            'type' => 'active'
+                        );
+                    }
                 }
             }
+        }
+        
+        // Debug logging
+        error_log('Club Manager - Available trainers count: ' . count($available_trainers));
+        if (!empty($available_trainers)) {
+            error_log('Club Manager - First trainer: ' . json_encode($available_trainers[0]));
         }
         
         wp_send_json_success($available_trainers);

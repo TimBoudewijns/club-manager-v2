@@ -24,7 +24,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="font-bold text-2xl">Assign Trainer</h3>
-                        <p class="text-orange-100 mt-1">Add a trainer to <span x-text="selectedManagedTeam?.name"></span></p>
+                        <p class="text-orange-100 mt-1">Add a trainer to <span x-text="selectedManagedTeam?.name" class="font-semibold"></span></p>
                     </div>
                     <button @click="showAssignTrainerModal = false" 
                             class="text-white hover:text-orange-200 p-2 rounded-lg hover:bg-white/10 transition-colors">
@@ -35,15 +35,6 @@
                 </div>
             </div>
             
-            <!-- Debug info (remove in production) -->
-            <div class="bg-gray-100 p-4 text-xs" x-show="false">
-                <p>Available Trainers Count: <span x-text="availableTrainers ? availableTrainers.length : 0"></span></p>
-                <p>Selected Team ID: <span x-text="selectedManagedTeam?.id"></span></p>
-                <template x-if="availableTrainers && availableTrainers.length > 0">
-                    <pre x-text="JSON.stringify(availableTrainers[0], null, 2)"></pre>
-                </template>
-            </div>
-            
             <!-- Scrollable Content -->
             <div class="max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">
                 <form @submit.prevent="assignTrainerToTeam($event)" class="p-6">
@@ -52,52 +43,60 @@
                             <span class="label-text font-semibold text-gray-700">Select Trainer</span>
                         </label>
                         
-                        <!-- Loading state for trainers -->
-                        <div x-show="!availableTrainers || availableTrainers.length === 0" class="text-center py-4 text-gray-500">
-                            <svg class="animate-spin h-5 w-5 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <!-- Loading state -->
+                        <div x-show="availableTrainersLoading" class="text-center py-8 text-gray-500">
+                            <svg class="animate-spin h-8 w-8 mx-auto mb-3 text-orange-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            <p>Loading trainers...</p>
+                            <p class="text-gray-600">Loading available trainers...</p>
                         </div>
                         
                         <!-- Trainer select dropdown -->
-                        <select x-show="availableTrainers && availableTrainers.length > 0"
-                                x-model="trainerAssignment.trainerId" 
-                                class="select select-bordered w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg"
-                                required>
-                            <option value="">Choose a trainer...</option>
+                        <div x-show="!availableTrainersLoading">
+                            <select x-show="availableTrainers && availableTrainers.length > 0"
+                                    x-model="trainerAssignment.trainerId" 
+                                    class="select select-bordered w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg"
+                                    required>
+                                <option value="">Choose a trainer...</option>
+                                
+                                <!-- Active trainers section -->
+                                <template x-if="availableTrainers.filter(t => t.type === 'active').length > 0">
+                                    <optgroup label="Active Trainers">
+                                        <template x-for="trainer in availableTrainers.filter(t => t.type === 'active')" :key="'active-' + trainer.id">
+                                            <option :value="trainer.id">
+                                                <span x-text="trainer.display_name"></span>
+                                                <span x-show="trainer.email" x-text="' (' + trainer.email + ')'"></span>
+                                            </option>
+                                        </template>
+                                    </optgroup>
+                                </template>
+                                
+                                <!-- Pending invitations section -->
+                                <template x-if="availableTrainers.filter(t => t.type === 'pending').length > 0">
+                                    <optgroup label="Pending Invitations">
+                                        <template x-for="trainer in availableTrainers.filter(t => t.type === 'pending')" :key="'pending-' + trainer.id">
+                                            <option :value="'pending:' + trainer.email">
+                                                <span x-text="trainer.email || trainer.display_name || 'Unknown'"></span>
+                                                <span> (Invitation Pending)</span>
+                                            </option>
+                                        </template>
+                                    </optgroup>
+                                </template>
+                            </select>
                             
-                            <!-- Active trainers section -->
-                            <template x-if="availableTrainers && availableTrainers.filter(t => t.type === 'active').length > 0">
-                                <optgroup label="Active Trainers">
-                                    <template x-for="trainer in availableTrainers.filter(t => t.type === 'active')" :key="'active-' + trainer.id">
-                                        <option :value="trainer.id" x-text="trainer.display_name + ' (' + trainer.email + ')'"></option>
-                                    </template>
-                                </optgroup>
-                            </template>
-                            
-                            <!-- Pending invitations section -->
-                            <template x-if="availableTrainers && availableTrainers.filter(t => t.type === 'pending').length > 0">
-                                <optgroup label="Pending Invitations">
-                                    <template x-for="trainer in availableTrainers.filter(t => t.type === 'pending')" :key="'pending-' + trainer.id">
-                                        <option :value="'pending:' + trainer.email" x-text="trainer.email + ' (Invitation Pending)'"></option>
-                                    </template>
-                                </optgroup>
-                            </template>
-                        </select>
-                        
-                        <!-- No trainers available message -->
-                        <div x-show="availableTrainers && availableTrainers.length === 0" 
-                             class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg mt-2">
-                            <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                            </svg>
-                            <p class="font-medium mb-2">No trainers available</p>
-                            <p class="text-sm">Invite trainers first from the Trainer Management tab.</p>
+                            <!-- No trainers available message -->
+                            <div x-show="!availableTrainersLoading && (!availableTrainers || availableTrainers.length === 0)" 
+                                 class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
+                                <svg class="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                </svg>
+                                <p class="font-medium mb-2 text-gray-700">No trainers available</p>
+                                <p class="text-sm">Invite trainers first from the Trainer Management tab.</p>
+                            </div>
                         </div>
                         
-                        <label class="label">
+                        <label class="label" x-show="availableTrainers && availableTrainers.length > 0">
                             <span class="label-text-alt text-gray-500">Trainers with pending invitations will be assigned when they accept</span>
                         </label>
                     </div>
@@ -108,7 +107,7 @@
                                 class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6 order-2 sm:order-1" 
                                 @click="showAssignTrainerModal = false">Cancel</button>
                         <button type="submit" 
-                                :disabled="!trainerAssignment.trainerId || !availableTrainers || availableTrainers.length === 0"
+                                :disabled="!trainerAssignment.trainerId || !availableTrainers || availableTrainers.length === 0 || availableTrainersLoading"
                                 class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg order-1 sm:order-2 disabled:opacity-50 disabled:cursor-not-allowed">
                             Assign Trainer
                         </button>
