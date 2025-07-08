@@ -16,6 +16,55 @@ class Club_Manager_Trainer_Invitation_Handler {
         add_action('wp_ajax_nopriv_cm_register_trainer', array($this, 'ajax_register_trainer'));
         add_action('wp_ajax_cm_accept_trainer_invitation', array($this, 'ajax_accept_invitation'));
     }
+
+    /**
+     * Process pending trainer assignments after invitation acceptance
+     */
+    private function process_pending_assignments($user_id, $email) {
+        global $wpdb;
+        
+        $pending_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+        
+        // Check if table exists
+        if ($wpdb->get_var("SHOW TABLES LIKE '$pending_table'") !== $pending_table) {
+            return;
+        }
+        
+        // Get pending assignments for this email
+        $pending_assignments = $wpdb->get_results($wpdb->prepare(
+            "SELECT * FROM $pending_table WHERE trainer_email = %s",
+            $email
+        ));
+        
+        if (empty($pending_assignments)) {
+            return;
+        }
+        
+        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
+        
+        foreach ($pending_assignments as $assignment) {
+            // Add trainer to team
+            $wpdb->insert(
+                $trainers_table,
+                [
+                    'team_id' => $assignment->team_id,
+                    'trainer_id' => $user_id,
+                    'role' => 'trainer',
+                    'is_active' => 1,
+                    'added_by' => $assignment->assigned_by,
+                    'added_at' => current_time('mysql')
+                ],
+                ['%d', '%d', '%s', '%d', '%d', '%s']
+            );
+            
+            // Remove pending assignment
+            $wpdb->delete(
+                $pending_table,
+                ['id' => $assignment->id],
+                ['%d']
+            );
+        }
+    }
     
     /**
      * Check if invitation token is present in URL
@@ -109,6 +158,9 @@ class Club_Manager_Trainer_Invitation_Handler {
                 }
             }
         }
+
+        // Check for pending assignments
+        $this->process_pending_assignments($user_id, $invitation->get_email()); 
         
         $invitation_data = (object) array(
             'email' => $invitation->get_email(),

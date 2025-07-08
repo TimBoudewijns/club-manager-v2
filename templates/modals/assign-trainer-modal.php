@@ -46,10 +46,26 @@
                                 class="select select-bordered w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg"
                                 required>
                             <option value="">Choose a trainer...</option>
-                            <template x-for="trainer in availableTrainers" :key="trainer.id">
-                                <option :value="trainer.id" x-text="trainer.display_name"></option>
+                            
+                            <!-- Active trainers section -->
+                            <optgroup label="Active Trainers">
+                                <template x-for="trainer in availableTrainers.filter(t => t.type === 'active')" :key="'active-' + trainer.id">
+                                    <option :value="trainer.id" x-text="trainer.display_name + ' (' + trainer.email + ')'"></option>
+                                </template>
+                            </optgroup>
+                            
+                            <!-- Pending invitations section -->
+                            <template x-if="availableTrainers.filter(t => t.type === 'pending').length > 0">
+                                <optgroup label="Pending Invitations">
+                                    <template x-for="trainer in availableTrainers.filter(t => t.type === 'pending')" :key="'pending-' + trainer.email">
+                                        <option :value="'pending:' + trainer.email" x-text="trainer.email + ' (Invitation Pending)'"></option>
+                                    </template>
+                                </optgroup>
                             </template>
                         </select>
+                        <label class="label">
+                            <span class="label-text-alt text-gray-500">Trainers with pending invitations will be assigned when they accept</span>
+                        </label>
                     </div>
                     
                     <!-- Action Buttons -->

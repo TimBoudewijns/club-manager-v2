@@ -153,19 +153,15 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         
         $season = $this->get_post_data('season');
         
-        // Get all trainers that can be assigned to teams
         global $wpdb;
-        
-        // Get all users who are members of the WC Team
         $available_trainers = array();
         
-        // Get managed teams to find team members
+        // 1. Get active trainers from WC Teams
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
         
         if (!empty($managed_teams)) {
-            $wc_team_id = $managed_teams[0]['team_id']; // Use first team
+            $wc_team_id = $managed_teams[0]['team_id'];
             
-            // Get all members of this WC Team
             if (function_exists('wc_memberships_for_teams_get_team')) {
                 $team = wc_memberships_for_teams_get_team($wc_team_id);
                 
@@ -183,7 +179,8 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                                     'display_name' => $member_user->display_name,
                                     'email' => $member_user->user_email,
                                     'first_name' => get_user_meta($member_user->ID, 'first_name', true),
-                                    'last_name' => get_user_meta($member_user->ID, 'last_name', true)
+                                    'last_name' => get_user_meta($member_user->ID, 'last_name', true),
+                                    'type' => 'active'
                                 );
                             }
                         }
@@ -192,12 +189,44 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             }
         }
         
-        // If no members found through API, get from Club Manager trainers table
+        // 2. Get pending invitations
+        if (!empty($managed_teams)) {
+            $wc_team_ids = array_column($managed_teams, 'team_id');
+            $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
+            
+            $pending_invitations = $wpdb->get_results($wpdb->prepare(
+                "SELECT p.ID, pm_email.meta_value as email
+                FROM {$wpdb->posts} p
+                LEFT JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_email'
+                WHERE p.post_type = 'wc_team_invitation'
+                AND p.post_status = 'wcmti-pending'
+                AND p.post_parent IN ($placeholders)
+                ORDER BY p.post_date DESC",
+                ...$wc_team_ids
+            ));
+            
+            foreach ($pending_invitations as $invitation) {
+                // Check if this is a Club Manager invitation
+                $cm_team_ids = get_post_meta($invitation->ID, '_cm_team_ids', true);
+                if ($cm_team_ids) {
+                    $available_trainers[] = array(
+                        'id' => 'pending_' . $invitation->ID,
+                        'display_name' => $invitation->email,
+                        'email' => $invitation->email,
+                        'first_name' => '',
+                        'last_name' => '',
+                        'type' => 'pending',
+                        'invitation_id' => $invitation->ID
+                    );
+                }
+            }
+        }
+        
+        // If still no trainers, get from Club Manager trainers table
         if (empty($available_trainers)) {
             $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
             $teams_table = Club_Manager_Database::get_table_name('teams');
             
-            // Get unique trainers from teams owned by current user
             $trainers = $wpdb->get_results($wpdb->prepare(
                 "SELECT DISTINCT u.ID, u.display_name, u.user_email as email,
                         um1.meta_value as first_name, um2.meta_value as last_name
@@ -209,9 +238,18 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 WHERE t.created_by = %d AND tt.is_active = 1
                 ORDER BY u.display_name",
                 $user_id
-            ), ARRAY_A);
+            ));
             
-            $available_trainers = $trainers;
+            foreach ($trainers as $trainer) {
+                $available_trainers[] = array(
+                    'id' => $trainer->ID,
+                    'display_name' => $trainer->display_name,
+                    'email' => $trainer->email,
+                    'first_name' => $trainer->first_name,
+                    'last_name' => $trainer->last_name,
+                    'type' => 'active'
+                );
+            }
         }
         
         wp_send_json_success($available_trainers);
@@ -335,9 +373,9 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $team_id = $this->get_post_data('team_id', 'int');
-        $trainer_id = $this->get_post_data('trainer_id', 'int');
+        $trainer_id_raw = $this->get_post_data('trainer_id');
         
-        if (!$team_id || !$trainer_id) {
+        if (!$team_id || !$trainer_id_raw) {
             wp_send_json_error('Missing required fields');
             return;
         }
@@ -345,35 +383,81 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         global $wpdb;
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         
-        // Check if already assigned
-        $existing = $wpdb->get_var($wpdb->prepare(
-            "SELECT id FROM $trainers_table WHERE team_id = %d AND trainer_id = %d",
-            $team_id, $trainer_id
-        ));
-        
-        if ($existing) {
-            wp_send_json_error('Trainer already assigned to this team');
-            return;
-        }
-        
-        // Assign trainer
-        $result = $wpdb->insert(
-            $trainers_table,
-            [
-                'team_id' => $team_id,
-                'trainer_id' => $trainer_id,
-                'role' => 'trainer',
-                'is_active' => 1,
-                'added_by' => $user_id,
-                'added_at' => current_time('mysql')
-            ],
-            ['%d', '%d', '%s', '%d', '%d', '%s']
-        );
-        
-        if ($result) {
-            wp_send_json_success(['message' => 'Trainer assigned successfully']);
+        // Check if this is a pending invitation
+        if (strpos($trainer_id_raw, 'pending:') === 0) {
+            // Extract email from pending:email format
+            $email = substr($trainer_id_raw, 8);
+            
+            // Store the pending assignment
+            $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+            
+            // Create table if it doesn't exist
+            $charset_collate = $wpdb->get_charset_collate();
+            $sql = "CREATE TABLE IF NOT EXISTS $pending_assignments_table (
+                id mediumint(9) NOT NULL AUTO_INCREMENT,
+                team_id mediumint(9) NOT NULL,
+                trainer_email varchar(255) NOT NULL,
+                assigned_by bigint(20) NOT NULL,
+                assigned_at datetime DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY team_email (team_id, trainer_email)
+            ) $charset_collate;";
+            
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+            
+            // Insert pending assignment
+            $result = $wpdb->replace(
+                $pending_assignments_table,
+                [
+                    'team_id' => $team_id,
+                    'trainer_email' => $email,
+                    'assigned_by' => $user_id,
+                    'assigned_at' => current_time('mysql')
+                ],
+                ['%d', '%s', '%d', '%s']
+            );
+            
+            if ($result) {
+                wp_send_json_success(['message' => 'Trainer will be assigned when they accept the invitation']);
+            } else {
+                wp_send_json_error('Failed to create pending assignment');
+            }
+            
         } else {
-            wp_send_json_error('Failed to assign trainer');
+            // Regular trainer assignment
+            $trainer_id = intval($trainer_id_raw);
+            
+            // Check if already assigned
+            $existing = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $trainers_table WHERE team_id = %d AND trainer_id = %d",
+                $team_id, $trainer_id
+            ));
+            
+            if ($existing) {
+                wp_send_json_error('Trainer already assigned to this team');
+                return;
+            }
+            
+            // Assign trainer
+            $result = $wpdb->insert(
+                $trainers_table,
+                [
+                    'team_id' => $team_id,
+                    'trainer_id' => $trainer_id,
+                    'role' => 'trainer',
+                    'is_active' => 1,
+                    'added_by' => $user_id,
+                    'added_at' => current_time('mysql')
+                ],
+                ['%d', '%d', '%s', '%d', '%d', '%s']
+            );
+            
+            if ($result) {
+                wp_send_json_success(['message' => 'Trainer assigned successfully']);
+            } else {
+                wp_send_json_error('Failed to assign trainer');
+            }
         }
     }
     
