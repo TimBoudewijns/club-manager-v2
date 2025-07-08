@@ -204,7 +204,7 @@ window.clubManager = function() {
                     
                     // Get response as text first for debugging
                     const responseText = await response.text();
-                    console.log('Raw response:', responseText);
+                    console.log('Raw response for ' + action + ':', responseText);
                     
                     let result;
                     try {
@@ -226,11 +226,11 @@ window.clubManager = function() {
                         throw new Error(result.data || 'Request failed');
                     }
                     
-                    console.log('AJAX Success:', result.data);
+                    console.log('AJAX Success for ' + action + ':', result.data);
                     return result.data;
                     
                 } catch (error) {
-                    console.error('API Error:', error);
+                    console.error('API Error for ' + action + ':', error);
                     throw error;
                 }
             } else {
@@ -259,7 +259,7 @@ window.clubManager = function() {
                     
                     // Get response as text first for debugging
                     const responseText = await response.text();
-                    console.log('Raw response:', responseText);
+                    console.log('Raw response for ' + action + ':', responseText);
                     
                     let result;
                     try {
@@ -281,11 +281,11 @@ window.clubManager = function() {
                         throw new Error(result.data || 'Request failed');
                     }
                     
-                    console.log('AJAX Success:', result.data);
+                    console.log('AJAX Success for ' + action + ':', result.data);
                     return result.data;
                     
                 } catch (error) {
-                    console.error('API Error:', error);
+                    console.error('API Error for ' + action + ':', error);
                     throw error;
                 }
             }

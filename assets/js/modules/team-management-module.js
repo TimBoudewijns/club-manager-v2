@@ -12,6 +12,7 @@ class TeamManagementModule {
             selectedManagedTeam: null,
             teamTrainers: [],
             availableTrainers: [],
+            availableTrainersLoading: false,
             
             // Create team for club
             showCreateClubTeamModal: false,
@@ -55,25 +56,49 @@ class TeamManagementModule {
     
     async loadManagedTeams() {
         try {
+            console.log('Loading managed teams...');
             // Load all teams created by club members
             this.app.managedTeams = await this.app.apiPost('cm_get_all_club_teams', {
                 season: this.app.currentSeason
             });
+            console.log('Managed teams loaded:', this.app.managedTeams);
             
             // Also load available trainers when loading teams
             await this.loadAvailableTrainers();
         } catch (error) {
             console.error('Error loading managed teams:', error);
+            this.app.managedTeams = [];
         }
     }
     
     async loadAvailableTrainers() {
         try {
-            this.app.availableTrainers = await this.app.apiPost('cm_get_available_trainers', {
+            console.log('Loading available trainers...');
+            this.app.availableTrainersLoading = true;
+            
+            const response = await this.app.apiPost('cm_get_available_trainers', {
                 season: this.app.currentSeason
             });
+            
+            console.log('Available trainers response:', response);
+            
+            // Ensure we have an array
+            if (Array.isArray(response)) {
+                this.app.availableTrainers = response;
+            } else if (response && Array.isArray(response.data)) {
+                this.app.availableTrainers = response.data;
+            } else {
+                console.warn('Unexpected response format for available trainers:', response);
+                this.app.availableTrainers = [];
+            }
+            
+            console.log('Available trainers set to:', this.app.availableTrainers);
+            
         } catch (error) {
             console.error('Error loading available trainers:', error);
+            this.app.availableTrainers = [];
+        } finally {
+            this.app.availableTrainersLoading = false;
         }
     }
     
@@ -122,24 +147,30 @@ class TeamManagementModule {
             });
         } catch (error) {
             console.error('Error loading team trainers:', error);
+            this.app.teamTrainers = [];
         }
     }
     
     // New method to open assign trainer modal and ensure data is loaded
     async openAssignTrainerModal(team) {
+        console.log('Opening assign trainer modal for team:', team);
+        
         // First ensure we have the team selected
         await this.selectManagedTeam(team);
         
-        // Make sure we have available trainers loaded
-        if (!this.app.availableTrainers || this.app.availableTrainers.length === 0) {
-            await this.loadAvailableTrainers();
-        }
+        // Force reload available trainers to ensure we have fresh data
+        await this.loadAvailableTrainers();
+        
+        // Wait a tick to ensure data is propagated
+        await this.app.$nextTick();
         
         // Reset assignment data
         this.app.trainerAssignment = {
             teamId: team.id,
             trainerId: null
         };
+        
+        console.log('Available trainers before showing modal:', this.app.availableTrainers);
         
         // Show the modal
         this.app.showAssignTrainerModal = true;
@@ -151,6 +182,15 @@ class TeamManagementModule {
         
         await this.app.withLoading(async () => {
             try {
+                // Ensure we have the team ID
+                if (!this.app.trainerAssignment.teamId && this.app.selectedManagedTeam) {
+                    this.app.trainerAssignment.teamId = this.app.selectedManagedTeam.id;
+                }
+                
+                if (!this.app.trainerAssignment.teamId || !this.app.trainerAssignment.trainerId) {
+                    throw new Error('Please select a trainer');
+                }
+                
                 await this.app.apiPost('cm_assign_trainer_to_team', {
                     team_id: this.app.trainerAssignment.teamId,
                     trainer_id: this.app.trainerAssignment.trainerId
@@ -280,5 +320,6 @@ class TeamManagementModule {
         this.app.selectedManagedTeam = null;
         this.app.teamTrainers = [];
         this.app.availableTrainers = [];
+        this.app.availableTrainersLoading = false;
     }
 }
