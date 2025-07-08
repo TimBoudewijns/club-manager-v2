@@ -67,8 +67,8 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="flex items-center justify-center space-x-2">
-                                        <!-- Manage Trainers -->
-                                        <button @click="selectManagedTeam(team); showAssignTrainerModal = true" 
+                                        <!-- Manage Trainers - Updated to use openAssignTrainerModal -->
+                                        <button @click="openAssignTrainerModal(team)" 
                                                 class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors"
                                                 title="Manage trainers">
                                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

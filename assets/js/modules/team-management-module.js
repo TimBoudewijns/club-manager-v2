@@ -50,6 +50,7 @@ class TeamManagementModule {
         this.app.editManagedTeam = this.editManagedTeam.bind(this);
         this.app.updateManagedTeam = this.updateManagedTeam.bind(this);
         this.app.deleteManagedTeam = this.deleteManagedTeam.bind(this);
+        this.app.openAssignTrainerModal = this.openAssignTrainerModal.bind(this);
     }
     
     async loadManagedTeams() {
@@ -59,7 +60,7 @@ class TeamManagementModule {
                 season: this.app.currentSeason
             });
             
-            // Also load available trainers
+            // Also load available trainers when loading teams
             await this.loadAvailableTrainers();
         } catch (error) {
             console.error('Error loading managed teams:', error);
@@ -124,6 +125,26 @@ class TeamManagementModule {
         }
     }
     
+    // New method to open assign trainer modal and ensure data is loaded
+    async openAssignTrainerModal(team) {
+        // First ensure we have the team selected
+        await this.selectManagedTeam(team);
+        
+        // Make sure we have available trainers loaded
+        if (!this.app.availableTrainers || this.app.availableTrainers.length === 0) {
+            await this.loadAvailableTrainers();
+        }
+        
+        // Reset assignment data
+        this.app.trainerAssignment = {
+            teamId: team.id,
+            trainerId: null
+        };
+        
+        // Show the modal
+        this.app.showAssignTrainerModal = true;
+    }
+    
     async assignTrainerToTeam(event) {
         const button = event?.target?.closest('button');
         this.app.setButtonLoading(button, true, 'Assign Trainer');
@@ -141,9 +162,13 @@ class TeamManagementModule {
                     trainerId: null
                 };
                 
+                // Reload the team trainers
                 if (this.app.selectedManagedTeam) {
                     await this.loadTeamTrainers(this.app.selectedManagedTeam.id);
                 }
+                
+                // Reload available trainers to update the list
+                await this.loadAvailableTrainers();
                 
                 alert('Trainer assigned successfully!');
                 
@@ -170,6 +195,9 @@ class TeamManagementModule {
                 if (this.app.selectedManagedTeam) {
                     await this.loadTeamTrainers(this.app.selectedManagedTeam.id);
                 }
+                
+                // Reload available trainers
+                await this.loadAvailableTrainers();
                 
             } catch (error) {
                 alert('Error removing trainer: ' + (error.message || 'Unknown error'));
@@ -251,5 +279,6 @@ class TeamManagementModule {
     resetSelections() {
         this.app.selectedManagedTeam = null;
         this.app.teamTrainers = [];
+        this.app.availableTrainers = [];
     }
 }
