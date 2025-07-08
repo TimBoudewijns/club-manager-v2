@@ -6,9 +6,10 @@
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 loading-backdrop"
-     style="display: none; z-index: 9999 !important;">
-    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm mx-4" style="z-index: 10000;">
+     class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50"
+     style="z-index: 999999 !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;"
+     @click.stop>
+    <div class="bg-white rounded-xl shadow-2xl p-8 max-w-sm mx-4" style="z-index: 999999;">
         <div class="flex flex-col items-center">
             <!-- Animated spinner -->
             <svg class="animate-spin h-12 w-12 text-orange-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

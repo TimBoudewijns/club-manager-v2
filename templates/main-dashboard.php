@@ -41,6 +41,29 @@
     
     /* Hide elements with x-cloak until Alpine loads */
     [x-cloak] { display: none !important; }
+    
+    /* Z-INDEX HIERARCHY FIX FOR MODALS AND LOADING */
+    /* Base modal z-indexes */
+    .club-manager-app [x-show="showCreateTeamModal"] { z-index: 40 !important; }
+    .club-manager-app [x-show="showTeamDetailsModal"] { z-index: 50 !important; }
+    .club-manager-app [x-show="showAddPlayerModal"] { z-index: 55 !important; }
+    .club-manager-app [x-show="showAddExistingPlayerModal"] { z-index: 55 !important; }
+    .club-manager-app [x-show="showEvaluationModal"] { z-index: 55 !important; }
+    .club-manager-app [x-show="showPlayerHistoryModal"] { z-index: 60 !important; }
+    .club-manager-app [x-show="showPlayerCardModal"] { z-index: 65 !important; }
+    .club-manager-app [x-show="showImportExportModal"] { z-index: 55 !important; }
+    
+    /* Loading overlay moet boven ALLES staan */
+    .club-manager-app [x-show="globalLoading"] {
+        z-index: 999999 !important;
+        position: fixed !important;
+        inset: 0 !important;
+    }
+    
+    /* Extra specifiek voor de loading overlay */
+    div[x-show="globalLoading"].fixed {
+        z-index: 999999 !important;
+    }
 </style>
 
 <div class="club-manager-app min-h-screen bg-white" x-data="clubManager()" data-theme="light">
