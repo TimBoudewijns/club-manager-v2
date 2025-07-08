@@ -527,3 +527,30 @@ body.modal-open {
 .club-manager-app button[disabled] svg.animate-spin {
     margin: 0 auto;
 }
+
+/* Z-index hierarchy fix */
+.club-manager-app .modal-container {
+    z-index: 50 !important;
+}
+
+.club-manager-app .modal-content {
+    z-index: 51 !important;
+}
+
+/* Team details modal should be lower than player card modal */
+.club-manager-app [x-show="showTeamDetailsModal"] {
+    z-index: 40 !important;
+}
+
+.club-manager-app [x-show="showPlayerCardModal"] {
+    z-index: 60 !important;
+}
+
+/* Loading overlay should be above everything */
+.club-manager-app .loading-backdrop {
+    z-index: 9999 !important;
+}
+
+.club-manager-app [x-show="globalLoading"] {
+    z-index: 9999 !important;
+}

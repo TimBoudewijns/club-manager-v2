@@ -6,8 +6,8 @@
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     class="fixed inset-0 z-50 overflow-y-auto" 
-     style="display: none;">
+     class="fixed inset-0 overflow-y-auto" 
+     style="display: none; z-index: 40;">
     <div class="modal-container">
         <!-- Backdrop -->
         <div class="modal-backdrop" @click="closeTeamDetailsModal()"></div>
