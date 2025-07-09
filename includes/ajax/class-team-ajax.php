@@ -141,6 +141,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
     
     /**
      * Get available trainers for a season - includes both active trainers and pending invitations.
+     * This version properly handles WC Teams invitations
      */
     public function get_available_trainers() {
         $user_id = $this->verify_request();
@@ -164,7 +165,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         if (!empty($managed_teams)) {
             $wc_team_ids = array_column($managed_teams, 'team_id');
             
-            // 1. Get active trainers from WC Teams
+            // 1. Get ALL active trainers from WC Teams (not just unassigned ones)
             foreach ($managed_teams as $team_info) {
                 $wc_team_id = $team_info['team_id'];
                 
@@ -256,7 +257,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             }
         }
         
-        // 3. Also get trainers from Club Manager system (fallback)
+        // 3. Also get ALL trainers from Club Manager system
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
@@ -265,6 +266,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         if (!empty($club_member_ids)) {
             $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
             
+            // Get ALL trainers who have EVER been assigned to ANY team in the club
             $existing_trainers = $wpdb->get_results($wpdb->prepare(
                 "SELECT DISTINCT u.ID, u.display_name, u.user_email as email,
                         um1.meta_value as first_name, um2.meta_value as last_name
@@ -273,13 +275,16 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 INNER JOIN $teams_table t ON tt.team_id = t.id
                 LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
                 LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
-                WHERE t.created_by IN ($placeholders) AND tt.is_active = 1
+                WHERE t.created_by IN ($placeholders)
                 ORDER BY u.display_name",
                 ...$club_member_ids
             ));
             
             foreach ($existing_trainers as $trainer) {
                 if (!in_array($trainer->ID, $processed_users) && !in_array(strtolower($trainer->email), $processed_emails)) {
+                    $processed_users[] = $trainer->ID;
+                    $processed_emails[] = strtolower($trainer->email);
+                    
                     $available_trainers[] = array(
                         'id' => $trainer->ID,
                         'display_name' => $trainer->display_name,
@@ -475,7 +480,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             ));
             
             if ($existing) {
-                wp_send_json_error('Trainer already assigned to this team');
+                wp_send_json_error('Trainer is already assigned to this team');
                 return;
             }
             

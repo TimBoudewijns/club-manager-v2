@@ -64,9 +64,11 @@
                                 <template x-if="availableTrainers.filter(t => t.type === 'active').length > 0">
                                     <optgroup label="Active Trainers">
                                         <template x-for="trainer in availableTrainers.filter(t => t.type === 'active')" :key="'active-' + trainer.id">
-                                            <option :value="trainer.id">
+                                            <option :value="trainer.id"
+                                                    :disabled="teamTrainers && teamTrainers.some(tt => tt.trainer_id == trainer.id)">
                                                 <span x-text="trainer.display_name"></span>
                                                 <span x-show="trainer.email" x-text="' (' + trainer.email + ')'"></span>
+                                                <span x-show="teamTrainers && teamTrainers.some(tt => tt.trainer_id == trainer.id)"> - Already assigned</span>
                                             </option>
                                         </template>
                                     </optgroup>
