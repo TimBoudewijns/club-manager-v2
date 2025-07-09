@@ -63,7 +63,10 @@
                                     <div class="text-sm text-gray-500" x-text="team.owner_name || 'Unknown'"></div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="text-sm text-gray-900" x-text="(team.trainer_count || 0) + ' trainer(s)'"></span>
+                                    <div class="flex flex-col">
+                                        <span class="text-sm text-gray-900" x-text="(team.trainer_count || 0) + ' trainer(s)'"></span>
+                                        <span x-show="team.trainer_names" class="text-xs text-gray-500 mt-1" x-text="team.trainer_names"></span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="flex items-center justify-center space-x-2">

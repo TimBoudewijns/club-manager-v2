@@ -151,12 +151,15 @@ class TeamManagementModule {
         }
     }
     
-    // New method to open assign trainer modal and ensure data is loaded
+    // Update the openAssignTrainerModal method
     async openAssignTrainerModal(team) {
         console.log('Opening assign trainer modal for team:', team);
         
-        // First ensure we have the team selected
-        await this.selectManagedTeam(team);
+        // Set the selected team
+        this.app.selectedManagedTeam = team;
+        
+        // Load team trainers FIRST
+        await this.loadTeamTrainers(team.id);
         
         // Force reload available trainers to ensure we have fresh data
         await this.loadAvailableTrainers();
@@ -171,6 +174,7 @@ class TeamManagementModule {
         };
         
         console.log('Available trainers before showing modal:', this.app.availableTrainers);
+        console.log('Team trainers:', this.app.teamTrainers);
         
         // Show the modal
         this.app.showAssignTrainerModal = true;
@@ -209,6 +213,9 @@ class TeamManagementModule {
                 
                 // Reload available trainers to update the list
                 await this.loadAvailableTrainers();
+                
+                // BELANGRIJK: Reload de managed teams om de trainer count te updaten
+                await this.loadManagedTeams();
                 
                 alert('Trainer assigned successfully!');
                 
