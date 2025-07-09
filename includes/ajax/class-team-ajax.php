@@ -127,20 +127,14 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             ...$query_args
         ));
         
-        // Add trainer count and names for each team
+        // Add trainer info for each team
         foreach ($teams as $team) {
-            // Get trainer count
-            $trainer_count = $wpdb->get_var($wpdb->prepare(
-                "SELECT COUNT(DISTINCT tt.trainer_id) 
-                FROM $trainers_table tt 
-                WHERE tt.team_id = %d AND tt.is_active = 1",
-                $team->id
-            ));
-            $team->trainer_count = (int)$trainer_count;
+            $trainer_info = array();
             
-            // Get trainer names
-            $trainers = $wpdb->get_results($wpdb->prepare(
-                "SELECT u.display_name, um1.meta_value as first_name, um2.meta_value as last_name
+            // 1. Get active trainers
+            $active_trainers = $wpdb->get_results($wpdb->prepare(
+                "SELECT u.display_name, u.user_email, 
+                        um1.meta_value as first_name, um2.meta_value as last_name
                 FROM $trainers_table tt
                 INNER JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
                 LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
@@ -150,16 +144,82 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 $team->id
             ));
             
-            if (!empty($trainers)) {
-                $trainer_names = array();
-                foreach ($trainers as $trainer) {
-                    if (!empty($trainer->first_name) || !empty($trainer->last_name)) {
-                        $name = trim($trainer->first_name . ' ' . $trainer->last_name);
-                    } else {
-                        $name = $trainer->display_name;
-                    }
-                    $trainer_names[] = $name;
+            foreach ($active_trainers as $trainer) {
+                if (!empty($trainer->first_name) || !empty($trainer->last_name)) {
+                    $name = trim($trainer->first_name . ' ' . $trainer->last_name);
+                } else {
+                    $name = $trainer->display_name;
                 }
+                $trainer_info[] = array(
+                    'name' => $name,
+                    'email' => $trainer->user_email,
+                    'type' => 'active'
+                );
+            }
+            
+            // 2. Check for pending assignments (trainers who were invited but haven't accepted yet)
+            $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+            
+            // Check if the table exists
+            if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
+                $pending_assignments = $wpdb->get_results($wpdb->prepare(
+                    "SELECT trainer_email FROM $pending_assignments_table WHERE team_id = %d",
+                    $team->id
+                ));
+                
+                foreach ($pending_assignments as $pending) {
+                    $trainer_info[] = array(
+                        'name' => $pending->trainer_email . ' (Invitation Pending)',
+                        'email' => $pending->trainer_email,
+                        'type' => 'pending'
+                    );
+                }
+            }
+            
+            // 3. Also check WC Teams invitations with our custom meta
+            if (function_exists('wc_memberships_for_teams')) {
+                // Get pending invitations that have this team in their meta
+                $invitations = $wpdb->get_results($wpdb->prepare(
+                    "SELECT p.ID, p.post_title, pm_email.meta_value as email
+                    FROM {$wpdb->posts} p
+                    LEFT JOIN {$wpdb->postmeta} pm_teams ON p.ID = pm_teams.post_id AND pm_teams.meta_key = '_cm_team_ids'
+                    LEFT JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_email'
+                    WHERE p.post_type = 'wc_team_invitation'
+                    AND p.post_status = 'wcmti-pending'
+                    AND pm_teams.meta_value LIKE %s",
+                    '%"' . $team->id . '"%'
+                ));
+                
+                foreach ($invitations as $invitation) {
+                    $email = $invitation->email ?: $invitation->post_title;
+                    if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                        // Check if not already in list
+                        $already_exists = false;
+                        foreach ($trainer_info as $info) {
+                            if ($info['email'] === $email) {
+                                $already_exists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!$already_exists) {
+                            $trainer_info[] = array(
+                                'name' => $email . ' (Invitation Pending)',
+                                'email' => $email,
+                                'type' => 'pending'
+                            );
+                        }
+                    }
+                }
+            }
+            
+            // Set counts and names
+            $team->trainer_count = count($trainer_info);
+            $team->active_trainer_count = count(array_filter($trainer_info, function($t) { return $t['type'] === 'active'; }));
+            $team->pending_trainer_count = count(array_filter($trainer_info, function($t) { return $t['type'] === 'pending'; }));
+            
+            if (!empty($trainer_info)) {
+                $trainer_names = array_map(function($t) { return $t['name']; }, $trainer_info);
                 $team->trainer_names = implode(', ', $trainer_names);
             } else {
                 $team->trainer_names = null;

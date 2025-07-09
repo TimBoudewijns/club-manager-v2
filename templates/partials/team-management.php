@@ -62,15 +62,35 @@
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm text-gray-500" x-text="team.owner_name || 'Unknown'"></div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex flex-col">
-                                        <span class="text-sm text-gray-900" x-text="(team.trainer_count || 0) + ' trainer(s)'"></span>
-                                        <span x-show="team.trainer_names" class="text-xs text-gray-500 mt-1" x-text="team.trainer_names"></span>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col space-y-1">
+                                        <!-- Total count -->
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-sm font-medium text-gray-900" x-text="(team.trainer_count || 0) + ' trainer(s)'"></span>
+                                            <div class="flex items-center space-x-1" x-show="team.trainer_count > 0">
+                                                <span x-show="team.active_trainer_count > 0" 
+                                                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                                                      x-text="team.active_trainer_count + ' active'"></span>
+                                                <span x-show="team.pending_trainer_count > 0" 
+                                                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800"
+                                                      x-text="team.pending_trainer_count + ' pending'"></span>
+                                            </div>
+                                        </div>
+                                        <!-- Trainer names/emails -->
+                                        <div x-show="team.trainer_names" class="text-xs text-gray-500 max-w-xs">
+                                            <span x-html="team.trainer_names.split(', ').map(name => {
+                                                if (name.includes('(Invitation Pending)')) {
+                                                    return '<span class=\'text-yellow-600\'>' + name + '</span>';
+                                                } else {
+                                                    return '<span class=\'text-gray-700\'>' + name + '</span>';
+                                                }
+                                            }).join(', ')"></span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     <div class="flex items-center justify-center space-x-2">
-                                        <!-- Manage Trainers - Updated to use openAssignTrainerModal -->
+                                        <!-- Manage Trainers -->
                                         <button @click="openAssignTrainerModal(team)" 
                                                 class="text-blue-600 hover:text-blue-900 p-2 rounded-lg hover:bg-blue-50 transition-colors"
                                                 title="Manage trainers">
