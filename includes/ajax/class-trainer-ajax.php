@@ -207,7 +207,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Get pending trainer invitations from WC Teams - DEBUG VERSION.
+     * Get pending trainer invitations from WC Teams.
      */
     public function get_pending_invitations() {
         $user_id = $this->verify_request();
@@ -223,7 +223,6 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $invitations = [];
-        $debug_info = [];
         
         // Get all WC Teams where user is owner/manager
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
@@ -233,8 +232,6 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $wc_team_ids[] = $team_data['team_id'];
         }
         
-        $debug_info['wc_team_ids'] = $wc_team_ids;
-        
         if (!empty($wc_team_ids)) {
             global $wpdb;
             
@@ -242,9 +239,8 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
             $query_args = array_merge($wc_team_ids);
             
-            // First let's see what invitations exist
             $all_invitations = $wpdb->get_results($wpdb->prepare(
-                "SELECT p.ID, p.post_parent, p.post_status, p.post_title, p.post_name
+                "SELECT p.ID, p.post_parent, p.post_status, p.post_title, p.post_name, p.post_date
                 FROM {$wpdb->posts} p
                 WHERE p.post_type = 'wc_team_invitation'
                 AND p.post_status = 'wcmti-pending'
@@ -253,25 +249,11 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 ...$query_args
             ));
             
-            $debug_info['total_invitations'] = count($all_invitations);
-            $debug_info['invitation_details'] = [];
+            $teams_table = Club_Manager_Database::get_table_name('teams');
             
             foreach ($all_invitations as $inv_post) {
                 // Get ALL meta data for this invitation
                 $all_meta = get_post_meta($inv_post->ID);
-                
-                $debug_entry = [
-                    'id' => $inv_post->ID,
-                    'parent' => $inv_post->post_parent,
-                    'title' => $inv_post->post_title,
-                    'name' => $inv_post->post_name,
-                    'meta_keys' => array_keys($all_meta),
-                    'email' => isset($all_meta['_email']) ? $all_meta['_email'][0] : 'NOT FOUND',
-                    'recipient_email' => isset($all_meta['_recipient_email']) ? $all_meta['_recipient_email'][0] : 'NOT FOUND',
-                    'cm_team_ids' => isset($all_meta['_cm_team_ids']) ? maybe_unserialize($all_meta['_cm_team_ids'][0]) : 'NOT SET'
-                ];
-                
-                $debug_info['invitation_details'][] = $debug_entry;
                 
                 // Try to get email from various sources
                 $email = null;
@@ -284,12 +266,11 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 }
                 
                 if ($email) {
-                    // Get team names
+                    // Get team names from the invitation meta
                     $team_names = [];
                     $cm_team_ids = isset($all_meta['_cm_team_ids']) ? maybe_unserialize($all_meta['_cm_team_ids'][0]) : [];
                     
                     if ($cm_team_ids && is_array($cm_team_ids)) {
-                        $teams_table = Club_Manager_Database::get_table_name('teams');
                         foreach ($cm_team_ids as $team_id) {
                             $team_name = $wpdb->get_var($wpdb->prepare(
                                 "SELECT name FROM $teams_table WHERE id = %d",
@@ -301,10 +282,30 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                         }
                     }
                     
+                    // If no team names found in meta, check pending assignments table
+                    if (empty($team_names)) {
+                        $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+                        
+                        if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
+                            $assigned_teams = $wpdb->get_results($wpdb->prepare(
+                                "SELECT t.name 
+                                FROM $pending_assignments_table pa
+                                INNER JOIN $teams_table t ON pa.team_id = t.id
+                                WHERE pa.trainer_email = %s",
+                                $email
+                            ));
+                            
+                            foreach ($assigned_teams as $team) {
+                                $team_names[] = $team->name;
+                            }
+                        }
+                    }
+                    
                     $invitations[] = array(
                         'id' => $inv_post->ID,
                         'email' => $email,
                         'team_name' => !empty($team_names) ? implode(', ', $team_names) : 'Unknown',
+                        'team_names' => $team_names,
                         'team_id' => $inv_post->post_parent,
                         'created_at' => $inv_post->post_date,
                         'role' => isset($all_meta['_cm_role']) ? $all_meta['_cm_role'][0] : 'trainer'
@@ -312,9 +313,6 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 }
             }
         }
-        
-        // Log debug info
-        error_log('Club Manager - Pending Invitations Debug: ' . json_encode($debug_info, JSON_PRETTY_PRINT));
         
         wp_send_json_success($invitations);
     }
@@ -450,9 +448,41 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             update_post_meta($invitation->get_id(), '_cm_role', $role);
             update_post_meta($invitation->get_id(), '_cm_message', $message);
             
+            // IMPORTANT: Create pending assignments for each selected team
+            global $wpdb;
+            $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+            
+            // Create table if it doesn't exist
+            $charset_collate = $wpdb->get_charset_collate();
+            $sql = "CREATE TABLE IF NOT EXISTS $pending_assignments_table (
+                id mediumint(9) NOT NULL AUTO_INCREMENT,
+                team_id mediumint(9) NOT NULL,
+                trainer_email varchar(255) NOT NULL,
+                assigned_by bigint(20) NOT NULL,
+                assigned_at datetime DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id),
+                UNIQUE KEY team_email (team_id, trainer_email)
+            ) $charset_collate;";
+            
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            dbDelta($sql);
+            
+            // Insert pending assignment for each team
+            foreach ($team_ids as $team_id) {
+                $wpdb->replace(
+                    $pending_assignments_table,
+                    [
+                        'team_id' => $team_id,
+                        'trainer_email' => $email,
+                        'assigned_by' => $user_id,
+                        'assigned_at' => current_time('mysql')
+                    ],
+                    ['%d', '%s', '%d', '%s']
+                );
+            }
+            
             // Get team names for email
             $team_names = [];
-            global $wpdb;
             $teams_table = Club_Manager_Database::get_table_name('teams');
             foreach ($team_ids as $team_id) {
                 $team_name = $wpdb->get_var($wpdb->prepare(
@@ -482,7 +512,6 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             wp_send_json_error('Error creating invitation: ' . $e->getMessage());
         }
     }
-    
     /**
      * Send custom trainer invitation email
      */
@@ -600,10 +629,34 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
             
+            // Get the email from the invitation before cancelling
+            $invitation_email = null;
+            $meta_data = get_post_meta($invitation_id);
+            if (isset($meta_data['_email'][0])) {
+                $invitation_email = $meta_data['_email'][0];
+            } elseif (isset($meta_data['_recipient_email'][0])) {
+                $invitation_email = $meta_data['_recipient_email'][0];
+            }
+            
             // Cancel the invitation
             $invitation->cancel();
             
-            wp_send_json_success(['message' => 'Invitation cancelled']);
+            // IMPORTANT: Also remove any pending assignments for this email
+            if ($invitation_email) {
+                global $wpdb;
+                $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+                
+                // Check if table exists
+                if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
+                    $wpdb->delete(
+                        $pending_assignments_table,
+                        ['trainer_email' => $invitation_email],
+                        ['%s']
+                    );
+                }
+            }
+            
+            wp_send_json_success(['message' => 'Invitation cancelled and pending assignments removed']);
             
         } catch (Exception $e) {
             wp_send_json_error('Error cancelling invitation: ' . $e->getMessage());
