@@ -46,9 +46,168 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         
         wp_send_json_success($teams);
     }
+
+    /**
+     * Get available trainers for a season - includes both active trainers and pending invitations.
+     * This version properly handles WC Teams invitations
+     */
+    public function get_available_trainers() {
+        $user_id = $this->verify_request();
+        
+        // Check if user can manage teams
+        if (!Club_Manager_User_Permissions_Helper::is_club_owner_or_manager($user_id)) {
+            wp_send_json_error('Unauthorized access');
+            return;
+        }
+        
+        $season = $this->get_post_data('season');
+        
+        global $wpdb;
+        $available_trainers = array();
+        $processed_users = array();
+        $processed_emails = array();
+        
+        // Get user's WC Teams
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        
+        if (!empty($managed_teams)) {
+            $wc_team_ids = array_column($managed_teams, 'team_id');
+            
+            // 1. Get active trainers from WC Teams
+            foreach ($managed_teams as $team_info) {
+                $wc_team_id = $team_info['team_id'];
+                
+                if (function_exists('wc_memberships_for_teams_get_team')) {
+                    $team = wc_memberships_for_teams_get_team($wc_team_id);
+                    
+                    if ($team && is_object($team) && method_exists($team, 'get_members')) {
+                        $members = $team->get_members();
+                        
+                        foreach ($members as $member) {
+                            if (method_exists($member, 'get_user_id')) {
+                                $member_user_id = $member->get_user_id();
+                                
+                                if (!in_array($member_user_id, $processed_users)) {
+                                    $member_user = get_user_by('id', $member_user_id);
+                                    
+                                    if ($member_user) {
+                                        $processed_users[] = $member_user_id;
+                                        $processed_emails[] = strtolower($member_user->user_email);
+                                        
+                                        $available_trainers[] = array(
+                                            'id' => $member_user->ID,
+                                            'display_name' => $member_user->display_name,
+                                            'email' => $member_user->user_email,
+                                            'first_name' => get_user_meta($member_user->ID, 'first_name', true),
+                                            'last_name' => get_user_meta($member_user->ID, 'last_name', true),
+                                            'type' => 'active'
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 2. Get pending invitations - Fixed query
+            if (!empty($wc_team_ids)) {
+                $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
+                
+                // Get invitations using a proper meta query
+                $invitation_ids = $wpdb->get_col($wpdb->prepare(
+                    "SELECT DISTINCT p.ID
+                    FROM {$wpdb->posts} p
+                    WHERE p.post_type = 'wc_team_invitation'
+                    AND p.post_status = 'wcmti-pending'
+                    AND p.post_parent IN ($placeholders)
+                    ORDER BY p.post_date DESC",
+                    ...$wc_team_ids
+                ));
+                
+                // Now get the details for each invitation
+                foreach ($invitation_ids as $invitation_id) {
+                    // Get all meta data at once
+                    $meta_data = get_post_meta($invitation_id);
+                    
+                    // Extract email - try multiple possible keys
+                    $email = null;
+                    if (isset($meta_data['_email'][0])) {
+                        $email = $meta_data['_email'][0];
+                    } elseif (isset($meta_data['_recipient_email'][0])) {
+                        $email = $meta_data['_recipient_email'][0];
+                    } else {
+                        // Sometimes the email might be in the post data itself
+                        $invitation_post = get_post($invitation_id);
+                        if ($invitation_post && filter_var($invitation_post->post_title, FILTER_VALIDATE_EMAIL)) {
+                            $email = $invitation_post->post_title;
+                        }
+                    }
+                    
+                    // Skip if no email or already processed
+                    if (empty($email) || in_array(strtolower($email), $processed_emails)) {
+                        continue;
+                    }
+                    
+                    $processed_emails[] = strtolower($email);
+                    
+                    // Add to available trainers
+                    $available_trainers[] = array(
+                        'id' => 'pending_' . $invitation_id,
+                        'display_name' => $email,
+                        'email' => $email,
+                        'first_name' => '',
+                        'last_name' => '',
+                        'type' => 'pending',
+                        'invitation_id' => $invitation_id
+                    );
+                }
+            }
+        }
+        
+        // 3. Also check for any trainers already in the Club Manager system
+        // This is useful for clubs that might have trainers assigned before WC Teams integration
+        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        
+        $club_member_ids = $this->get_club_member_ids($user_id);
+        
+        if (!empty($club_member_ids)) {
+            $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
+            
+            $existing_trainers = $wpdb->get_results($wpdb->prepare(
+                "SELECT DISTINCT u.ID, u.display_name, u.user_email as email,
+                        um1.meta_value as first_name, um2.meta_value as last_name
+                FROM {$wpdb->users} u
+                INNER JOIN $trainers_table tt ON u.ID = tt.trainer_id
+                INNER JOIN $teams_table t ON tt.team_id = t.id
+                LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
+                LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
+                WHERE t.created_by IN ($placeholders) AND tt.is_active = 1
+                ORDER BY u.display_name",
+                ...$club_member_ids
+            ));
+            
+            foreach ($existing_trainers as $trainer) {
+                // Only add if not already in the list
+                if (!in_array($trainer->ID, $processed_users) && !in_array(strtolower($trainer->email), $processed_emails)) {
+                    $available_trainers[] = array(
+                        'id' => $trainer->ID,
+                        'display_name' => $trainer->display_name,
+                        'email' => $trainer->email,
+                        'first_name' => $trainer->first_name,
+                        'last_name' => $trainer->last_name,
+                        'type' => 'active'
+                    );
+                }
+            }
+        }
+        
+        wp_send_json_success($available_trainers);
+    }
     
     /**
-     * Get pending trainer invitations from WC Teams.
+     * Get pending trainer invitations from WC Teams - DEBUG VERSION.
      */
     public function get_pending_invitations() {
         $user_id = $this->verify_request();
@@ -64,6 +223,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         $invitations = [];
+        $debug_info = [];
         
         // Get all WC Teams where user is owner/manager
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
@@ -73,6 +233,8 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $wc_team_ids[] = $team_data['team_id'];
         }
         
+        $debug_info['wc_team_ids'] = $wc_team_ids;
+        
         if (!empty($wc_team_ids)) {
             global $wpdb;
             
@@ -80,11 +242,10 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
             $query_args = array_merge($wc_team_ids);
             
-            $invitation_posts = $wpdb->get_results($wpdb->prepare(
-                "SELECT p.*, pm_email.meta_value as email, pm_token.meta_value as token
+            // First let's see what invitations exist
+            $all_invitations = $wpdb->get_results($wpdb->prepare(
+                "SELECT p.ID, p.post_parent, p.post_status, p.post_title, p.post_name
                 FROM {$wpdb->posts} p
-                LEFT JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_email'
-                LEFT JOIN {$wpdb->postmeta} pm_token ON p.ID = pm_token.post_id AND pm_token.meta_key = '_token'
                 WHERE p.post_type = 'wc_team_invitation'
                 AND p.post_status = 'wcmti-pending'
                 AND p.post_parent IN ($placeholders)
@@ -92,37 +253,68 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 ...$query_args
             ));
             
-            foreach ($invitation_posts as $inv_post) {
-                // Check if this is a Club Manager invitation
-                $cm_team_ids = get_post_meta($inv_post->ID, '_cm_team_ids', true);
-                if (!$cm_team_ids) {
-                    continue; // Skip non-CM invitations
+            $debug_info['total_invitations'] = count($all_invitations);
+            $debug_info['invitation_details'] = [];
+            
+            foreach ($all_invitations as $inv_post) {
+                // Get ALL meta data for this invitation
+                $all_meta = get_post_meta($inv_post->ID);
+                
+                $debug_entry = [
+                    'id' => $inv_post->ID,
+                    'parent' => $inv_post->post_parent,
+                    'title' => $inv_post->post_title,
+                    'name' => $inv_post->post_name,
+                    'meta_keys' => array_keys($all_meta),
+                    'email' => isset($all_meta['_email']) ? $all_meta['_email'][0] : 'NOT FOUND',
+                    'recipient_email' => isset($all_meta['_recipient_email']) ? $all_meta['_recipient_email'][0] : 'NOT FOUND',
+                    'cm_team_ids' => isset($all_meta['_cm_team_ids']) ? maybe_unserialize($all_meta['_cm_team_ids'][0]) : 'NOT SET'
+                ];
+                
+                $debug_info['invitation_details'][] = $debug_entry;
+                
+                // Try to get email from various sources
+                $email = null;
+                if (!empty($all_meta['_email'])) {
+                    $email = $all_meta['_email'][0];
+                } elseif (!empty($all_meta['_recipient_email'])) {
+                    $email = $all_meta['_recipient_email'][0];
+                } elseif (filter_var($inv_post->post_title, FILTER_VALIDATE_EMAIL)) {
+                    $email = $inv_post->post_title;
                 }
                 
-                $team_names = [];
-                if ($cm_team_ids && is_array($cm_team_ids)) {
-                    $teams_table = Club_Manager_Database::get_table_name('teams');
-                    foreach ($cm_team_ids as $team_id) {
-                        $team_name = $wpdb->get_var($wpdb->prepare(
-                            "SELECT name FROM $teams_table WHERE id = %d",
-                            $team_id
-                        ));
-                        if ($team_name) {
-                            $team_names[] = $team_name;
+                if ($email) {
+                    // Get team names
+                    $team_names = [];
+                    $cm_team_ids = isset($all_meta['_cm_team_ids']) ? maybe_unserialize($all_meta['_cm_team_ids'][0]) : [];
+                    
+                    if ($cm_team_ids && is_array($cm_team_ids)) {
+                        $teams_table = Club_Manager_Database::get_table_name('teams');
+                        foreach ($cm_team_ids as $team_id) {
+                            $team_name = $wpdb->get_var($wpdb->prepare(
+                                "SELECT name FROM $teams_table WHERE id = %d",
+                                $team_id
+                            ));
+                            if ($team_name) {
+                                $team_names[] = $team_name;
+                            }
                         }
                     }
+                    
+                    $invitations[] = array(
+                        'id' => $inv_post->ID,
+                        'email' => $email,
+                        'team_name' => !empty($team_names) ? implode(', ', $team_names) : 'Unknown',
+                        'team_id' => $inv_post->post_parent,
+                        'created_at' => $inv_post->post_date,
+                        'role' => isset($all_meta['_cm_role']) ? $all_meta['_cm_role'][0] : 'trainer'
+                    );
                 }
-                
-                $invitations[] = array(
-                    'id' => $inv_post->ID,
-                    'email' => $inv_post->email,
-                    'team_name' => !empty($team_names) ? implode(', ', $team_names) : 'Unknown',
-                    'team_id' => $inv_post->post_parent,
-                    'created_at' => $inv_post->post_date,
-                    'role' => get_post_meta($inv_post->ID, '_cm_role', true) ?: 'trainer'
-                );
             }
         }
+        
+        // Log debug info
+        error_log('Club Manager - Pending Invitations Debug: ' . json_encode($debug_info, JSON_PRETTY_PRINT));
         
         wp_send_json_success($invitations);
     }
