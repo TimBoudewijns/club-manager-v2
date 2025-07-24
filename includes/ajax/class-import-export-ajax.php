@@ -31,17 +31,72 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
+        // Debug logging
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Import AJAX - Files array: ' . print_r($_FILES, true));
+        }
+        
         if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-            wp_send_json_error('No file uploaded or upload error');
+            $error_message = 'No file uploaded';
+            if (isset($_FILES['file']['error'])) {
+                switch ($_FILES['file']['error']) {
+                    case UPLOAD_ERR_INI_SIZE:
+                        $error_message = 'File exceeds upload_max_filesize';
+                        break;
+                    case UPLOAD_ERR_FORM_SIZE:
+                        $error_message = 'File exceeds MAX_FILE_SIZE';
+                        break;
+                    case UPLOAD_ERR_PARTIAL:
+                        $error_message = 'File was only partially uploaded';
+                        break;
+                    case UPLOAD_ERR_NO_FILE:
+                        $error_message = 'No file was uploaded';
+                        break;
+                    case UPLOAD_ERR_NO_TMP_DIR:
+                        $error_message = 'Missing temporary folder';
+                        break;
+                    case UPLOAD_ERR_CANT_WRITE:
+                        $error_message = 'Failed to write file to disk';
+                        break;
+                    default:
+                        $error_message = 'Unknown upload error';
+                }
+            }
+            wp_send_json_error($error_message);
             return;
         }
         
         $file = $_FILES['file'];
         $type = $this->get_post_data('type');
         
+        // Debug logging
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Import AJAX - File name: ' . $file['name']);
+            error_log('Import AJAX - File type: ' . $file['type']);
+            error_log('Import AJAX - File size: ' . $file['size']);
+            error_log('Import AJAX - Temp name: ' . $file['tmp_name']);
+            error_log('Import AJAX - Import type: ' . $type);
+        }
+        
+        // Check file extension
+        $file_extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if ($file_extension !== 'csv') {
+            wp_send_json_error('Invalid file type. Only CSV files are allowed. Your file has extension: ' . $file_extension);
+            return;
+        }
+        
         try {
+            // Check if parser class exists
+            if (!class_exists('Club_Manager_CSV_Parser')) {
+                error_log('Club Manager: CSV Parser class not found');
+                wp_send_json_error('CSV Parser not available. Please contact support.');
+                return;
+            }
+            
             $parser = new Club_Manager_CSV_Parser();
-            $data = $parser->parse($file['tmp_name'], $file['type']);
+            
+            // Parse the file - pass empty string for mime type since we're ignoring it
+            $data = $parser->parse($file['tmp_name'], '');
             
             if (empty($data['headers']) || empty($data['rows'])) {
                 wp_send_json_error('File is empty or invalid format');
@@ -65,7 +120,8 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             ));
             
         } catch (Exception $e) {
-            wp_send_json_error('Error parsing file: ' . $e->getMessage());
+            error_log('Club Manager Import Error: ' . $e->getMessage());
+            wp_send_json_error($e->getMessage());
         }
     }
     
