@@ -18,17 +18,24 @@ class Club_Manager_CSV_Parser {
         if (defined('WP_DEBUG') && WP_DEBUG) {
             error_log('CSV Parser - Starting parse for file: ' . basename($file_path));
             error_log('CSV Parser - MIME type: ' . $mime_type);
+            error_log('CSV Parser - File extension: ' . pathinfo($file_path, PATHINFO_EXTENSION));
         }
         
-        // Check file extension
+        // Check file extension - this is the most reliable method
         $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
         
-        // Only support CSV files
-        if ($extension !== 'csv') {
-            throw new Exception('Only CSV files are supported. Please convert your Excel file to CSV format.');
+        // Only check extension, ignore MIME type as browsers are inconsistent
+        if ($extension === 'csv') {
+            return $this->parseCSV($file_path);
         }
         
-        return $this->parseCSV($file_path);
+        // Check for Excel extensions
+        if (in_array($extension, array('xls', 'xlsx', 'xlsm'))) {
+            throw new Exception('Excel files are not supported. Please save your file as CSV format. In Excel: File → Save As → Choose "CSV (Comma delimited)"');
+        }
+        
+        // If we get here, it's an unknown file type
+        throw new Exception('Unsupported file type. Please upload a CSV file.');
     }
     
     /**
