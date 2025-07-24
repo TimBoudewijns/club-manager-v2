@@ -95,8 +95,8 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             
             $parser = new Club_Manager_CSV_Parser();
             
-            // Parse the file - pass empty string for mime type since we're ignoring it
-            $data = $parser->parse($file['tmp_name'], '');
+            // Parse the file - pass mime type and original filename
+            $data = $parser->parse($file['tmp_name'], $file['type'], $file['name']);
             
             if (empty($data['headers']) || empty($data['rows'])) {
                 wp_send_json_error('File is empty or invalid format');

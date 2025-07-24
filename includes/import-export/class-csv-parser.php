@@ -10,21 +10,31 @@ class Club_Manager_CSV_Parser {
      * Note: Excel support is removed as it requires additional libraries.
      * 
      * @param string $file_path Path to the file
-     * @param string $mime_type File MIME type
+     * @param string $mime_type File MIME type (optional, can be empty)
+     * @param string $original_filename Original filename (optional, for extension checking)
      * @return array Parsed data with headers and rows
      */
-    public function parse($file_path, $mime_type) {
+    public function parse($file_path, $mime_type = '', $original_filename = '') {
         // Debug logging
         if (defined('WP_DEBUG') && WP_DEBUG) {
             error_log('CSV Parser - Starting parse for file: ' . basename($file_path));
             error_log('CSV Parser - MIME type: ' . $mime_type);
-            error_log('CSV Parser - File extension: ' . pathinfo($file_path, PATHINFO_EXTENSION));
+            error_log('CSV Parser - Original filename: ' . $original_filename);
         }
         
-        // Check file extension - this is the most reliable method
-        $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+        // For temporary files, we need to check the original filename
+        if (!empty($original_filename)) {
+            $extension = strtolower(pathinfo($original_filename, PATHINFO_EXTENSION));
+        } else {
+            // Fallback to checking the file path itself
+            $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
+        }
         
-        // Only check extension, ignore MIME type as browsers are inconsistent
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('CSV Parser - Detected extension: ' . $extension);
+        }
+        
+        // Check for CSV extension
         if ($extension === 'csv') {
             return $this->parseCSV($file_path);
         }
@@ -32,6 +42,16 @@ class Club_Manager_CSV_Parser {
         // Check for Excel extensions
         if (in_array($extension, array('xls', 'xlsx', 'xlsm'))) {
             throw new Exception('Excel files are not supported. Please save your file as CSV format. In Excel: File → Save As → Choose "CSV (Comma delimited)"');
+        }
+        
+        // If no extension found and mime type suggests CSV, allow it
+        if (empty($extension) && !empty($mime_type)) {
+            $csv_mime_types = array('text/csv', 'text/plain', 'application/csv', 'text/comma-separated-values');
+            foreach ($csv_mime_types as $csv_type) {
+                if (stripos($mime_type, $csv_type) !== false) {
+                    return $this->parseCSV($file_path);
+                }
+            }
         }
         
         // If we get here, it's an unknown file type
@@ -46,6 +66,11 @@ class Club_Manager_CSV_Parser {
             'headers' => array(),
             'rows' => array()
         );
+        
+        // Check if file exists
+        if (!file_exists($file_path)) {
+            throw new Exception('File not found: ' . $file_path);
+        }
         
         // Read file content to check encoding and BOM
         $content = file_get_contents($file_path);
