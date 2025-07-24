@@ -36,11 +36,11 @@
                     </div>
                     <div>
                         <h3 class="text-xl font-bold text-gray-900">Import Data</h3>
-                        <p class="text-gray-600">Upload CSV or Excel files</p>
+                        <p class="text-gray-600">Upload CSV files</p>
                     </div>
                 </div>
                 
-                <p class="text-gray-700 mb-6">Import teams, players, or trainers from spreadsheet files. Our wizard will guide you through the process.</p>
+                <p class="text-gray-700 mb-6">Import teams, players, or trainers from CSV files. Our wizard will guide you through the process.</p>
                 
                 <button @click="openImportExport('import')" 
                         class="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105">
@@ -62,7 +62,7 @@
                     </div>
                 </div>
                 
-                <p class="text-gray-700 mb-6">Export your teams, players, or trainers to CSV or Excel format for backup or external use.</p>
+                <p class="text-gray-700 mb-6">Export your teams, players, or trainers to CSV format for backup or external use.</p>
                 
                 <button @click="openImportExport('export')" 
                         class="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105">
@@ -76,7 +76,7 @@
             <h3 class="text-xl font-bold text-gray-900 mb-4">Import Templates</h3>
             <p class="text-gray-600 mb-6">Download these templates to ensure your data is formatted correctly for import.</p>
             
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-md transition-shadow">
                     <div class="flex items-center mb-4">
                         <div class="bg-orange-100 rounded-lg p-2 mr-3">
@@ -102,9 +102,25 @@
                         </div>
                         <h4 class="font-semibold text-gray-900">Players Template</h4>
                     </div>
-                    <p class="text-sm text-gray-600 mb-4">Player profiles and team assignments</p>
+                    <p class="text-sm text-gray-600 mb-4">Player profiles with team assignments</p>
                     <button @click="downloadTemplate('players')" 
                             class="w-full text-center text-blue-600 hover:text-blue-700 font-medium text-sm hover:underline">
+                        Download CSV Template
+                    </button>
+                </div>
+                
+                <div class="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-md transition-shadow">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-green-100 rounded-lg p-2 mr-3">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+                            </svg>
+                        </div>
+                        <h4 class="font-semibold text-gray-900">Teams + Players</h4>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">Combined teams and players template</p>
+                    <button @click="downloadTemplate('teams-with-players')" 
+                            class="w-full text-center text-green-600 hover:text-green-700 font-medium text-sm hover:underline">
                         Download CSV Template
                     </button>
                 </div>
@@ -127,7 +143,7 @@
             </div>
         </div>
         
-        <!-- Help Section -->
+        <!-- File Format Section -->
         <div class="mt-8 bg-yellow-50 rounded-xl p-6 border border-yellow-200">
             <div class="flex items-start">
                 <div class="flex-shrink-0">
@@ -136,13 +152,37 @@
                     </svg>
                 </div>
                 <div class="ml-3">
-                    <h4 class="text-lg font-semibold text-yellow-900 mb-2">Important Notes</h4>
+                    <h4 class="text-lg font-semibold text-yellow-900 mb-2">Important File Format Information</h4>
                     <ul class="text-sm text-yellow-800 space-y-1 list-disc list-inside">
-                        <li>Files must be in CSV or Excel format (.csv, .xls, .xlsx)</li>
+                        <li><strong>Only CSV files are supported</strong> - Excel files (.xls, .xlsx) must be saved as CSV first</li>
+                        <li>To convert Excel to CSV: Open in Excel → File → Save As → Choose "CSV (Comma delimited)"</li>
                         <li>Maximum file size is 10MB</li>
-                        <li>Dates should be in DD-MM-YYYY format</li>
+                        <li>Dates should be in DD-MM-YYYY format (e.g., 15-03-2005)</li>
                         <li>Email addresses will be validated during import</li>
-                        <li>Trainer invitations will be sent automatically if enabled</li>
+                        <li>For trainers with multiple teams, use semicolon (;) to separate team names</li>
+                        <li>Season format should be YYYY-YYYY (e.g., 2024-2025)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Tips -->
+        <div class="mt-6 bg-blue-50 rounded-xl p-6 border border-blue-200">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="w-6 h-6 text-blue-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h4 class="text-lg font-semibold text-blue-900 mb-2">Import/Export Tips</h4>
+                    <ul class="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                        <li>Always backup your data before importing</li>
+                        <li>Use the templates to ensure correct formatting</li>
+                        <li>The import wizard will show you a preview before processing</li>
+                        <li>You can choose how to handle duplicate records during import</li>
+                        <li>Trainer invitations can be sent automatically after import</li>
+                        <li>Exports will include data based on your current season selection</li>
                     </ul>
                 </div>
             </div>

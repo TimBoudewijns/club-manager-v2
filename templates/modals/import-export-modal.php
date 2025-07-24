@@ -164,6 +164,8 @@
                                 <button @click="downloadTemplate('teams')" class="text-sm text-purple-600 hover:text-purple-700 underline">Teams Template</button>
                                 <span class="text-gray-400">•</span>
                                 <button @click="downloadTemplate('players')" class="text-sm text-purple-600 hover:text-purple-700 underline">Players Template</button>
+                                <span class="text-gray-400">•</span>
+                                <button @click="downloadTemplate('teams-with-players')" class="text-sm text-purple-600 hover:text-purple-700 underline">Teams + Players Template</button>
                                 <span class="text-gray-400" x-show="hasPermission('can_manage_trainers')">•</span>
                                 <button @click="downloadTemplate('trainers')" x-show="hasPermission('can_manage_trainers')" class="text-sm text-purple-600 hover:text-purple-700 underline">Trainers Template</button>
                             </div>
@@ -172,12 +174,12 @@
                     
                     <!-- Step 2: Upload File -->
                     <div x-show="importWizardStep === 2" class="space-y-6">
-                        <h4 class="text-lg font-semibold text-gray-900">Upload your file</h4>
+                        <h4 class="text-lg font-semibold text-gray-900">Upload your CSV file</h4>
                         
                         <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-purple-400 transition-colors">
                             <input type="file" 
                                    id="import-file-input"
-                                   accept=".csv,.xls,.xlsx" 
+                                   accept=".csv" 
                                    @change="handleFileUpload($event)"
                                    class="hidden">
                             
@@ -190,7 +192,8 @@
                                 
                                 <div x-show="!importFile">
                                     <p class="text-gray-900 font-medium mb-1">Click to upload or drag and drop</p>
-                                    <p class="text-sm text-gray-600">CSV or Excel files (max 10MB)</p>
+                                    <p class="text-sm text-gray-600">CSV files only (max 10MB)</p>
+                                    <p class="text-xs text-red-600 mt-2">Excel files (.xls, .xlsx) are not supported</p>
                                 </div>
                                 
                                 <div x-show="importFile" class="text-left inline-block">
@@ -205,6 +208,18 @@
                                     </div>
                                 </div>
                             </label>
+                        </div>
+                        
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                            <div class="flex">
+                                <svg class="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                </svg>
+                                <div>
+                                    <p class="text-sm text-yellow-800 font-medium">Converting from Excel?</p>
+                                    <p class="text-sm text-yellow-700">Open your Excel file → File → Save As → Choose "CSV (Comma delimited)"</p>
+                                </div>
+                            </div>
                         </div>
                         
                         <div class="flex justify-between">
@@ -562,14 +577,21 @@
                     <!-- Export Format -->
                     <div>
                         <label class="text-sm font-medium text-gray-700">Export Format</label>
-                        <div class="mt-2 space-x-4">
-                            <label class="inline-flex items-center">
+                        <div class="mt-2 space-y-2">
+                            <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
+                                   :class="exportFormat === 'csv' ? 'border-purple-500 bg-purple-50' : ''">
                                 <input type="radio" x-model="exportFormat" value="csv" class="radio radio-purple">
-                                <span class="ml-2">CSV</span>
+                                <div>
+                                    <span class="font-medium">CSV</span>
+                                    <p class="text-sm text-gray-600">Comma-separated values, compatible with Excel</p>
+                                </div>
                             </label>
-                            <label class="inline-flex items-center">
-                                <input type="radio" x-model="exportFormat" value="xlsx" class="radio radio-purple">
-                                <span class="ml-2">Excel (XLSX)</span>
+                            <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-not-allowed opacity-50">
+                                <input type="radio" x-model="exportFormat" value="xlsx" class="radio radio-purple" disabled>
+                                <div>
+                                    <span class="font-medium">Excel (XLSX)</span>
+                                    <p class="text-sm text-gray-600">Not supported - please use CSV format</p>
+                                </div>
                             </label>
                         </div>
                     </div>

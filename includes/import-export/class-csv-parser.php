@@ -6,7 +6,8 @@
 class Club_Manager_CSV_Parser {
     
     /**
-     * Parse a CSV or Excel file.
+     * Parse a CSV file.
+     * Note: Excel support is removed as it requires additional libraries.
      * 
      * @param string $file_path Path to the file
      * @param string $mime_type File MIME type
@@ -19,42 +20,15 @@ class Club_Manager_CSV_Parser {
             error_log('CSV Parser - MIME type: ' . $mime_type);
         }
         
-        // For CSV files - check multiple MIME types because browsers are inconsistent
-        $csv_mime_types = array(
-            'text/csv',
-            'text/plain',
-            'application/csv',
-            'application/vnd.ms-excel',
-            'text/x-csv',
-            'text/comma-separated-values',
-            'application/octet-stream' // Sometimes CSV files come as this
-        );
-        
-        $is_csv = false;
-        foreach ($csv_mime_types as $csv_type) {
-            if (strpos($mime_type, $csv_type) !== false) {
-                $is_csv = true;
-                break;
-            }
-        }
-        
-        // Also check file extension
+        // Check file extension
         $extension = strtolower(pathinfo($file_path, PATHINFO_EXTENSION));
-        if ($extension === 'csv') {
-            $is_csv = true;
+        
+        // Only support CSV files
+        if ($extension !== 'csv') {
+            throw new Exception('Only CSV files are supported. Please convert your Excel file to CSV format.');
         }
         
-        if ($is_csv) {
-            return $this->parseCSV($file_path);
-        }
-        
-        // For Excel files
-        if (strpos($mime_type, 'spreadsheet') !== false || 
-            in_array($extension, array('xls', 'xlsx'))) {
-            throw new Exception('Excel files are not supported yet. Please use CSV format.');
-        }
-        
-        throw new Exception('Unsupported file type. Please upload a CSV file.');
+        return $this->parseCSV($file_path);
     }
     
     /**

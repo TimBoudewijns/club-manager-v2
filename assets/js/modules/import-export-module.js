@@ -66,10 +66,10 @@ class ImportExportModule {
                 'birth_date': ['birth_date', 'birthdate', 'date_of_birth', 'dob', 'geboortedatum'],
                 'position': ['position', 'pos', 'positie'],
                 'jersey_number': ['jersey_number', 'jersey', 'number', 'shirt_number', 'rugnummer'],
-                'team_name': ['team_name', 'team', 'teamname'],
+                'team_name': ['team_name', 'team', 'teamname', 'ploeg'],
                 
                 // Trainers
-                'team_names': ['team_names', 'teams', 'assigned_teams']
+                'team_names': ['team_names', 'teams', 'assigned_teams', 'ploegen']
             },
             
             availableFields: {
@@ -90,6 +90,19 @@ class ImportExportModule {
                 trainers: [
                     { key: 'email', label: 'Email', required: true },
                     { key: 'team_names', label: 'Team Names (semicolon separated)', required: false }
+                ],
+                'teams-with-players': [
+                    // Team fields
+                    { key: 'team_name', label: 'Team Name', required: true },
+                    { key: 'coach', label: 'Coach', required: true },
+                    { key: 'season', label: 'Season', required: true },
+                    // Player fields
+                    { key: 'first_name', label: 'Player First Name', required: true },
+                    { key: 'last_name', label: 'Player Last Name', required: true },
+                    { key: 'email', label: 'Player Email', required: true },
+                    { key: 'birth_date', label: 'Player Birth Date', required: true },
+                    { key: 'position', label: 'Player Position', required: false },
+                    { key: 'jersey_number', label: 'Jersey Number', required: false }
                 ]
             },
             
@@ -97,7 +110,8 @@ class ImportExportModule {
             importTemplates: {
                 teams: 'name,coach,season\nHockey Team Alpha,John Doe,2024-2025\nHockey Team Beta,Jane Smith,2024-2025\nHockey Team Gamma,Bob Wilson,2024-2025',
                 players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\nJohn,Doe,john.doe@email.com,15-03-2005,Forward,10,Hockey Team Alpha\nJane,Smith,jane.smith@email.com,22-07-2006,Defense,5,Hockey Team Alpha\nBob,Johnson,bob.j@email.com,01-01-2005,Goalkeeper,1,Hockey Team Beta\nAlice,Wilson,alice.w@email.com,30-09-2005,Midfield,8,Hockey Team Beta',
-                trainers: 'email,team_names\ntrainer1@club.com,Hockey Team Alpha\ntrainer2@club.com,Hockey Team Alpha;Hockey Team Beta\nheadcoach@club.com,Hockey Team Gamma'
+                trainers: 'email,team_names\ntrainer1@club.com,Hockey Team Alpha\ntrainer2@club.com,Hockey Team Alpha;Hockey Team Beta\nheadcoach@club.com,Hockey Team Gamma',
+                'teams-with-players': 'team_name,coach,season,first_name,last_name,email,birth_date,position,jersey_number\nHockey Team Alpha,John Doe,2024-2025,Emma,Johnson,emma.j@email.com,12-04-2005,Forward,9\nHockey Team Alpha,John Doe,2024-2025,Michael,Brown,michael.b@email.com,23-08-2006,Defense,4\nHockey Team Beta,Jane Smith,2024-2025,Sarah,Davis,sarah.d@email.com,05-11-2005,Goalkeeper,1\nHockey Team Beta,Jane Smith,2024-2025,James,Wilson,james.w@email.com,17-02-2006,Midfield,7'
             }
         });
         
@@ -167,7 +181,7 @@ class ImportExportModule {
             const validExtensions = ['csv'];
             
             if (!validExtensions.includes(fileExtension)) {
-                alert('Please upload a CSV file. Excel files are not supported yet.');
+                alert('Please upload a CSV file. Excel files (.xls, .xlsx) are not supported.\n\nYou can save your Excel file as CSV by:\n1. Opening it in Excel\n2. Going to File > Save As\n3. Choosing "CSV (Comma delimited)" as the file type');
                 event.target.value = '';
                 return;
             }
@@ -237,31 +251,71 @@ class ImportExportModule {
         
         console.log('Auto-mapping - Headers:', headers);
         console.log('Auto-mapping - Fields:', fields);
+        console.log('Auto-mapping - Import Type:', this.app.importType);
         
-        // Try to match headers to fields
-        headers.forEach((header, index) => {
-            const cleanHeader = header.toLowerCase().trim().replace(/[_\s]+/g, '_');
-            
-            fields.forEach(field => {
-                // Skip if already mapped
-                if (this.app.importMapping[field.key] !== undefined) return;
+        // Special handling for teams-with-players
+        if (this.app.importType === 'teams-with-players') {
+            // Map team_name field specifically
+            headers.forEach((header, index) => {
+                const cleanHeader = header.toLowerCase().trim().replace(/[_\s]+/g, '_');
                 
-                // Direct match with field key
-                if (cleanHeader === field.key) {
-                    this.app.importMapping[field.key] = index;
-                    return;
+                // Map team_name (not just 'name')
+                if (cleanHeader === 'team_name' || cleanHeader === 'team' || cleanHeader === 'teamname') {
+                    this.app.importMapping['team_name'] = index;
                 }
+                // Map other team fields
+                else if (cleanHeader === 'coach' || cleanHeader === 'coach_name' || cleanHeader === 'trainer') {
+                    this.app.importMapping['coach'] = index;
+                }
+                else if (cleanHeader === 'season' || cleanHeader === 'year') {
+                    this.app.importMapping['season'] = index;
+                }
+                // Map player fields
+                else if (cleanHeader === 'first_name' || cleanHeader === 'firstname') {
+                    this.app.importMapping['first_name'] = index;
+                }
+                else if (cleanHeader === 'last_name' || cleanHeader === 'lastname') {
+                    this.app.importMapping['last_name'] = index;
+                }
+                else if (cleanHeader === 'email' || cleanHeader === 'email_address') {
+                    this.app.importMapping['email'] = index;
+                }
+                else if (cleanHeader === 'birth_date' || cleanHeader === 'birthdate') {
+                    this.app.importMapping['birth_date'] = index;
+                }
+                else if (cleanHeader === 'position' || cleanHeader === 'pos') {
+                    this.app.importMapping['position'] = index;
+                }
+                else if (cleanHeader === 'jersey_number' || cleanHeader === 'jersey') {
+                    this.app.importMapping['jersey_number'] = index;
+                }
+            });
+        } else {
+            // Normal mapping for other types
+            headers.forEach((header, index) => {
+                const cleanHeader = header.toLowerCase().trim().replace(/[_\s]+/g, '_');
                 
-                // Check known variations
-                if (this.app.fieldMappings[field.key]) {
-                    const variations = this.app.fieldMappings[field.key];
-                    if (variations.includes(cleanHeader)) {
+                fields.forEach(field => {
+                    // Skip if already mapped
+                    if (this.app.importMapping[field.key] !== undefined) return;
+                    
+                    // Direct match with field key
+                    if (cleanHeader === field.key) {
                         this.app.importMapping[field.key] = index;
                         return;
                     }
-                }
+                    
+                    // Check known variations
+                    if (this.app.fieldMappings[field.key]) {
+                        const variations = this.app.fieldMappings[field.key];
+                        if (variations.includes(cleanHeader)) {
+                            this.app.importMapping[field.key] = index;
+                            return;
+                        }
+                    }
+                });
             });
-        });
+        }
         
         console.log('Auto-mapping result:', this.app.importMapping);
     }
@@ -508,6 +562,12 @@ class ImportExportModule {
     
     async exportData() {
         try {
+            // Check export format
+            if (this.app.exportFormat !== 'csv') {
+                alert('Excel export is not supported. Please choose CSV format.');
+                return;
+            }
+            
             const data = {
                 type: this.app.exportType,
                 format: this.app.exportFormat,
@@ -556,6 +616,7 @@ class ImportExportModule {
     async refreshDataAfterImport() {
         switch (this.app.importType) {
             case 'teams':
+            case 'teams-with-players':
                 if (this.app.teamModule) {
                     await this.app.teamModule.loadMyTeams();
                 }
