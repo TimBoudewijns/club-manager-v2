@@ -178,7 +178,7 @@ class Club_Manager_Data_Validator {
     }
     
     /**
-     * Validate trainer data - UPDATED for semicolon separator.
+     * Validate trainer data - UPDATED for semicolon separator and duplicate checking.
      */
     private function validateTrainer($data, $row_index) {
         $errors = array();
@@ -193,6 +193,19 @@ class Club_Manager_Data_Validator {
                 $errors[] = array('row' => $row_index + 1, 'field' => 'email', 'message' => 'Invalid email address');
             } else {
                 $validated['email'] = $email;
+                
+                // Check if user already exists
+                $existing_user = get_user_by('email', $email);
+                if ($existing_user) {
+                    if ($this->options['duplicateHandling'] === 'skip') {
+                        $errors[] = array('row' => $row_index + 1, 'field' => 'email', 'message' => 'User already exists with this email and will be skipped');
+                    }
+                } else {
+                    // Check for pending invitations
+                    if ($this->hasPendingInvitation($email) && $this->options['duplicateHandling'] === 'skip') {
+                        $errors[] = array('row' => $row_index + 1, 'field' => 'email', 'message' => 'Invitation already sent to this email and will be skipped');
+                    }
+                }
             }
         }
         
@@ -216,6 +229,31 @@ class Club_Manager_Data_Validator {
             'data' => array_merge($data, $validated),
             'errors' => $errors
         );
+    }
+    
+    /**
+     * Check if there's a pending invitation for an email.
+     * Simplified version for validation.
+     */
+    private function hasPendingInvitation($email) {
+        global $wpdb;
+        
+        // Check for existing team_invitation posts with this email
+        $query = $wpdb->prepare(
+            "SELECT COUNT(*) 
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+             WHERE p.post_type = 'team_invitation'
+             AND p.post_status = 'publish'
+             AND pm.meta_key = '_email'
+             AND pm.meta_value = %s
+             AND p.post_date > DATE_SUB(NOW(), INTERVAL 7 DAY)",
+            $email
+        );
+        
+        $count = $wpdb->get_var($query);
+        
+        return $count > 0;
     }
     
     /**

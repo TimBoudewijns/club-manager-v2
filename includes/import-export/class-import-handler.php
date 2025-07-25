@@ -264,7 +264,7 @@ class Club_Manager_Import_Handler {
     }
 
     /**
-     * Process trainer import - UPDATED for semicolon separator.
+     * Process trainer import - UPDATED for semicolon separator and invitation checking.
      */
     private function processTrainer($data, $user_id) {
         // Check if email exists
@@ -281,6 +281,14 @@ class Club_Manager_Import_Handler {
                 $this->assignTrainerToTeams($user->ID, $team_names, $user_id);
             }
             return array('success' => true, 'action' => 'skipped', 'id' => $user->ID);
+        }
+        
+        // Check if there's already a pending invitation for this email
+        if ($this->hasPendingInvitation($data['email'], $user_id)) {
+            // Skip if duplicate handling is set to skip
+            if ($this->options['duplicateHandling'] === 'skip') {
+                return array('success' => true, 'action' => 'skipped', 'reason' => 'Invitation already sent');
+            }
         }
         
         // Prepare trainer for invitation
@@ -520,6 +528,65 @@ class Club_Manager_Import_Handler {
     private function getCurrentSeason($user_id) {
         $season = get_user_meta($user_id, 'cm_preferred_season', true);
         return $season ?: '2024-2025';
+    }
+    
+    /**
+     * Check if there's a pending invitation for an email address.
+     * 
+     * @param string $email Email address to check
+     * @param int $user_id User ID who is inviting
+     * @return bool
+     */
+    private function hasPendingInvitation($email, $user_id) {
+        global $wpdb;
+        
+        // Get the WC Teams that the user manages
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        if (empty($managed_teams)) {
+            return false;
+        }
+        
+        $team_ids = array_column($managed_teams, 'team_id');
+        
+        // Check for pending invitations in WC Teams
+        // We need to check the wc_memberships_team_invitation posts
+        $query = $wpdb->prepare(
+            "SELECT p.ID 
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_email'
+             INNER JOIN {$wpdb->postmeta} pm_team ON p.ID = pm_team.post_id AND pm_team.meta_key = '_team_id'
+             WHERE p.post_type = 'wc_user_membership'
+             AND p.post_status IN ('wcm-pending', 'wcm-active')
+             AND pm_email.meta_value = %s
+             AND pm_team.meta_value IN (" . implode(',', array_fill(0, count($team_ids), '%d')) . ")
+             LIMIT 1",
+            array_merge(array($email), $team_ids)
+        );
+        
+        $existing = $wpdb->get_var($query);
+        
+        if ($existing) {
+            return true;
+        }
+        
+        // Also check for invitations that might be in a different format
+        // Check the team_invitation post type if it exists
+        $invitation_query = $wpdb->prepare(
+            "SELECT p.ID 
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
+             WHERE p.post_type = 'team_invitation'
+             AND p.post_status = 'publish'
+             AND pm.meta_key = '_email'
+             AND pm.meta_value = %s
+             AND p.post_date > DATE_SUB(NOW(), INTERVAL 7 DAY)
+             LIMIT 1",
+            $email
+        );
+        
+        $invitation_exists = $wpdb->get_var($invitation_query);
+        
+        return !empty($invitation_exists);
     }
     
     /**
