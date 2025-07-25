@@ -540,53 +540,19 @@ class Club_Manager_Import_Handler {
     private function hasPendingInvitation($email, $user_id) {
         global $wpdb;
         
-        // Get the WC Teams that the user manages
-        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
-        if (empty($managed_teams)) {
-            return false;
-        }
+        // Check in the pending trainer assignments table
+        $table_name = $wpdb->prefix . 'dfdcm_pending_trainer_assignments';
         
-        $team_ids = array_column($managed_teams, 'team_id');
-        
-        // Check for pending invitations in WC Teams
-        // We need to check the wc_memberships_team_invitation posts
         $query = $wpdb->prepare(
-            "SELECT p.ID 
-             FROM {$wpdb->posts} p
-             INNER JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_email'
-             INNER JOIN {$wpdb->postmeta} pm_team ON p.ID = pm_team.post_id AND pm_team.meta_key = '_team_id'
-             WHERE p.post_type = 'wc_user_membership'
-             AND p.post_status IN ('wcm-pending', 'wcm-active')
-             AND pm_email.meta_value = %s
-             AND pm_team.meta_value IN (" . implode(',', array_fill(0, count($team_ids), '%d')) . ")
-             LIMIT 1",
-            array_merge(array($email), $team_ids)
-        );
-        
-        $existing = $wpdb->get_var($query);
-        
-        if ($existing) {
-            return true;
-        }
-        
-        // Also check for invitations that might be in a different format
-        // Check the team_invitation post type if it exists
-        $invitation_query = $wpdb->prepare(
-            "SELECT p.ID 
-             FROM {$wpdb->posts} p
-             INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-             WHERE p.post_type = 'team_invitation'
-             AND p.post_status = 'publish'
-             AND pm.meta_key = '_email'
-             AND pm.meta_value = %s
-             AND p.post_date > DATE_SUB(NOW(), INTERVAL 7 DAY)
-             LIMIT 1",
+            "SELECT COUNT(*) 
+             FROM {$table_name}
+             WHERE email = %s",
             $email
         );
         
-        $invitation_exists = $wpdb->get_var($invitation_query);
+        $count = $wpdb->get_var($query);
         
-        return !empty($invitation_exists);
+        return $count > 0;
     }
     
     /**

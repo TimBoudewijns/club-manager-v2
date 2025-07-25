@@ -238,16 +238,13 @@ class Club_Manager_Data_Validator {
     private function hasPendingInvitation($email) {
         global $wpdb;
         
-        // Check for existing team_invitation posts with this email
+        // Check in the pending trainer assignments table
+        $table_name = $wpdb->prefix . 'dfdcm_pending_trainer_assignments';
+        
         $query = $wpdb->prepare(
             "SELECT COUNT(*) 
-             FROM {$wpdb->posts} p
-             INNER JOIN {$wpdb->postmeta} pm ON p.ID = pm.post_id
-             WHERE p.post_type = 'team_invitation'
-             AND p.post_status = 'publish'
-             AND pm.meta_key = '_email'
-             AND pm.meta_value = %s
-             AND p.post_date > DATE_SUB(NOW(), INTERVAL 7 DAY)",
+             FROM {$table_name}
+             WHERE email = %s",
             $email
         );
         
