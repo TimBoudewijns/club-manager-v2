@@ -181,6 +181,7 @@ class Club_Manager_Data_Validator {
      * Validate trainer data - UPDATED for semicolon separator and duplicate checking.
      */
     private function validateTrainer($data, $row_index) {
+        global $wpdb;
         $errors = array();
         $validated = array();
         
@@ -196,13 +197,19 @@ class Club_Manager_Data_Validator {
                 
                 // Check if user already exists
                 $existing_user = get_user_by('email', $email);
-                if ($existing_user) {
-                    if ($this->options['duplicateHandling'] === 'skip') {
-                        $errors[] = array('row' => $row_index + 1, 'field' => 'email', 'message' => 'User already exists with this email and will be skipped');
-                    }
-                } else {
-                    // Check for pending invitations
-                    if ($this->hasPendingInvitation($email) && $this->options['duplicateHandling'] === 'skip') {
+                if ($existing_user && $this->options['duplicateHandling'] === 'skip') {
+                    $errors[] = array('row' => $row_index + 1, 'field' => 'email', 'message' => 'User already exists with this email and will be skipped');
+                }
+                
+                // Check for pending invitations in the correct table
+                if (!$existing_user) {
+                    $pending_table = $wpdb->prefix . 'dfdcm_pending_trainer_assignments';
+                    $existing_invitation = $wpdb->get_var($wpdb->prepare(
+                        "SELECT COUNT(*) FROM {$pending_table} WHERE email = %s",
+                        $email
+                    ));
+                    
+                    if ($existing_invitation > 0 && $this->options['duplicateHandling'] === 'skip') {
                         $errors[] = array('row' => $row_index + 1, 'field' => 'email', 'message' => 'Invitation already sent to this email and will be skipped');
                     }
                 }

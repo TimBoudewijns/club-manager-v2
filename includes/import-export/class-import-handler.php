@@ -264,14 +264,17 @@ class Club_Manager_Import_Handler {
     }
 
     /**
-     * Process trainer import - UPDATED for semicolon separator and invitation checking.
+     * Process trainer import - FIXED VERSION.
      */
     private function processTrainer($data, $user_id) {
+        global $wpdb;
+        
         // Check if email exists
         if (empty($data['email'])) {
             return array('success' => false, 'error' => 'Email is required for trainer import.');
         }
         
+        // STAP 1: Check of gebruiker al bestaat
         $user = get_user_by('email', $data['email']);
         
         if ($user) {
@@ -280,17 +283,26 @@ class Club_Manager_Import_Handler {
                 $team_names = $this->parseTeamNames($data['team_names']);
                 $this->assignTrainerToTeams($user->ID, $team_names, $user_id);
             }
-            return array('success' => true, 'action' => 'skipped', 'id' => $user->ID);
+            return array('success' => true, 'action' => 'skipped', 'id' => $user->ID, 'reason' => 'User already exists');
         }
         
-        // Check if there's already a pending invitation for this email
-        if ($this->hasPendingInvitation($data['email'], $user_id)) {
-            // Skip if duplicate handling is set to skip
+        // STAP 2: Check of er al een pending invitation is
+        $pending_table = $wpdb->prefix . 'dfdcm_pending_trainer_assignments';
+        
+        $existing_invitation = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM {$pending_table} WHERE email = %s",
+            $data['email']
+        ));
+        
+        if ($existing_invitation > 0) {
+            // Er is al een uitnodiging
             if ($this->options['duplicateHandling'] === 'skip') {
                 return array('success' => true, 'action' => 'skipped', 'reason' => 'Invitation already sent');
             }
+            // Als niet skip, dan kunnen we update doen of nieuwe sturen
         }
         
+        // STAP 3: Geen bestaande user, geen pending invitation (of we willen update/create)
         // Prepare trainer for invitation
         $trainer_to_invite = array(
             'email' => $data['email'],
@@ -299,7 +311,6 @@ class Club_Manager_Import_Handler {
         );
         
         if (!empty($data['team_names'])) {
-            global $wpdb;
             $teams_table = Club_Manager_Database::get_table_name('teams');
             $season = $this->getCurrentSeason($user_id);
             
@@ -528,31 +539,6 @@ class Club_Manager_Import_Handler {
     private function getCurrentSeason($user_id) {
         $season = get_user_meta($user_id, 'cm_preferred_season', true);
         return $season ?: '2024-2025';
-    }
-    
-    /**
-     * Check if there's a pending invitation for an email address.
-     * 
-     * @param string $email Email address to check
-     * @param int $user_id User ID who is inviting
-     * @return bool
-     */
-    private function hasPendingInvitation($email, $user_id) {
-        global $wpdb;
-        
-        // Check in the pending trainer assignments table
-        $table_name = $wpdb->prefix . 'dfdcm_pending_trainer_assignments';
-        
-        $query = $wpdb->prepare(
-            "SELECT COUNT(*) 
-             FROM {$table_name}
-             WHERE email = %s",
-            $email
-        );
-        
-        $count = $wpdb->get_var($query);
-        
-        return $count > 0;
     }
     
     /**
