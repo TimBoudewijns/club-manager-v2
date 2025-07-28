@@ -234,7 +234,11 @@ class EvaluationModule {
                     this.app.adviceLoading = false;
                     
                     // Force UI update
-                    await this.app.$nextTick();
+                    await new Promise(resolve => {
+                        this.app.$nextTick(() => {
+                            setTimeout(resolve, 100);
+                        });
+                    });
                     
                     // Start polling for new advice after delay
                     setTimeout(() => {

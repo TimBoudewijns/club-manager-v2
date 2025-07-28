@@ -100,7 +100,11 @@ class PlayerCardModule {
             this.app.showPlayerCardModal = true;
             
             // Wait for Alpine to update the DOM
-            await this.app.$nextTick();
+            await new Promise(resolve => {
+                this.app.$nextTick(() => {
+                    setTimeout(resolve, 100);
+                });
+            });
             
             // Wait a bit more for the DOM to be ready and try to create chart
             setTimeout(() => {
@@ -170,7 +174,11 @@ class PlayerCardModule {
             await this.loadPlayerAdvice(player, isClubView);
             
             // Wait for Alpine to update the DOM
-            await this.app.$nextTick();
+            await new Promise(resolve => {
+                this.app.$nextTick(() => {
+                    setTimeout(resolve, 100);
+                });
+            });
             
             // Wait a bit more for the DOM to be ready and try to create chart
             setTimeout(() => {

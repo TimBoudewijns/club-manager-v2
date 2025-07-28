@@ -165,7 +165,11 @@ class TeamManagementModule {
         await this.loadAvailableTrainers();
         
         // Wait a tick to ensure data is propagated
-        await this.app.$nextTick();
+        await new Promise(resolve => {
+            this.app.$nextTick(() => {
+                setTimeout(resolve, 100);
+            });
+        });
         
         // Reset assignment data
         this.app.trainerAssignment = {
