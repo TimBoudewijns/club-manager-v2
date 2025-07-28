@@ -557,7 +557,7 @@ class PlayerCardModule {
         );
         
         if (categoryEvaluations.length > 0) {
-            const sum = categoryEvaluations.reduce((acc, eval) => acc + parseFloat(eval.score), 0);
+            const sum = categoryEvaluations.reduce((acc, evaluation) => acc + parseFloat(evaluation.score), 0);
             const average = sum / categoryEvaluations.length;
             return average.toFixed(1);
         }
@@ -571,7 +571,7 @@ class PlayerCardModule {
             
             if (subEvaluations.length > 0) {
                 if (this.app.selectedEvaluationDate !== 'all') {
-                    const sum = subEvaluations.reduce((acc, eval) => acc + parseFloat(eval.score), 0);
+                    const sum = subEvaluations.reduce((acc, evaluation) => acc + parseFloat(evaluation.score), 0);
                     scores.push(sum / subEvaluations.length);
                 } else {
                     subEvaluations.sort((a, b) => new Date(b.evaluated_at) - new Date(a.evaluated_at));
