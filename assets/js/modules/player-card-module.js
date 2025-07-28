@@ -34,6 +34,7 @@ class PlayerCardModule {
     bindMethods() {
         this.app.viewPlayerCard = this.viewPlayerCard.bind(this);
         this.app.handlePlayerCardClick = this.handlePlayerCardClick.bind(this);
+        this.app.handlePlayerCardModalClick = this.handlePlayerCardModalClick.bind(this);
         this.app.viewPlayerCardInModal = this.viewPlayerCardInModal.bind(this);
         this.app.closePlayerCardModal = this.closePlayerCardModal.bind(this);
         this.app.createSpiderChart = this.createSpiderChart.bind(this);
@@ -57,6 +58,10 @@ class PlayerCardModule {
         if (player) {
             this.viewPlayerCard(player, isClubView);
         }
+    }
+    
+    handlePlayerCardModalClick(playerId, isClubView = false) {
+        this.viewPlayerCardInModal(playerId, isClubView);
     }
     
     async viewPlayerCardInModal(playerId, isClubView = false) {

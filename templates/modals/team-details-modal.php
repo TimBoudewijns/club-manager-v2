@@ -141,7 +141,7 @@
                                                 <template x-if="isViewingClubTeam">
                                                     <div class="flex items-center justify-center space-x-1 md:space-x-2">
                                                         <!-- View Player Card Button -->
-                                                        <button @click="viewPlayerCardInModal(player.id, isViewingClubTeam)" 
+                                                        <button @click="handlePlayerCardModalClick(player.id, isViewingClubTeam)" 
                                                                 class="text-blue-600 hover:text-blue-900 transition-colors p-2 rounded-lg hover:bg-blue-50 active:bg-blue-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                                 title="View player card"
                                                                 type="button">
@@ -174,7 +174,7 @@
                                                             </svg>
                                                         </button>
                                                         <!-- View Player Card Button - Voor alle trainers -->
-                                                        <button @click="viewPlayerCardInModal(player.id, isViewingClubTeam)" 
+                                                        <button @click="handlePlayerCardModalClick(player.id, isViewingClubTeam)" 
                                                                 class="text-blue-600 hover:text-blue-900 transition-colors p-2 rounded-lg hover:bg-blue-50 active:bg-blue-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                                 title="View player card"
                                                                 type="button">
