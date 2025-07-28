@@ -214,8 +214,9 @@ class PlayerModule {
     }
     
     handlePlayerCardModalClick(playerId, isClubView = false) {
-        if (this.app.playerCardModule) {
-            this.app.playerCardModule.viewPlayerCardInModal(playerId, isClubView);
+        const player = this.app.teamPlayers.find(p => p.id == playerId);
+        if (player && this.app.viewPlayerCardInModal) {
+            this.app.viewPlayerCardInModal(playerId, isClubView);
         }
     }
 }
