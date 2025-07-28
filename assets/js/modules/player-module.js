@@ -48,6 +48,7 @@ class PlayerModule {
         this.app.viewPlayerHistory = this.viewPlayerHistory.bind(this);
         this.app.handleHistoryClick = this.handleHistoryClick.bind(this);
         this.app.handleRemoveClick = this.handleRemoveClick.bind(this);
+        this.app.handlePlayerCardModalClick = this.handlePlayerCardModalClick.bind(this);
     }
     
     async createPlayer(event) {
@@ -209,6 +210,12 @@ class PlayerModule {
         const player = this.app.teamPlayers.find(p => p.id == playerId);
         if (player) {
             this.removePlayerFromTeam(player);
+        }
+    }
+    
+    handlePlayerCardModalClick(playerId, isClubView = false) {
+        if (this.app.playerCardModule) {
+            this.app.playerCardModule.viewPlayerCardInModal(playerId, isClubView);
         }
     }
 }
