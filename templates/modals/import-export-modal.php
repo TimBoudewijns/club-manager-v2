@@ -193,7 +193,7 @@
                                 <div x-show="!importFile">
                                     <p class="text-gray-900 font-medium mb-1">Click to upload or drag and drop</p>
                                     <p class="text-sm text-gray-600">CSV files only (max 10MB)</p>
-                                    <p class="text-xs text-red-600 mt-2">Excel files (.xls, .xlsx) are not supported</p>
+                                    <p class="text-xs text-red-600 mt-2">Only CSV files are supported</p>
                                 </div>
                                 
                                 <div x-show="importFile" class="text-left inline-block">
@@ -216,8 +216,8 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                                 </svg>
                                 <div>
-                                    <p class="text-sm text-yellow-800 font-medium">Converting from Excel?</p>
-                                    <p class="text-sm text-yellow-700">Open your Excel file → File → Save As → Choose "CSV (Comma delimited)"</p>
+                                    <p class="text-sm text-yellow-800 font-medium">Need CSV format?</p>
+                                    <p class="text-sm text-yellow-700">CSV files can be created with any spreadsheet application or text editor</p>
                                 </div>
                             </div>
                         </div>
@@ -583,13 +583,13 @@
                                 <input type="radio" x-model="exportFormat" value="csv" class="radio radio-purple">
                                 <div>
                                     <span class="font-medium">CSV</span>
-                                    <p class="text-sm text-gray-600">Comma-separated values, compatible with Excel</p>
+                                    <p class="text-sm text-gray-600">Comma-separated values format</p>
                                 </div>
                             </label>
                             <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-not-allowed opacity-50">
                                 <input type="radio" x-model="exportFormat" value="xlsx" class="radio radio-purple" disabled>
                                 <div>
-                                    <span class="font-medium">Excel (XLSX)</span>
+                                    <span class="font-medium">Other formats</span>
                                     <p class="text-sm text-gray-600">Not supported - please use CSV format</p>
                                 </div>
                             </label>

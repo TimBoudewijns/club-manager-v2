@@ -420,7 +420,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 $content = $handler->generateCSV($data, $type);
                 $filename = 'club_manager_' . $type . '_' . date('Y-m-d') . '.csv';
             } else {
-                wp_send_json_error('Excel export is not yet supported. Please choose CSV.');
+                wp_send_json_error('Only CSV export format is supported.');
                 return;
             }
             

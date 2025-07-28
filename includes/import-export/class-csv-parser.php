@@ -7,7 +7,7 @@ class Club_Manager_CSV_Parser {
     
     /**
      * Parse a CSV file.
-     * Note: Excel support is removed as it requires additional libraries.
+     * Note: Only CSV format is supported.
      * 
      * @param string $file_path Path to the file
      * @param string $mime_type File MIME type (optional, can be empty)
@@ -39,9 +39,9 @@ class Club_Manager_CSV_Parser {
             return $this->parseCSV($file_path);
         }
         
-        // Check for Excel extensions
+        // Check for unsupported extensions
         if (in_array($extension, array('xls', 'xlsx', 'xlsm'))) {
-            throw new Exception('Excel files are not supported. Please save your file as CSV format. In Excel: File → Save As → Choose "CSV (Comma delimited)"');
+            throw new Exception('Only CSV files are supported. Please save your file as CSV format using any spreadsheet application.');
         }
         
         // If no extension found and mime type suggests CSV, allow it

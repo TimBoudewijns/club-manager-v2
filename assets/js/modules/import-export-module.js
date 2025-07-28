@@ -181,7 +181,7 @@ class ImportExportModule {
             const validExtensions = ['csv'];
             
             if (!validExtensions.includes(fileExtension)) {
-                alert('Please upload a CSV file. Excel files (.xls, .xlsx) are not supported.\n\nYou can save your Excel file as CSV by:\n1. Opening it in Excel\n2. Going to File > Save As\n3. Choosing "CSV (Comma delimited)" as the file type');
+                alert('Please upload a CSV file. Only comma-separated values format is supported.');
                 event.target.value = '';
                 return;
             }
@@ -564,7 +564,7 @@ class ImportExportModule {
         try {
             // Check export format
             if (this.app.exportFormat !== 'csv') {
-                alert('Excel export is not supported. Please choose CSV format.');
+                alert('Only CSV export format is supported.');
                 return;
             }
             

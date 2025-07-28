@@ -154,8 +154,8 @@
                 <div class="ml-3">
                     <h4 class="text-lg font-semibold text-yellow-900 mb-2">Important File Format Information</h4>
                     <ul class="text-sm text-yellow-800 space-y-1 list-disc list-inside">
-                        <li><strong>Only CSV files are supported</strong> - Excel files (.xls, .xlsx) must be saved as CSV first</li>
-                        <li>To convert Excel to CSV: Open in Excel → File → Save As → Choose "CSV (Comma delimited)"</li>
+                        <li><strong>Only CSV files are supported</strong> - Use comma-separated values format</li>
+                        <li>CSV files can be created and edited with any spreadsheet application or text editor</li>
                         <li>Maximum file size is 10MB</li>
                         <li>Dates should be in DD-MM-YYYY format (e.g., 15-03-2005)</li>
                         <li>Email addresses will be validated during import</li>

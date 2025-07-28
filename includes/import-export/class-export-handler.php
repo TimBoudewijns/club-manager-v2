@@ -163,7 +163,7 @@ class Club_Manager_Export_Handler {
         ob_start();
         $output = fopen('php://output', 'w');
         
-        // Add UTF-8 BOM for Excel compatibility
+        // Add UTF-8 BOM for spreadsheet compatibility
         fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
         
         // Write headers
