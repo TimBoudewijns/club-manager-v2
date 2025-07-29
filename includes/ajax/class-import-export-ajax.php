@@ -516,7 +516,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 // Store Club Manager specific data
                 update_post_meta($invitation->get_id(), '_cm_team_ids', $trainer_data['team_ids']);
                 update_post_meta($invitation->get_id(), '_cm_role', $trainer_data['role'] ?? 'trainer');
-                update_post_meta($invitation->get_id(), '_cm_message', 'You have been invited to join as a trainer through bulk import.');
+                update_post_meta($invitation->get_id(), '_cm_message', 'You have been invited to join as a trainer through bulk import. Welcome to our team!');
                 
                 // Get team names for email
                 $team_names = [];
@@ -538,7 +538,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                     $invitation->get_token(),
                     $inviter_id,
                     $team_names,
-                    'You have been invited to join as a trainer through bulk import.'
+                    'You have been invited to join as a trainer through bulk import. Welcome to our team!'
                 );
                 
                 Club_Manager_Logger::log('Trainer invitation sent successfully', 'info', array(
@@ -558,6 +558,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
      */
     private function sendTrainerInvitationEmail($email, $token, $inviter_id, $team_names, $message) {
         $inviter = get_user_by('id', $inviter_id);
+        $club_name = get_bloginfo('name');
         
         // Get accept URL
         global $wpdb;
@@ -578,42 +579,23 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             $accept_url = home_url('/invitation/?wc_invite=' . $token);
         }
         
-        // Build email
-        $subject = sprintf('[%s] %s heeft je uitgenodigd als trainer', 
-            get_bloginfo('name'), 
-            $inviter ? $inviter->display_name : 'Een beheerder'
-        );
+        // Build email subject
+        $subject = sprintf('[%s] Trainer Invitation', $club_name);
         
-        $body = "Hallo,\n\n";
+        // Build professional HTML email
+        $body = $this->get_trainer_invitation_email_template([
+            'club_name' => $club_name,
+            'inviter_name' => $inviter ? $inviter->display_name : 'Club Administrator',
+            'team_names' => $team_names,
+            'message' => $message,
+            'accept_url' => $accept_url,
+            'email' => $email
+        ]);
         
-        if ($inviter) {
-            $body .= sprintf("%s heeft je uitgenodigd om trainer te worden bij %s.\n\n", 
-                $inviter->display_name, 
-                get_bloginfo('name')
-            );
-        }
-        
-        if (!empty($team_names)) {
-            $body .= "Je krijgt toegang tot de volgende teams:\n";
-            foreach ($team_names as $tn) {
-                $body .= "- " . $tn . "\n";
-            }
-            $body .= "\n";
-        }
-        
-        if (!empty($message)) {
-            $body .= "Persoonlijk bericht:\n" . $message . "\n\n";
-        }
-        
-        $body .= "Klik op de onderstaande link om de uitnodiging te accepteren:\n";
-        $body .= $accept_url . "\n\n";
-        $body .= "Deze uitnodiging verloopt over 7 dagen.\n\n";
-        $body .= "Met vriendelijke groet,\n" . get_bloginfo('name');
-        
-        // Add headers for better deliverability
+        // Add headers for HTML email
         $headers = array(
-            'Content-Type: text/plain; charset=UTF-8',
-            'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>'
+            'Content-Type: text/html; charset=UTF-8',
+            'From: ' . $club_name . ' <' . get_option('admin_email') . '>'
         );
         
         // Send email
@@ -624,6 +606,109 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         return $sent;
+    }
+    
+    /**
+     * Get professional HTML email template for trainer invitation
+     */
+    private function get_trainer_invitation_email_template($data) {
+        $club_name = esc_html($data['club_name']);
+        $inviter_name = esc_html($data['inviter_name']);
+        $team_names = $data['team_names'];
+        $message = $data['message'];
+        $accept_url = esc_url($data['accept_url']);
+        
+        // Build team list
+        $team_list_html = '';
+        if (!empty($team_names)) {
+            $team_list_html = '<div style="margin: 20px 0;">';
+            $team_list_html .= '<p style="margin: 0 0 10px 0; font-weight: 600; color: #374151;">You will have access to the following team(s):</p>';
+            $team_list_html .= '<ul style="margin: 0; padding-left: 20px; color: #6B7280;">';
+            foreach ($team_names as $team_name) {
+                $team_list_html .= '<li style="margin: 5px 0;">' . esc_html($team_name) . '</li>';
+            }
+            $team_list_html .= '</ul>';
+            $team_list_html .= '</div>';
+        }
+        
+        // Build personal message
+        $message_html = '';
+        if (!empty($message)) {
+            $message_html = '<div style="background-color: #F9FAFB; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #8B5CF6;">';
+            $message_html .= '<p style="margin: 0 0 10px 0; font-weight: 600; color: #374151;">Personal Message:</p>';
+            $message_html .= '<p style="margin: 0; color: #6B7280; font-style: italic;">' . esc_html($message) . '</p>';
+            $message_html .= '</div>';
+        }
+        
+        $html = '
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainer Invitation - ' . $club_name . '</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, \'Helvetica Neue\', Arial, sans-serif; line-height: 1.6; color: #374151; background-color: #F3F4F6;">
+    <div style="max-width: 600px; margin: 20px auto; background-color: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); padding: 40px 30px; text-align: center;">
+            <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 700;">
+                🏒 Trainer Invitation
+            </h1>
+            <p style="margin: 10px 0 0 0; color: #E5E7EB; font-size: 16px;">
+                ' . $club_name . '
+            </p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+            <h2 style="margin: 0 0 20px 0; color: #1F2937; font-size: 24px; font-weight: 600;">
+                Hello!
+            </h2>
+            
+            <p style="margin: 0 0 20px 0; color: #6B7280; font-size: 16px;">
+                <strong>' . $inviter_name . '</strong> has invited you to become a trainer at <strong>' . $club_name . '</strong>.
+            </p>
+            
+            ' . $team_list_html . '
+            
+            ' . $message_html . '
+            
+            <!-- Call to Action -->
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="' . $accept_url . '" style="display: inline-block; background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); color: #FFFFFF; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: all 0.2s;">
+                    Accept Invitation
+                </a>
+            </div>
+            
+            <div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 16px; margin: 30px 0;">
+                <p style="margin: 0; color: #92400E; font-size: 14px;">
+                    <strong>⏰ Important:</strong> This invitation will expire in 7 days. Please accept it as soon as possible.
+                </p>
+            </div>
+            
+            <p style="margin: 20px 0 0 0; color: #9CA3AF; font-size: 14px;">
+                If you\'re having trouble with the button above, copy and paste the following link into your browser:
+                <br><a href="' . $accept_url . '" style="color: #8B5CF6; word-break: break-all;">' . $accept_url . '</a>
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #F9FAFB; padding: 30px; text-align: center; border-top: 1px solid #E5E7EB;">
+            <p style="margin: 0; color: #6B7280; font-size: 14px;">
+                Best regards,<br>
+                <strong>' . $club_name . '</strong>
+            </p>
+            <p style="margin: 15px 0 0 0; color: #9CA3AF; font-size: 12px;">
+                This is an automated message. Please do not reply to this email.
+            </p>
+        </div>
+    </div>
+</body>
+</html>';
+        
+        return $html;
     }
     
     /**
