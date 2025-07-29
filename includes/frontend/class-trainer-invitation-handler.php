@@ -116,14 +116,14 @@ class Club_Manager_Trainer_Invitation_Handler {
         
         if (empty($token)) {
             return '<div class="cm-invitation-error">
-                <p>Geen geldige uitnodigingslink gevonden.</p>
+                <p>No valid invitation link found.</p>
             </div>';
         }
         
         // Get WC Teams invitation
         if (!function_exists('wc_memberships_for_teams')) {
             return '<div class="cm-invitation-error">
-                <p>WooCommerce Teams for Memberships is vereist.</p>
+                <p>WooCommerce Teams for Memberships is required.</p>
             </div>';
         }
         
@@ -132,7 +132,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         
         if (!$invitation) {
             return '<div class="cm-invitation-error">
-                <p>Deze uitnodiging is niet geldig of al gebruikt.</p>
+                <p>This invitation is invalid or has already been used.</p>
             </div>';
         }
         
@@ -177,9 +177,9 @@ class Club_Manager_Trainer_Invitation_Handler {
                 return $this->render_logged_in_acceptance($invitation, $token);
             } else {
                 return '<div class="cm-invitation-error">
-                    <p>Je bent ingelogd met een ander e-mailadres (' . esc_html($current_user->user_email) . ').</p>
-                    <p>Deze uitnodiging is verzonden naar: ' . esc_html($invitation->get_email()) . '</p>
-                    <p><a href="' . wp_logout_url(add_query_arg('wc_invite', $token, get_permalink())) . '">Uitloggen en opnieuw proberen</a></p>
+                    <p>You are logged in with a different email address (' . esc_html($current_user->user_email) . ').</p>
+                    <p>This invitation was sent to: ' . esc_html($invitation->get_email()) . '</p>
+                    <p><a href="' . wp_logout_url(add_query_arg('wc_invite', $token, get_permalink())) . '">Logout and try again</a></p>
                 </div>';
             }
         }
@@ -198,16 +198,16 @@ class Club_Manager_Trainer_Invitation_Handler {
             <div class="cm-invitation-container">
                 <!-- Header -->
                 <div class="cm-invitation-header">
-                    <h1>Uitnodiging voor Trainer</h1>
+                    <h1>🏒 Trainer Invitation</h1>
                     <p class="cm-invitation-subtitle">
-                        Je bent uitgenodigd door <strong><?php echo esc_html($invitation_data->inviter_name); ?></strong> 
-                        om trainer te worden bij <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>
+                        You have been invited by <strong><?php echo esc_html($invitation_data->inviter_name); ?></strong> 
+                        to become a trainer at <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>
                     </p>
                 </div>
                 
                 <?php if (!empty($team_names)): ?>
                     <div class="cm-invitation-teams">
-                        <h3>Je krijgt toegang tot de volgende teams:</h3>
+                        <h3>You will have access to the following team(s):</h3>
                         <ul>
                             <?php foreach ($team_names as $team_name): ?>
                                 <li><?php echo esc_html($team_name); ?></li>
@@ -218,7 +218,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                 
                 <?php if (!empty($invitation_data->message)): ?>
                     <div class="cm-invitation-message">
-                        <h3>Persoonlijk bericht:</h3>
+                        <h3>Personal Message:</h3>
                         <p><?php echo nl2br(esc_html($invitation_data->message)); ?></p>
                     </div>
                 <?php endif; ?>
@@ -227,91 +227,91 @@ class Club_Manager_Trainer_Invitation_Handler {
                 <div id="cm-invitation-content">
                     <!-- Step 1: Email check -->
                     <div id="cm-step-email" class="cm-step active">
-                        <h2>Stap 1: Bevestig je e-mailadres</h2>
-                        <p>Deze uitnodiging is verzonden naar:</p>
+                        <h2>Step 1: Confirm your email address</h2>
+                        <p>This invitation was sent to:</p>
                         <div class="cm-email-display">
                             <?php echo esc_html($invitation_data->email); ?>
                         </div>
                         <button id="cm-check-email" class="cm-btn cm-btn-primary" data-email="<?php echo esc_attr($invitation_data->email); ?>">
-                            Dit is mijn e-mailadres →
+                            This is my email address →
                         </button>
                     </div>
                     
                     <!-- Step 2: Login -->
                     <div id="cm-step-login" class="cm-step" style="display: none;">
-                        <h2>Stap 2: Inloggen</h2>
-                        <p>We hebben een account gevonden met dit e-mailadres. Log in om door te gaan.</p>
+                        <h2>Step 2: Login</h2>
+                        <p>We found an account with this email address. Please log in to continue.</p>
                         
                         <form id="cm-login-form" class="cm-form">
                             <div class="cm-form-group">
-                                <label for="cm-login-email">E-mailadres</label>
+                                <label for="cm-login-email">Email Address</label>
                                 <input type="email" id="cm-login-email" value="<?php echo esc_attr($invitation->get_email()); ?>" readonly>
                             </div>
                             
                             <div class="cm-form-group">
-                                <label for="cm-login-password">Wachtwoord</label>
+                                <label for="cm-login-password">Password</label>
                                 <input type="password" id="cm-login-password" required>
                             </div>
                             
                             <div class="cm-form-actions">
-                                <button type="submit" class="cm-btn cm-btn-primary">Inloggen</button>
-                                <a href="<?php echo wp_lostpassword_url(); ?>" class="cm-link">Wachtwoord vergeten?</a>
+                                <button type="submit" class="cm-btn cm-btn-primary">Login</button>
+                                <a href="<?php echo wp_lostpassword_url(); ?>" class="cm-link">Forgot password?</a>
                             </div>
                         </form>
                         
                         <div class="cm-form-footer">
-                            <button class="cm-btn-link" onclick="location.reload()">← Terug</button>
+                            <button class="cm-btn-link" onclick="location.reload()">← Back</button>
                         </div>
                     </div>
                     
                     <!-- Step 2: Register -->
                     <div id="cm-step-register" class="cm-step" style="display: none;">
-                        <h2>Stap 2: Account aanmaken</h2>
-                        <p>Je hebt nog geen account. Maak een account aan om de uitnodiging te accepteren.</p>
+                        <h2>Step 2: Create Account</h2>
+                        <p>You don't have an account yet. Create an account to accept the invitation.</p>
                         
                         <form id="cm-register-form" class="cm-form">
                             <div class="cm-form-row">
                                 <div class="cm-form-group">
-                                    <label for="cm-register-firstname">Voornaam</label>
+                                    <label for="cm-register-firstname">First Name</label>
                                     <input type="text" id="cm-register-firstname" required>
                                 </div>
                                 
                                 <div class="cm-form-group">
-                                    <label for="cm-register-lastname">Achternaam</label>
+                                    <label for="cm-register-lastname">Last Name</label>
                                     <input type="text" id="cm-register-lastname" required>
                                 </div>
                             </div>
                             
                             <div class="cm-form-group">
-                                <label for="cm-register-email">E-mailadres</label>
+                                <label for="cm-register-email">Email Address</label>
                                 <input type="email" id="cm-register-email" value="<?php echo esc_attr($invitation->get_email()); ?>" readonly>
                             </div>
                             
                             <div class="cm-form-group">
-                                <label for="cm-register-password">Wachtwoord</label>
+                                <label for="cm-register-password">Password</label>
                                 <input type="password" id="cm-register-password" required minlength="8">
-                                <small>Minimaal 8 karakters</small>
+                                <small>Minimum 8 characters</small>
                             </div>
                             
                             <div class="cm-form-group">
-                                <label for="cm-register-password-confirm">Bevestig wachtwoord</label>
+                                <label for="cm-register-password-confirm">Confirm Password</label>
                                 <input type="password" id="cm-register-password-confirm" required>
                             </div>
                             
                             <div class="cm-form-actions">
-                                <button type="submit" class="cm-btn cm-btn-primary">Account aanmaken</button>
+                                <button type="submit" class="cm-btn cm-btn-primary">Create Account</button>
                             </div>
                         </form>
                         
                         <div class="cm-form-footer">
-                            <button class="cm-btn-link" onclick="location.reload()">← Terug</button>
+                            <button class="cm-btn-link" onclick="location.reload()">← Back</button>
                         </div>
                     </div>
                     
                     <!-- Loading state -->
                     <div id="cm-loading" class="cm-loading" style="display: none;">
                         <div class="cm-spinner"></div>
-                        <p>Even geduld...</p>
+                        <p>Please wait...</p>
                     </div>
                     
                     <!-- Error messages -->
@@ -323,12 +323,12 @@ class Club_Manager_Trainer_Invitation_Handler {
                 
                 <!-- Info box -->
                 <div class="cm-info-box">
-                    <h3>Wat gebeurt er na acceptatie?</h3>
+                    <h3>What happens after acceptance?</h3>
                     <ul>
-                        <li>Je wordt toegevoegd als trainer aan de geselecteerde teams</li>
-                        <li>Je krijgt toegang tot het Club Manager dashboard</li>
-                        <li>Je kunt spelers bekijken en evalueren</li>
-                        <li>Je ontvangt team lidmaatschap voordelen</li>
+                        <li>You will be added as a trainer to the selected teams</li>
+                        <li>You will gain access to the Club Manager dashboard</li>
+                        <li>You can view and evaluate players</li>
+                        <li>You will receive team membership benefits</li>
                     </ul>
                 </div>
             </div>
@@ -681,16 +681,16 @@ class Club_Manager_Trainer_Invitation_Handler {
         <div class="cm-invitation-wrapper">
             <div class="cm-invitation-container">
                 <div class="cm-invitation-header">
-                    <h1>Uitnodiging Accepteren</h1>
+                    <h1>🏒 Accept Invitation</h1>
                 </div>
                 
                 <div style="padding: 30px;">
-                    <p>Je bent uitgenodigd door <strong><?php echo $inviter ? esc_html($inviter->display_name) : 'Someone'; ?></strong> 
-                    om trainer te worden bij <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>.</p>
+                    <p>You have been invited by <strong><?php echo $inviter ? esc_html($inviter->display_name) : 'Someone'; ?></strong> 
+                    to become a trainer at <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>.</p>
                     
                     <?php if (!empty($team_names)): ?>
                         <div style="margin: 20px 0;">
-                            <h3>Je krijgt toegang tot de volgende teams:</h3>
+                            <h3>You will have access to the following team(s):</h3>
                             <ul>
                                 <?php foreach ($team_names as $team_name): ?>
                                     <li><?php echo esc_html($team_name); ?></li>
@@ -701,7 +701,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                     
                     <?php if (!empty($message)): ?>
                         <div class="cm-invitation-message" style="margin: 20px 0;">
-                            <h3>Persoonlijk bericht:</h3>
+                            <h3>Personal Message:</h3>
                             <p><?php echo nl2br(esc_html($message)); ?></p>
                         </div>
                     <?php endif; ?>
@@ -712,10 +712,10 @@ class Club_Manager_Trainer_Invitation_Handler {
                         
                         <div style="display: flex; gap: 15px;">
                             <button type="submit" name="accept_invitation" value="1" class="cm-btn cm-btn-primary">
-                                Accepteren
+                                Accept
                             </button>
                             <button type="submit" name="decline_invitation" value="1" class="cm-btn" style="background: #dc2626; color: white;">
-                                Weigeren
+                                Decline
                             </button>
                         </div>
                     </form>
@@ -729,11 +729,11 @@ class Club_Manager_Trainer_Invitation_Handler {
             $result = $this->process_invitation_for_user(get_current_user_id(), $token);
             if ($result['success']) {
                 return '<div class="cm-success">
-                    <h3>Gelukt!</h3>
+                    <h3>Success!</h3>
                     <p>' . esc_html($result['message']) . '</p>
                     <p style="margin-top: 15px;">
                         <a href="' . home_url('/club-manager/') . '" class="cm-btn cm-btn-primary">
-                            Ga naar Club Manager Dashboard
+                            Go to Club Manager Dashboard
                         </a>
                     </p>
                 </div>';
@@ -778,7 +778,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         $user = wp_authenticate($email, $password);
         
         if (is_wp_error($user)) {
-            wp_send_json_error('Onjuist wachtwoord. Probeer het opnieuw.');
+            wp_send_json_error('Incorrect password. Please try again.');
         }
         
         // Log the user in
@@ -814,7 +814,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         $user_id = wp_create_user($email, $password, $email);
         
         if (is_wp_error($user_id)) {
-            wp_send_json_error('Kon geen account aanmaken. ' . $user_id->get_error_message());
+            wp_send_json_error('Could not create account. ' . $user_id->get_error_message());
         }
         
         // Update user meta
@@ -849,7 +849,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         if (!function_exists('wc_memberships_for_teams')) {
             return array(
                 'success' => false,
-                'message' => 'WooCommerce Teams for Memberships is vereist.'
+                'message' => 'WooCommerce Teams for Memberships is required.'
             );
         }
         
@@ -859,14 +859,14 @@ class Club_Manager_Trainer_Invitation_Handler {
         if (!$invitation) {
             return array(
                 'success' => false,
-                'message' => 'Uitnodiging niet gevonden.'
+                'message' => 'Invitation not found.'
             );
         }
         
         if ($invitation->get_status() !== 'pending') {
             return array(
                 'success' => false,
-                'message' => 'Deze uitnodiging is al geaccepteerd of geannuleerd.'
+                'message' => 'This invitation has already been accepted or cancelled.'
             );
         }
         
@@ -875,7 +875,7 @@ class Club_Manager_Trainer_Invitation_Handler {
             $team_member = $invitation->accept($user_id, true); // true = add member
             
             if (!$team_member) {
-                throw new Exception('Kon geen teamlid aanmaken');
+                throw new Exception('Could not create team member');
             }
             
             // Get team info
@@ -912,13 +912,13 @@ class Club_Manager_Trainer_Invitation_Handler {
             
             return array(
                 'success' => true,
-                'message' => 'Je bent succesvol toegevoegd aan het team!'
+                'message' => 'You have been successfully added to the team!'
             );
             
         } catch (Exception $e) {
             return array(
                 'success' => false,
-                'message' => 'Er is een fout opgetreden: ' . $e->getMessage()
+                'message' => 'An error occurred: ' . $e->getMessage()
             );
         }
     }
@@ -931,12 +931,12 @@ class Club_Manager_Trainer_Invitation_Handler {
             $invitation->cancel();
             
             return '<div class="cm-success">
-                <h3>Uitnodiging geweigerd</h3>
-                <p>Je hebt de uitnodiging om trainer te worden geweigerd.</p>
+                <h3>Invitation Declined</h3>
+                <p>You have declined the invitation to become a trainer.</p>
             </div>';
         } catch (Exception $e) {
             return '<div class="cm-error">
-                <p>Er is een fout opgetreden bij het weigeren van de uitnodiging.</p>
+                <p>An error occurred while declining the invitation.</p>
             </div>';
         }
     }
@@ -984,10 +984,10 @@ class Club_Manager_Trainer_Invitation_Handler {
             return;
         }
         
-        $subject = sprintf('[%s] Trainer uitnodiging geaccepteerd', get_bloginfo('name'));
+        $subject = sprintf('[%s] Trainer invitation accepted', get_bloginfo('name'));
         
         $message = sprintf(
-           "Hallo %s,\n\n%s heeft jouw uitnodiging geaccepteerd om trainer te worden voor de volgende teams:\n\n%s\n\nZe hebben nu toegang tot het Club Manager dashboard en kunnen spelers bekijken/evalueren in deze teams.\n\nMet vriendelijke groet,\n%s",
+           "Hello %s,\n\n%s has accepted your invitation to become a trainer for the following teams:\n\n%s\n\nThey now have access to the Club Manager dashboard and can view/evaluate players in these teams.\n\nBest regards,\n%s",
            $inviter->display_name,
            $trainer->display_name,
            implode("\n", array_map(function($team) { return "- " . $team; }, $teams)),
