@@ -283,23 +283,19 @@ class Club_Manager_Import_Handler {
                 $team_names = $this->parseTeamNames($data['team_names']);
                 $this->assignTrainerToTeams($user->ID, $team_names, $user_id);
             }
-            return array('success' => true, 'action' => 'skipped', 'id' => $user->ID, 'reason' => 'User already exists');
+            return array('success' => true, 'action' => 'updated', 'id' => $user->ID, 'reason' => 'User already exists, updated team assignments');
         }
         
-        // STAP 2: Check of er al een pending invitation is
-        $pending_table = $wpdb->prefix . 'dfdcm_pending_trainer_assignments';
+        // STAP 2: Check of er al een pending invitation is (WC Teams of eigen tabel)
+        $existing_invitation = $this->checkExistingTrainerInvitation($data['email']);
         
-        $existing_invitation = $wpdb->get_var($wpdb->prepare(
-            "SELECT COUNT(*) FROM {$pending_table} WHERE email = %s",
-            $data['email']
-        ));
-        
-        if ($existing_invitation > 0) {
+        if ($existing_invitation) {
             // Er is al een uitnodiging
             if ($this->options['duplicateHandling'] === 'skip') {
                 return array('success' => true, 'action' => 'skipped', 'reason' => 'Invitation already sent');
             }
-            // Als niet skip, dan kunnen we update doen of nieuwe sturen
+            // Als niet skip, dan kunnen we update doen of nieuwe sturen (maar voor nu skippen we toch)
+            return array('success' => true, 'action' => 'skipped', 'reason' => 'Invitation already exists');
         }
         
         // STAP 3: Geen bestaande user, geen pending invitation (of we willen update/create)
@@ -567,6 +563,49 @@ class Club_Manager_Import_Handler {
             $date = new DateTime();
             $date->setTimestamp($timestamp);
             return $date;
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Check if a trainer invitation already exists for this email.
+     * 
+     * @param string $email Email address to check
+     * @return bool True if invitation exists, false otherwise
+     */
+    private function checkExistingTrainerInvitation($email) {
+        global $wpdb;
+        
+        // Check for existing WC Teams invitations
+        $invitation_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT p.ID 
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_invitation_email'
+             WHERE p.post_type = 'wc_team_invitation'
+             AND p.post_status IN ('publish', 'pending')
+             AND pm_email.meta_value = %s
+             LIMIT 1",
+            $email
+        ));
+        
+        if ($invitation_id) {
+            return true;
+        }
+        
+        // Also check our pending trainer assignments table as backup
+        $pending_table = $wpdb->prefix . 'dfdcm_pending_trainer_assignments';
+        
+        // Check if table exists first
+        if ($wpdb->get_var("SHOW TABLES LIKE '$pending_table'") === $pending_table) {
+            $pending_invitation = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$pending_table} WHERE email = %s",
+                $email
+            ));
+            
+            if ($pending_invitation > 0) {
+                return true;
+            }
         }
         
         return false;

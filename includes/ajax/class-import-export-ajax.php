@@ -454,6 +454,16 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         
         foreach ($trainers as $trainer_data) {
             try {
+                // Check if invitation already exists for this email
+                $existing_invitation = $this->checkExistingInvitation($trainer_data['email'], $wc_team->get_id());
+                if ($existing_invitation) {
+                    Club_Manager_Logger::log('Invitation already exists, skipping', 'info', array(
+                        'email' => $trainer_data['email'],
+                        'existing_invitation_id' => $existing_invitation
+                    ));
+                    continue;
+                }
+                
                 // Create invitation directly using WC Teams API
                 $invitations_instance = wc_memberships_for_teams()->get_invitations_instance();
                 
@@ -590,6 +600,53 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         return $sent;
+    }
+    
+    /**
+     * Check if an invitation already exists for this email and team.
+     * 
+     * @param string $email Email address to check
+     * @param int $wc_team_id WC Team ID
+     * @return int|false Invitation post ID if exists, false otherwise
+     */
+    private function checkExistingInvitation($email, $wc_team_id) {
+        global $wpdb;
+        
+        // Check for existing WC Teams invitations
+        $invitation_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT p.ID 
+             FROM {$wpdb->posts} p
+             INNER JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_invitation_email'
+             INNER JOIN {$wpdb->postmeta} pm_team ON p.ID = pm_team.post_id AND pm_team.meta_key = '_invitation_team_id'
+             WHERE p.post_type = 'wc_team_invitation'
+             AND p.post_status IN ('publish', 'pending')
+             AND pm_email.meta_value = %s
+             AND pm_team.meta_value = %d
+             LIMIT 1",
+            $email,
+            $wc_team_id
+        ));
+        
+        if ($invitation_id) {
+            return intval($invitation_id);
+        }
+        
+        // Also check our pending trainer assignments table as backup
+        $pending_table = $wpdb->prefix . 'dfdcm_pending_trainer_assignments';
+        
+        // Check if table exists first
+        if ($wpdb->get_var("SHOW TABLES LIKE '$pending_table'") === $pending_table) {
+            $pending_invitation = $wpdb->get_var($wpdb->prepare(
+                "SELECT COUNT(*) FROM {$pending_table} WHERE email = %s",
+                $email
+            ));
+            
+            if ($pending_invitation > 0) {
+                return true; // Return true to indicate there's a pending invitation
+            }
+        }
+        
+        return false;
     }
 }
 
