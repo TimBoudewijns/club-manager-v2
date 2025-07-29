@@ -290,6 +290,11 @@ class Club_Manager_Import_Handler {
         $existing_invitation = $this->checkExistingTrainerInvitation($data['email']);
         
         if ($existing_invitation) {
+            // Log for debugging
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('Club Manager Import: Skipping trainer invitation for ' . $data['email'] . ' - invitation already exists');
+            }
+            
             // Er is al een uitnodiging
             if ($this->options['duplicateHandling'] === 'skip') {
                 return array('success' => true, 'action' => 'skipped', 'reason' => 'Invitation already sent');
@@ -577,19 +582,36 @@ class Club_Manager_Import_Handler {
     private function checkExistingTrainerInvitation($email) {
         global $wpdb;
         
+        // Debug logging
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Club Manager Import: Checking existing invitation for ' . $email);
+        }
+        
         // Check for existing WC Teams invitations
+        // Note: WC Teams uses specific status 'wcmti-pending' for pending invitations
         $invitation_id = $wpdb->get_var($wpdb->prepare(
             "SELECT p.ID 
              FROM {$wpdb->posts} p
-             INNER JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_invitation_email'
+             INNER JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id 
              WHERE p.post_type = 'wc_team_invitation'
-             AND p.post_status IN ('publish', 'pending')
-             AND pm_email.meta_value = %s
+             AND p.post_status IN ('wcmti-pending', 'publish', 'pending')
+             AND (
+                 (pm_email.meta_key = '_email' AND pm_email.meta_value = %s) OR
+                 (pm_email.meta_key = '_recipient_email' AND pm_email.meta_value = %s) OR
+                 (pm_email.meta_key = '_invitation_email' AND pm_email.meta_value = %s) OR
+                 p.post_title = %s
+             )
              LIMIT 1",
+            $email,
+            $email,
+            $email,
             $email
         ));
         
         if ($invitation_id) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('Club Manager Import: Found existing WC Teams invitation ID: ' . $invitation_id . ' for ' . $email);
+            }
             return true;
         }
         
