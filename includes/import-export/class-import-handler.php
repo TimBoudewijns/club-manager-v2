@@ -76,6 +76,7 @@ class Club_Manager_Import_Handler {
                     if ($result['action'] === 'created') $results['created']++;
                     elseif ($result['action'] === 'updated') $results['updated']++;
                     elseif ($result['action'] === 'team_added') $results['updated']++; // Count team additions as updates
+                    elseif ($result['action'] === 'existing_player') $results['skipped']++; // Existing player, no changes
                     elseif ($result['action'] === 'skipped') $results['skipped']++;
                 } else {
                     $results['failed']++;
@@ -184,10 +185,8 @@ class Club_Manager_Import_Handler {
         }
 
         if ($player_id) {
-            // Player exists - always check for team assignment regardless of duplicate handling
-            if ($this->options['duplicateHandling'] === 'skip') {
-                $action = 'team_added'; // Changed from 'skipped' to reflect team assignment
-            } elseif ($this->options['duplicateHandling'] === 'update') {
+            // Player exists - handle player info update based on duplicate handling
+            if ($this->options['duplicateHandling'] === 'update') {
                 $update_data = array(
                     'first_name' => $data['first_name'],
                     'last_name' => $data['last_name'],
@@ -202,8 +201,9 @@ class Club_Manager_Import_Handler {
                 $wpdb->update($players_table, $update_data, array('id' => $player_id));
                 $action = 'updated';
             } else {
-                // For 'create' option, we still add to team but don't update player info
-                $action = 'team_added';
+                // For 'skip' or 'create' options, don't update player info
+                // Action will be determined by team assignment logic below
+                $action = 'existing_player';
             }
         } else {
             // Create new player
@@ -231,6 +231,9 @@ class Club_Manager_Import_Handler {
 
         // Handle team assignment if team name is provided - ALWAYS execute this for existing players too
         if ($player_id && !empty($data['team_name'])) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('Club Manager Import: Processing team assignment for player ID ' . $player_id . ' (existing: ' . ($existing_player ? 'YES' : 'NO') . ') to team "' . $data['team_name'] . '", current action: ' . $action);
+            }
             $season = $this->getCurrentSeason($user_id);
 
             // Find or create team
@@ -260,7 +263,7 @@ class Club_Manager_Import_Handler {
                 
                 if (!$existing_assignment) {
                     // Add player to this team (they can be in multiple teams)
-                    $wpdb->insert($team_players_table, array(
+                    $inserted = $wpdb->insert($team_players_table, array(
                         'team_id' => $team_id,
                         'player_id' => $player_id,
                         'season' => $season,
@@ -271,16 +274,40 @@ class Club_Manager_Import_Handler {
                     
                     // Debug logging
                     if (defined('WP_DEBUG') && WP_DEBUG) {
-                        error_log('Club Manager Import: Added player ID ' . $player_id . ' to team "' . $data['team_name'] . '"');
+                        error_log('Club Manager Import: Team assignment result for player ID ' . $player_id . ': ' . ($inserted !== false ? 'SUCCESS' : 'FAILED'));
+                        if ($inserted === false) {
+                            error_log('Club Manager Import: Database error: ' . $wpdb->last_error);
+                        }
                     }
                     
-                    // Update action to reflect that player was added to team
-                    if ($existing_player && $action === 'team_added') {
-                        // Player existed but was added to new team
-                        $action = 'team_added';
+                    // Update action based on what happened - only if insertion was successful
+                    if ($inserted !== false) {
+                        if ($existing_player) {
+                            // Existing player was added to new team
+                            if ($action === 'updated') {
+                                // Player info was updated AND added to team, keep as 'updated'
+                            } else {
+                                // Player info was not updated, but added to team
+                                $action = 'team_added';
+                            }
+                        }
+                        // If new player, action remains 'created'
+                        
+                        if (defined('WP_DEBUG') && WP_DEBUG) {
+                            error_log('Club Manager Import: Set action to "' . $action . '" for player ID ' . $player_id);
+                        }
+                    } else {
+                        // Team assignment failed
+                        return array('success' => false, 'error' => 'Failed to assign player to team: ' . $wpdb->last_error);
                     }
+                    
                 } else {
-                    // Player already in this team - update team-specific info if we have update permission
+                    // Player already in this team
+                    if (defined('WP_DEBUG') && WP_DEBUG) {
+                        error_log('Club Manager Import: Player ID ' . $player_id . ' already in team "' . $data['team_name'] . '"');
+                    }
+                    
+                    // Update team-specific info if we have update permission
                     if ($existing_player && $this->options['duplicateHandling'] === 'update') {
                         $team_update_data = array();
                         if (!empty($data['position'])) {
@@ -295,15 +322,33 @@ class Club_Manager_Import_Handler {
                         
                         if (!empty($team_update_data)) {
                             $wpdb->update($team_players_table, $team_update_data, array('id' => $existing_assignment));
+                            // Keep action as 'updated' since we updated team info
+                        } else {
+                            // No team info to update, mark as skipped
+                            $action = 'skipped';
                         }
-                    }
-                    
-                    // Player already in team, mark as skipped
-                    if ($existing_player && $action === 'team_added') {
+                    } else {
+                        // Player already in team and no updates allowed, mark as skipped
                         $action = 'skipped';
                     }
                 }
             }
+        } else {
+            // No team assignment needed or no team name provided
+            if ($existing_player && $action === 'existing_player') {
+                // Existing player with no team changes, mark as skipped
+                $action = 'skipped';
+            }
+        }
+        
+        // Additional debug logging to track the final action
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Club Manager Import: Final action determined for player ID ' . $player_id . ': ' . $action . ' (existing player: ' . ($existing_player ? 'YES' : 'NO') . ')');
+        }
+
+        // Final debug log
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log('Club Manager Import: Final action for player ID ' . $player_id . ': ' . $action);
         }
 
         return array('success' => true, 'action' => $action, 'id' => $player_id);
