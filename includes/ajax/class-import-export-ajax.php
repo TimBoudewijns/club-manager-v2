@@ -160,6 +160,15 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             $preview = array();
             $rows_to_validate = array_slice($temp_data['rows'], 0, 10); // Validate first 10 rows
             
+            // Debug logging for troubleshooting
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('Import Validation - Total rows in temp_data: ' . count($temp_data['rows']));
+                error_log('Import Validation - Validating first 10 rows for preview');
+                if (count($temp_data['rows']) >= 12) {
+                    error_log('Import Validation - Row 12 data: ' . json_encode($temp_data['rows'][11]));
+                }
+            }
+            
             foreach ($rows_to_validate as $index => $row) {
                 $mapped_data = array();
                 foreach ($mapping as $field => $column_index) {
@@ -300,6 +309,16 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             $start_index = $session_data['progress']['current_batch'] * $batch_size;
             $rows_to_process = array_slice($session_data['rows'], $start_index, $batch_size);
             
+            // Debug logging for batch processing
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('Import Batch - Processing batch ' . $session_data['progress']['current_batch'] . ', start_index: ' . $start_index . ', rows in batch: ' . count($rows_to_process));
+                // Check if row 12 (index 11) is in this batch
+                $row_12_index = 11 - $start_index;
+                if ($row_12_index >= 0 && $row_12_index < count($rows_to_process)) {
+                    error_log('Import Batch - Row 12 is in this batch at index ' . $row_12_index . ': ' . json_encode($rows_to_process[$row_12_index]));
+                }
+            }
+            
             if (empty($rows_to_process)) {
                 // Mark as complete if no more rows
                 $session_data['status'] = 'completed';
@@ -317,7 +336,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
 
             // Map the raw rows to field names using the stored mapping
             $mapped_rows = array();
-            foreach ($rows_to_process as $row) {
+            foreach ($rows_to_process as $batch_index => $row) {
                 $mapped_data = array();
                 foreach ($session_data['mapping'] as $field => $column_index) {
                     if ($column_index !== '' && $column_index !== null && isset($row[$column_index])) {
@@ -327,6 +346,11 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                     }
                 }
                 $mapped_rows[] = $mapped_data;
+                
+                // Debug logging for row 12 specifically
+                if (($start_index + $batch_index) === 11 && defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('Import Batch - Row 12 mapped data: ' . json_encode($mapped_data));
+                }
             }
             
             // Process the batch
