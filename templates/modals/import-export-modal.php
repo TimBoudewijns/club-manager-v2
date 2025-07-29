@@ -94,7 +94,7 @@
                     <div x-show="importWizardStep === 1" class="space-y-6">
                         <h4 class="text-lg font-semibold text-gray-900">What would you like to import?</h4>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <button @click="selectImportType('teams')"
                                     class="p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
                                 <div class="flex items-center space-x-4">
@@ -125,20 +125,6 @@
                                 </div>
                             </button>
                             
-                            <button @click="selectImportType('teams-with-players')"
-                                    class="p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
-                                <div class="flex items-center space-x-4">
-                                    <div class="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                                        </svg>
-                                    </div>
-                                    <div class="text-left">
-                                        <h5 class="font-semibold text-gray-900">Teams with Players</h5>
-                                        <p class="text-sm text-gray-600">Import complete rosters</p>
-                                    </div>
-                                </div>
-                            </button>
                             
                             <button @click="selectImportType('trainers')" x-show="hasPermission('can_manage_trainers')"
                                     class="p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
@@ -165,8 +151,6 @@
                                 <span class="text-gray-400">•</span>
                                 <button @click="downloadTemplate('players')" class="text-sm text-purple-600 hover:text-purple-700 underline">Players Template</button>
                                 <span class="text-gray-400">•</span>
-                                <button @click="downloadTemplate('teams-with-players')" class="text-sm text-purple-600 hover:text-purple-700 underline">Teams + Players Template</button>
-                                <span class="text-gray-400" x-show="hasPermission('can_manage_trainers')">•</span>
                                 <button @click="downloadTemplate('trainers')" x-show="hasPermission('can_manage_trainers')" class="text-sm text-purple-600 hover:text-purple-700 underline">Trainers Template</button>
                             </div>
                         </div>

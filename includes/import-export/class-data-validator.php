@@ -47,9 +47,6 @@ class Club_Manager_Data_Validator {
                 $result = $this->validateTrainer($data, $row_index);
                 break;
                 
-            case 'teams-with-players':
-                $result = $this->validateTeamWithPlayer($data, $row_index);
-                break;
                 
             default:
                 return array(
@@ -260,81 +257,6 @@ class Club_Manager_Data_Validator {
         return $count > 0;
     }
     
-    /**
-     * Validate teams-with-players data (combined import).
-     */
-    private function validateTeamWithPlayer($data, $row_index) {
-        $errors = array();
-        $validated = array();
-        
-        // Validate team fields
-        if (empty($data['team_name'])) {
-            $errors[] = array('row' => $row_index + 1, 'field' => 'team_name', 'message' => 'Team name is required');
-        } else {
-            $validated['team_name'] = sanitize_text_field($data['team_name']);
-        }
-        
-        if (empty($data['coach'])) {
-            $errors[] = array('row' => $row_index + 1, 'field' => 'coach', 'message' => 'Coach name is required');
-        } else {
-            $validated['coach'] = sanitize_text_field($data['coach']);
-        }
-        
-        if (empty($data['season'])) {
-            $errors[] = array('row' => $row_index + 1, 'field' => 'season', 'message' => 'Season is required');
-        } else {
-            $season = sanitize_text_field($data['season']);
-            if (!preg_match('/^\d{4}-\d{4}$/', $season)) {
-                $errors[] = array('row' => $row_index + 1, 'field' => 'season', 'message' => 'Invalid season format. Use YYYY-YYYY (e.g., 2024-2025)');
-            } else {
-                $validated['season'] = $season;
-            }
-        }
-        
-        // Validate player fields
-        if (empty($data['first_name'])) {
-            $errors[] = array('row' => $row_index + 1, 'field' => 'first_name', 'message' => 'Player first name is required');
-        } else {
-            $validated['first_name'] = sanitize_text_field($data['first_name']);
-        }
-        
-        if (empty($data['last_name'])) {
-            $errors[] = array('row' => $row_index + 1, 'field' => 'last_name', 'message' => 'Player last name is required');
-        } else {
-            $validated['last_name'] = sanitize_text_field($data['last_name']);
-        }
-        
-        if (empty($data['email'])) {
-            $errors[] = array('row' => $row_index + 1, 'field' => 'email', 'message' => 'Player email is required');
-        } else {
-            $email = sanitize_email($data['email']);
-            if ($this->options['validateEmails'] && !is_email($email)) {
-                $errors[] = array('row' => $row_index + 1, 'field' => 'email', 'message' => 'Invalid email address');
-            } else {
-                $validated['email'] = $email;
-            }
-        }
-        
-        // Validate birth date
-        if (!empty($data['birth_date'])) {
-            $date = $this->parseDate($data['birth_date']);
-            if (!$date) {
-                $errors[] = array('row' => $row_index + 1, 'field' => 'birth_date', 'message' => 'Invalid date format. Use DD-MM-YYYY');
-            } else {
-                $validated['birth_date'] = $date->format('Y-m-d');
-            }
-        }
-        
-        // Optional player fields
-        $validated['position'] = !empty($data['position']) ? sanitize_text_field($data['position']) : '';
-        $validated['jersey_number'] = !empty($data['jersey_number']) ? intval($data['jersey_number']) : null;
-        
-        return array(
-            'valid' => empty($errors),
-            'data' => array_merge($data, $validated),
-            'errors' => $errors
-        );
-    }
     
     /**
      * Parse date based on configured format.
