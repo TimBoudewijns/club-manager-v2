@@ -516,7 +516,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                 // Store Club Manager specific data
                 update_post_meta($invitation->get_id(), '_cm_team_ids', $trainer_data['team_ids']);
                 update_post_meta($invitation->get_id(), '_cm_role', $trainer_data['role'] ?? 'trainer');
-                update_post_meta($invitation->get_id(), '_cm_message', 'You have been invited to join as a trainer through bulk import. Welcome to our team!');
+                update_post_meta($invitation->get_id(), '_cm_message', 'We are excited to have you join our coaching team. Your expertise and dedication will be invaluable in helping our players develop their skills and achieve their potential.');
                 
                 // Get team names for email
                 $team_names = [];
@@ -538,7 +538,7 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
                     $invitation->get_token(),
                     $inviter_id,
                     $team_names,
-                    'You have been invited to join as a trainer through bulk import. Welcome to our team!'
+                    'We are excited to have you join our coaching team. Your expertise and dedication will be invaluable in helping our players develop their skills and achieve their potential.'
                 );
                 
                 Club_Manager_Logger::log('Trainer invitation sent successfully', 'info', array(
@@ -631,12 +631,19 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             $team_list_html .= '</div>';
         }
         
-        // Build personal message
+        // Build personal message (use default welcome message if empty or bulk import message)
         $message_html = '';
-        if (!empty($message)) {
-            $message_html = '<div style="background-color: #F9FAFB; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #8B5CF6;">';
-            $message_html .= '<p style="margin: 0 0 10px 0; font-weight: 600; color: #374151;">Personal Message:</p>';
-            $message_html .= '<p style="margin: 0; color: #6B7280; font-style: italic;">' . esc_html($message) . '</p>';
+        $display_message = $message;
+        
+        // Replace bulk import message with professional welcome
+        if (empty($message) || strpos($message, 'bulk import') !== false) {
+            $display_message = 'We are excited to have you join our coaching team. Your expertise and dedication will be invaluable in helping our players develop their skills and achieve their potential.';
+        }
+        
+        if (!empty($display_message)) {
+            $message_html = '<div style="background-color: #F9FAFB; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #F97316;">';
+            $message_html .= '<p style="margin: 0 0 10px 0; font-weight: 600; color: #374151;">Welcome Message:</p>';
+            $message_html .= '<p style="margin: 0; color: #6B7280; font-style: italic;">' . esc_html($display_message) . '</p>';
             $message_html .= '</div>';
         }
         
@@ -652,11 +659,11 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
     <div style="max-width: 600px; margin: 20px auto; background-color: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
         
         <!-- Header -->
-        <div style="background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); padding: 40px 30px; text-align: center;">
+        <div style="background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); padding: 40px 30px; text-align: center;">
             <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 700;">
-                🏒 Trainer Invitation
+                Trainer Invitation
             </h1>
-            <p style="margin: 10px 0 0 0; color: #E5E7EB; font-size: 16px;">
+            <p style="margin: 10px 0 0 0; color: #FED7AA; font-size: 16px;">
                 ' . $club_name . '
             </p>
         </div>
@@ -677,20 +684,20 @@ class Club_Manager_Import_Export_Ajax extends Club_Manager_Ajax_Handler {
             
             <!-- Call to Action -->
             <div style="text-align: center; margin: 40px 0;">
-                <a href="' . $accept_url . '" style="display: inline-block; background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%); color: #FFFFFF; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: all 0.2s;">
+                <a href="' . $accept_url . '" style="display: inline-block; background: linear-gradient(135deg, #F97316 0%, #EA580C 100%); color: #FFFFFF; text-decoration: none; padding: 16px 32px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); transition: all 0.2s;">
                     Accept Invitation
                 </a>
             </div>
             
             <div style="background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: 8px; padding: 16px; margin: 30px 0;">
                 <p style="margin: 0; color: #92400E; font-size: 14px;">
-                    <strong>⏰ Important:</strong> This invitation will expire in 7 days. Please accept it as soon as possible.
+                    <strong>Important:</strong> This invitation will expire in 7 days. Please accept it as soon as possible.
                 </p>
             </div>
             
             <p style="margin: 20px 0 0 0; color: #9CA3AF; font-size: 14px;">
                 If you\'re having trouble with the button above, copy and paste the following link into your browser:
-                <br><a href="' . $accept_url . '" style="color: #8B5CF6; word-break: break-all;">' . $accept_url . '</a>
+                <br><a href="' . $accept_url . '" style="color: #F97316; word-break: break-all;">' . $accept_url . '</a>
             </p>
         </div>
         
