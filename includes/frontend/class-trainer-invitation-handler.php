@@ -198,7 +198,7 @@ class Club_Manager_Trainer_Invitation_Handler {
             <div class="cm-invitation-container">
                 <!-- Header -->
                 <div class="cm-invitation-header">
-                    <h1>🏒 Trainer Invitation</h1>
+                    <h1>Trainer Invitation</h1>
                     <p class="cm-invitation-subtitle">
                         You have been invited by <strong><?php echo esc_html($invitation_data->inviter_name); ?></strong> 
                         to become a trainer at <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>
@@ -349,7 +349,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         }
         
         .cm-invitation-header {
-            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+            background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
             color: white;
             padding: 30px;
             text-align: center;
@@ -440,12 +440,12 @@ class Club_Manager_Trainer_Invitation_Handler {
         }
         
         .cm-btn-primary {
-            background: #f97316;
+            background: linear-gradient(135deg, #F97316 0%, #EA580C 100%);
             color: white;
         }
         
         .cm-btn-primary:hover {
-            background: #ea580c;
+            background: linear-gradient(135deg, #EA580C 0%, #DC2626 100%);
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(249, 115, 22, 0.3);
         }
@@ -493,7 +493,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         
         .cm-form-group input:focus {
             outline: none;
-            border-color: #f97316;
+            border-color: #F97316;
             box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
         }
         
@@ -524,7 +524,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         }
         
         .cm-link {
-            color: #f97316;
+            color: #F97316;
             text-decoration: none;
             font-size: 14px;
         }
@@ -565,7 +565,7 @@ class Club_Manager_Trainer_Invitation_Handler {
             width: 40px;
             height: 40px;
             border: 3px solid #f3f4f6;
-            border-top-color: #f97316;
+            border-top-color: #F97316;
             border-radius: 50%;
             animation: cm-spin 0.8s linear infinite;
         }
@@ -681,7 +681,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         <div class="cm-invitation-wrapper">
             <div class="cm-invitation-container">
                 <div class="cm-invitation-header">
-                    <h1>🏒 Accept Invitation</h1>
+                    <h1>Accept Invitation</h1>
                 </div>
                 
                 <div style="padding: 30px;">
@@ -732,7 +732,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                     <h3>Success!</h3>
                     <p>' . esc_html($result['message']) . '</p>
                     <p style="margin-top: 15px;">
-                        <a href="' . home_url('/club-manager/') . '" class="cm-btn cm-btn-primary">
+                        <a href="' . $this->get_dashboard_url() . '" class="cm-btn cm-btn-primary">
                             Go to Club Manager Dashboard
                         </a>
                     </p>
@@ -791,7 +791,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         if ($result['success']) {
             wp_send_json_success(array(
                 'message' => $result['message'],
-                'redirect' => home_url('/club-manager/')
+                'redirect' => $this->get_dashboard_url()
             ));
         } else {
             wp_send_json_error($result['message']);
@@ -835,7 +835,7 @@ class Club_Manager_Trainer_Invitation_Handler {
         if ($result['success']) {
             wp_send_json_success(array(
                 'message' => $result['message'],
-                'redirect' => home_url('/club-manager/')
+                'redirect' => $this->get_dashboard_url()
             ));
         } else {
             wp_send_json_error($result['message']);
@@ -995,5 +995,58 @@ class Club_Manager_Trainer_Invitation_Handler {
        );
        
        wp_mail($inviter->user_email, $subject, $message);
+   }
+   
+   /**
+    * Get the correct dashboard URL
+    */
+   private function get_dashboard_url() {
+       global $wpdb;
+       
+       // Find the page with [club_manager] shortcode
+       $page_id = $wpdb->get_var(
+           "SELECT ID FROM {$wpdb->posts} 
+            WHERE post_content LIKE '%[club_manager]%' 
+            AND post_status = 'publish' 
+            AND post_type = 'page' 
+            LIMIT 1"
+       );
+       
+       if ($page_id) {
+           return get_permalink($page_id);
+       }
+       
+       // Check for common dashboard page slugs
+       $common_slugs = ['club-manager', 'dashboard', 'team-manager', 'manager'];
+       foreach ($common_slugs as $slug) {
+           $page = get_page_by_path($slug);
+           if ($page && $page->post_status === 'publish') {
+               return get_permalink($page->ID);
+           }
+       }
+       
+       // If user is logged in, try to find any Club Manager related page
+       if (is_user_logged_in()) {
+           // Look for pages that might contain club manager content
+           $pages = get_pages(array(
+               'meta_query' => array(
+                   array(
+                       'key' => '_wp_page_template',
+                       'compare' => 'EXISTS'
+                   )
+               ),
+               'post_status' => 'publish'
+           ));
+           
+           foreach ($pages as $page) {
+               if (strpos(strtolower($page->post_content), 'club') !== false || 
+                   strpos(strtolower($page->post_title), 'manager') !== false) {
+                   return get_permalink($page->ID);
+               }
+           }
+       }
+       
+       // Ultimate fallback - go to home page
+       return home_url();
    }
 }
