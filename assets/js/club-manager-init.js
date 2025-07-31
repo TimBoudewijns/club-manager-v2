@@ -63,7 +63,7 @@ window.clubManager = function() {
             }
             
             // Always initialize club teams module for owners/managers
-            if (this.userPermissions.can_view_club_teams && typeof ClubTeamsModule !== 'undefined') {
+            if (this.userPermissions.can_view_all_club_teams && typeof ClubTeamsModule !== 'undefined') {
                 this.clubTeamsModule = new ClubTeamsModule(this);
             }
             
@@ -111,7 +111,7 @@ window.clubManager = function() {
                         if (this.teamModule) {
                             await this.teamModule.loadMyTeams();
                         }
-                        if (this.clubTeamsModule && this.userPermissions.can_view_club_teams) {
+                        if (this.clubTeamsModule && this.userPermissions.can_view_all_club_teams) {
                             await this.clubTeamsModule.loadClubTeams();
                         }
                         break;

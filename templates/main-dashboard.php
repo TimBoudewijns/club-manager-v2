@@ -114,7 +114,7 @@
                                 <p class="text-gray-600 mt-1 ml-12">Teams you manage directly</p>
                             </div>
                             <!-- Add Team Button - Only show if user can create teams -->
-                            <button x-show="canCreateTeam()" 
+                            <button x-show="hasPermission('can_add_teams_player_mgmt')" 
                                     @click="showCreateTeamModal = true" 
                                     class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 flex items-center space-x-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -189,7 +189,7 @@
                             <p class="text-gray-600 mb-6" x-show="!userPermissions.is_trainer">
                                 Create your first team to get started managing your players.
                             </p>
-                            <button x-show="canCreateTeam()" 
+                            <button x-show="hasPermission('can_add_teams_player_mgmt')" 
                                     @click="showCreateTeamModal = true" 
                                     class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105">
                                 Create Your First Team
@@ -198,7 +198,7 @@
                     </div>
                     
                     <!-- Club Teams Section - Only show if user has permission -->
-                    <div x-show="hasPermission('can_view_club_teams')" x-cloak>
+                    <div x-show="hasPermission('can_see_club_teams_in_player_mgmt')" x-cloak>
                         <!-- Divider -->
                         <div class="flex items-center mb-8">
                             <div class="flex-grow border-t border-gray-300"></div>
