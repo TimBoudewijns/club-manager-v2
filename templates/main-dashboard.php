@@ -237,8 +237,8 @@
                         <!-- Section Header -->
                         <div class="mb-6">
                             <h3 class="text-lg sm:text-xl font-bold text-gray-900 flex items-center">
-                                <span class="bg-orange-100 rounded-lg p-2 mr-3">
-                                    <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <span class="bg-blue-100 rounded-lg p-2 mr-3">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                     </svg>
                                 </span>
@@ -248,13 +248,13 @@
                         </div>
                         
                         <!-- Club Teams Notice -->
-                        <div class="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
+                        <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                             <div class="flex items-center">
-                                <svg class="w-5 h-5 text-orange-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                 </svg>
                                 <div>
-                                    <p class="text-orange-800 text-sm">
+                                    <p class="text-blue-800 text-sm">
                                         <span class="font-semibold">Read-only mode:</span> You can view all teams and players in your club, but cannot make changes.
                                     </p>
                                 </div>
@@ -267,30 +267,30 @@
                                 <div @click="selectClubTeam(team)" 
                                      class="bg-white rounded-xl shadow-lg hover:shadow-2xl transform transition-all duration-300 hover:scale-105 cursor-pointer overflow-hidden group relative border border-gray-100">
                                     <!-- Club Team Badge -->
-                                    <div class="absolute top-4 right-4 bg-orange-100 text-orange-700 px-3 py-1 rounded-full text-xs font-semibold">
+                                    <div class="absolute top-4 right-4 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">
                                         Club Team
                                     </div>
                                     <div class="p-6">
                                         <div class="flex items-start justify-between mb-4">
-                                            <h4 class="text-2xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors" x-text="team.name"></h4>
+                                            <h4 class="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors" x-text="team.name"></h4>
                                         </div>
                                         <div class="space-y-2">
                                             <div class="flex items-center text-gray-600">
-                                                <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                                                 </svg>
                                                 <span class="font-medium">Coach:</span>
                                                 <span class="ml-2" x-text="team.coach"></span>
                                             </div>
                                             <div class="flex items-center text-gray-600" x-show="team.trainer_names">
-                                                <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                                                 </svg>
                                                 <span class="font-medium">Trainer:</span>
                                                 <span class="ml-2 text-sm" x-text="team.trainer_names || 'No trainer assigned'"></span>
                                             </div>
                                             <div class="flex items-center text-gray-600">
-                                                <svg class="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                                                 </svg>
                                                 <span class="font-medium">Season:</span>
@@ -307,8 +307,8 @@
                         
                         <!-- Empty State for Club Teams -->
                         <div x-show="clubTeams.length === 0" class="text-center py-16">
-                            <div class="bg-orange-50 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                                <svg class="w-12 h-12 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="bg-blue-50 rounded-full w-24 h-24 mx-auto mb-6 flex items-center justify-center">
+                                <svg class="w-12 h-12 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                             </div>
