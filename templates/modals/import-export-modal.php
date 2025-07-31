@@ -22,14 +22,14 @@
              @click.stop>
             
             <!-- Modal Header -->
-            <div class="bg-gradient-to-r from-purple-500 to-purple-600 p-6 text-white">
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="font-bold text-2xl">Import/Export Data</h3>
-                        <p class="text-purple-100 mt-1">Bulk manage your club data</p>
+                        <p class="text-orange-100 mt-1">Bulk manage your club data</p>
                     </div>
                     <button @click="showImportExportModal = false; resetImportWizard()" 
-                            class="text-white hover:text-purple-200 p-2 rounded-lg hover:bg-white/10 transition-colors">
+                            class="text-white hover:text-orange-200 p-2 rounded-lg hover:bg-white/10 transition-colors">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -39,12 +39,12 @@
                 <!-- Mode Tabs -->
                 <div class="mt-6 flex space-x-2">
                     <button @click="switchImportExportMode('import')"
-                            :class="importExportMode === 'import' ? 'bg-white text-purple-600' : 'bg-purple-400/20 text-white hover:bg-purple-400/30'"
+                            :class="importExportMode === 'import' ? 'bg-white text-orange-600' : 'bg-orange-400/20 text-white hover:bg-orange-400/30'"
                             class="px-6 py-2 rounded-lg font-medium transition-colors">
                         Import
                     </button>
                     <button @click="switchImportExportMode('export')"
-                            :class="importExportMode === 'export' ? 'bg-white text-purple-600' : 'bg-purple-400/20 text-white hover:bg-purple-400/30'"
+                            :class="importExportMode === 'export' ? 'bg-white text-orange-600' : 'bg-orange-400/20 text-white hover:bg-orange-400/30'"
                             class="px-6 py-2 rounded-lg font-medium transition-colors">
                         Export
                     </button>
@@ -63,7 +63,7 @@
                             <template x-for="step in [1,2,3,4,5,6]" :key="step">
                                 <div class="flex-1 flex items-center">
                                     <div class="relative">
-                                        <div :class="importWizardStep >= step ? 'bg-purple-600 text-white' : 'bg-gray-200 text-gray-600'"
+                                        <div :class="importWizardStep >= step ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-600'"
                                              class="w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors">
                                             <span x-text="step"></span>
                                         </div>
@@ -75,7 +75,7 @@
                                         </div>
                                     </div>
                                     <div x-show="step < 6" 
-                                         :class="importWizardStep > step ? 'bg-purple-600' : 'bg-gray-200'"
+                                         :class="importWizardStep > step ? 'bg-orange-600' : 'bg-gray-200'"
                                          class="flex-1 h-1 mx-2 transition-colors"></div>
                                 </div>
                             </template>
@@ -96,10 +96,10 @@
                         
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <button @click="selectImportType('teams')"
-                                    class="p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
+                                    class="p-6 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group">
                                 <div class="flex items-center space-x-4">
-                                    <div class="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="p-3 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+                                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                         </svg>
                                     </div>
@@ -111,10 +111,10 @@
                             </button>
                             
                             <button @click="selectImportType('players')"
-                                    class="p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
+                                    class="p-6 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group">
                                 <div class="flex items-center space-x-4">
-                                    <div class="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="p-3 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+                                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                         </svg>
                                     </div>
@@ -127,10 +127,10 @@
                             
                             
                             <button @click="selectImportType('trainers')" x-show="hasPermission('can_manage_trainers')"
-                                    class="p-6 border-2 border-gray-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all group">
+                                    class="p-6 border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all group">
                                 <div class="flex items-center space-x-4">
-                                    <div class="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="p-3 bg-orange-100 rounded-lg group-hover:bg-orange-200 transition-colors">
+                                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                                         </svg>
                                     </div>
@@ -147,11 +147,11 @@
                             <h5 class="font-medium text-gray-900 mb-2">Need a template?</h5>
                             <p class="text-sm text-gray-600 mb-3">Download our CSV templates to get started:</p>
                             <div class="flex flex-wrap gap-2">
-                                <button @click="downloadTemplate('teams')" class="text-sm text-purple-600 hover:text-purple-700 underline">Teams Template</button>
+                                <button @click="downloadTemplate('teams')" class="text-sm text-orange-600 hover:text-orange-700 underline">Teams Template</button>
                                 <span class="text-gray-400">•</span>
-                                <button @click="downloadTemplate('players')" class="text-sm text-purple-600 hover:text-purple-700 underline">Players Template</button>
+                                <button @click="downloadTemplate('players')" class="text-sm text-orange-600 hover:text-orange-700 underline">Players Template</button>
                                 <span class="text-gray-400">•</span>
-                                <button @click="downloadTemplate('trainers')" x-show="hasPermission('can_manage_trainers')" class="text-sm text-purple-600 hover:text-purple-700 underline">Trainers Template</button>
+                                <button @click="downloadTemplate('trainers')" x-show="hasPermission('can_manage_trainers')" class="text-sm text-orange-600 hover:text-orange-700 underline">Trainers Template</button>
                             </div>
                         </div>
                     </div>
@@ -160,7 +160,7 @@
                     <div x-show="importWizardStep === 2" class="space-y-6">
                         <h4 class="text-lg font-semibold text-gray-900">Upload your CSV file</h4>
                         
-                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-purple-400 transition-colors">
+                        <div class="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-orange-400 transition-colors">
                             <input type="file" 
                                    id="import-file-input"
                                    accept=".csv" 
@@ -168,8 +168,8 @@
                                    class="hidden">
                             
                             <label for="import-file-input" class="cursor-pointer">
-                                <div class="mx-auto w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                                    <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="mx-auto w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                                    <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                                     </svg>
                                 </div>
@@ -181,8 +181,8 @@
                                 </div>
                                 
                                 <div x-show="importFile" class="text-left inline-block">
-                                    <div class="flex items-center space-x-3 bg-purple-50 px-4 py-3 rounded-lg">
-                                        <svg class="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="flex items-center space-x-3 bg-orange-50 px-4 py-3 rounded-lg">
+                                        <svg class="w-8 h-8 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                         </svg>
                                         <div>
@@ -255,7 +255,7 @@
                                 Back
                             </button>
                             <button @click="nextImportStep" 
-                                    class="btn bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 rounded-lg px-8 shadow-lg">
+                                    class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
                                 Next
                             </button>
                         </div>
@@ -350,7 +350,7 @@
                                 Back
                             </button>
                             <button @click="startImport" 
-                                    class="btn bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 rounded-lg px-8 shadow-lg">
+                                    class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
                                 Start Import
                             </button>
                         </div>
@@ -367,7 +367,7 @@
                                 <span x-text="formatProgress()"></span>
                             </div>
                             <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                                <div class="bg-gradient-to-r from-purple-500 to-purple-600 h-4 rounded-full transition-all duration-300"
+                                <div class="bg-gradient-to-r from-orange-500 to-orange-600 h-4 rounded-full transition-all duration-300"
                                      :style="`width: ${importProgress.total > 0 ? (importProgress.processed / importProgress.total * 100) : 0}%`"></div>
                             </div>
                         </div>
@@ -386,8 +386,8 @@
                                 <p class="text-2xl font-bold text-red-600" x-text="importProgress.failed"></p>
                                 <p class="text-sm text-gray-600">Failed</p>
                             </div>
-                            <div class="bg-blue-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-blue-600" x-text="importProgress.total"></p>
+                            <div class="bg-orange-50 rounded-lg p-4 text-center">
+                                <p class="text-2xl font-bold text-orange-600" x-text="importProgress.total"></p>
                                 <p class="text-sm text-gray-600">Total</p>
                             </div>
                         </div>
@@ -442,8 +442,8 @@
                                 <p class="text-2xl font-bold text-green-600" x-text="importResults.created"></p>
                                 <p class="text-sm text-gray-600">Created</p>
                             </div>
-                            <div class="bg-blue-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-blue-600" x-text="importResults.updated"></p>
+                            <div class="bg-orange-50 rounded-lg p-4 text-center">
+                                <p class="text-2xl font-bold text-orange-600" x-text="importResults.updated"></p>
                                 <p class="text-sm text-gray-600">Updated</p>
                             </div>
                             <div class="bg-yellow-50 rounded-lg p-4 text-center">
@@ -475,13 +475,13 @@
                         
                         <!-- Trainer Invitation Notice -->
                         <div x-show="isTrainerImport() && importOptions.sendInvitations && importResults.created > 0" 
-                             class="bg-blue-50 rounded-lg p-4">
+                             class="bg-orange-50 rounded-lg p-4">
                             <div class="flex items-center">
-                                <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg class="w-5 h-5 text-orange-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                                 </svg>
                                 <div>
-                                    <p class="text-blue-800 text-sm">
+                                    <p class="text-orange-800 text-sm">
                                         Invitation emails are being sent to new trainers. This may take a few minutes to complete.
                                     </p>
                                 </div>
@@ -490,7 +490,7 @@
                         
                         <div class="flex justify-center">
                             <button @click="showImportExportModal = false; resetImportWizard()" 
-                                    class="btn bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 rounded-lg px-8 shadow-lg">
+                                    class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
                                 Close
                             </button>
                         </div>
@@ -563,7 +563,7 @@
                         <label class="text-sm font-medium text-gray-700">Export Format</label>
                         <div class="mt-2 space-y-2">
                             <label class="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50"
-                                   :class="exportFormat === 'csv' ? 'border-purple-500 bg-purple-50' : ''">
+                                   :class="exportFormat === 'csv' ? 'border-orange-500 bg-orange-50' : ''">
                                 <input type="radio" x-model="exportFormat" value="csv" class="radio radio-purple">
                                 <div>
                                     <span class="font-medium">CSV</span>
@@ -581,12 +581,12 @@
                     </div>
                     
                     <!-- Export Info -->
-                    <div class="bg-blue-50 rounded-lg p-4">
+                    <div class="bg-orange-50 rounded-lg p-4">
                         <div class="flex items-start">
-                            <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-orange-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
-                            <div class="text-sm text-blue-800">
+                            <div class="text-sm text-orange-800">
                                 <p class="font-medium mb-1">Export Permissions:</p>
                                 <ul class="space-y-1">
                                     <li x-show="userPermissions.user_role === 'trainer'">• As a trainer, you can only export data from teams you're assigned to</li>
@@ -604,7 +604,7 @@
                             Cancel
                         </button>
                         <button @click="exportData" 
-                                class="btn bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white border-0 rounded-lg px-8 shadow-lg">
+                                class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
                             Export Data
                         </button>
                     </div>
