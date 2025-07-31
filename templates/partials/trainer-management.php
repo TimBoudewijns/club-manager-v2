@@ -101,19 +101,19 @@ $seat_info = cm_get_available_trainer_seats();
 ?>
 
 <!-- Trainer Management Content Container -->
-<div class="bg-white rounded-b-2xl shadow-xl border-x border-b border-gray-200 overflow-hidden">
+<div class="bg-white border-x border-b border-gray-200 overflow-hidden">
     <!-- Trainer Management Header with Limits -->
-    <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 p-6 md:p-8">
+    <div class="bg-white border-b border-gray-100 px-6 md:px-8 py-6">
         <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div class="flex items-center space-x-4">
-                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Trainer Management</h2>
-                    <p class="text-gray-600 text-sm sm:text-base">Invite and manage trainers for your club teams</p>
+                    <h2 class="text-xl font-semibold text-gray-900">Trainer Management</h2>
+                    <p class="text-gray-500 text-sm mt-0.5">Invite and manage trainers for your club teams</p>
                     <?php if ($seat_info !== false && $seat_info['total'] > 0): ?>
                         <div class="mt-3">
                             <?php if (isset($seat_info['unlimited']) && $seat_info['unlimited']): ?>
@@ -156,7 +156,7 @@ $seat_info = cm_get_available_trainer_seats();
                 </div>
             </div>
             <button @click="checkTrainerLimit() && (showInviteTrainerModal = true)" 
-                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2 w-full sm:w-auto"
+                    class="bg-gray-900 hover:bg-gray-800 text-white font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 w-full sm:w-auto text-sm"
                     :class="{ 'opacity-50 cursor-not-allowed': !canInviteMoreTrainers() }"
                     <?php echo ($seat_info !== false && $seat_info['available'] <= 0) ? 'disabled' : ''; ?>>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
