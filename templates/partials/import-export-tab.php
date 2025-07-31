@@ -4,9 +4,9 @@
  */
 ?>
 <!-- Import/Export Management Content Container -->
-<div class="bg-white rounded-2xl shadow-xl border border-purple-100 overflow-hidden">
+<div class="bg-white rounded-b-2xl shadow-xl border-x border-b border-gray-200 overflow-hidden">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-purple-200 p-6 md:p-8">
+    <div class="bg-gradient-to-r from-purple-50 to-purple-100 border-b border-purple-200 p-6 md:p-8">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
                 <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-3 shadow-lg">

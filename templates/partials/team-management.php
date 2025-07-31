@@ -5,12 +5,12 @@
 ?>
 
 <!-- Team Management Content Container -->
-<div class="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
+<div class="bg-white rounded-b-2xl shadow-xl border-x border-b border-gray-200 overflow-hidden">
     <!-- Team Management Header -->
-    <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 p-6 md:p-8">
+    <div class="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200 p-6 md:p-8">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
-                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
+                <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 shadow-lg">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                     </svg>
@@ -21,7 +21,7 @@
                 </div>
             </div>
             <button @click="showCreateClubTeamModal = true" 
-                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 flex items-center space-x-2">
+                    class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 flex items-center space-x-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>

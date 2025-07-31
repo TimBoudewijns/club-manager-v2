@@ -101,12 +101,12 @@ $seat_info = cm_get_available_trainer_seats();
 ?>
 
 <!-- Trainer Management Content Container -->
-<div class="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
+<div class="bg-white rounded-b-2xl shadow-xl border-x border-b border-gray-200 overflow-hidden">
     <!-- Trainer Management Header with Limits -->
-    <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 p-6 md:p-8">
+    <div class="bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200 p-6 md:p-8">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
-                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
+                <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-3 shadow-lg">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                     </svg>
@@ -156,7 +156,7 @@ $seat_info = cm_get_available_trainer_seats();
                 </div>
             </div>
             <button @click="checkTrainerLimit() && (showInviteTrainerModal = true)" 
-                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 flex items-center space-x-2"
+                    class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105 flex items-center space-x-2"
                     :class="{ 'opacity-50 cursor-not-allowed': !canInviteMoreTrainers() }"
                     <?php echo ($seat_info !== false && $seat_info['available'] <= 0) ? 'disabled' : ''; ?>>
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -302,7 +302,7 @@ $seat_info = cm_get_available_trainer_seats();
                     <h4 class="text-2xl font-bold text-gray-900 mb-2">No trainers yet</h4>
                     <p class="text-gray-600 mb-6">Invite trainers to help manage your club teams.</p>
                     <button @click="showInviteTrainerModal = true" 
-                            class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105">
+                            class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105">
                         Invite Your First Trainer
                     </button>
                 </div>

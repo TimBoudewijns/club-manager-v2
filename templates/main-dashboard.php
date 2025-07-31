@@ -42,6 +42,32 @@
     /* Hide elements with x-cloak until Alpine loads */
     [x-cloak] { display: none !important; }
     
+    /* Enhanced tab integration styles */
+    .border-b-4 {
+        border-bottom-width: 4px;
+    }
+    
+    /* Smooth tab transitions */
+    .tab-transition {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Active tab styling enhancement */
+    .tab-active {
+        position: relative;
+    }
+    
+    .tab-active::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: white;
+        z-index: 1;
+    }
+    
     /* Z-INDEX HIERARCHY FIX FOR MODALS AND LOADING */
     /* Base modal z-indexes */
     .club-manager-app [x-show="showCreateTeamModal"] { z-index: 40 !important; }
@@ -67,7 +93,7 @@
 </style>
 
 <div class="club-manager-app min-h-screen bg-white" x-data="clubManager()" data-theme="light">
-    <div class="w-full px-4 md:px-6 lg:px-8 py-8">
+    <div class="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
         
         <?php include 'partials/header.php'; ?>
         
@@ -78,7 +104,7 @@
              x-transition:enter-end="opacity-100 transform scale-100">
             
             <!-- Player Management Content Container -->
-            <div class="bg-white rounded-2xl shadow-xl border border-orange-100 overflow-hidden">
+            <div class="bg-white rounded-b-2xl shadow-xl border-x border-b border-gray-200 overflow-hidden">
                 <!-- Player Management Header -->
                 <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 p-6 md:p-8">
                     <div class="flex items-center justify-between">
