@@ -112,7 +112,54 @@ $seat_info = cm_get_available_trainer_seats();
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Trainer Management</h2>
+                    <div class="flex items-center space-x-2">
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Trainer Management</h2>
+                        <div class="relative" x-data="{ showTrainerTooltip: false }">
+                            <button @click="showTrainerTooltip = !showTrainerTooltip" 
+                                    @click.outside="showTrainerTooltip = false"
+                                    class="text-gray-400 hover:text-orange-500 transition-colors p-1 rounded-full hover:bg-orange-50">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </button>
+                            <div x-show="showTrainerTooltip" 
+                                 x-transition:enter="transition ease-out duration-200"
+                                 x-transition:enter-start="opacity-0 transform scale-95"
+                                 x-transition:enter-end="opacity-100 transform scale-100"
+                                 x-transition:leave="transition ease-in duration-150"
+                                 x-transition:leave-start="opacity-100 transform scale-100"
+                                 x-transition:leave-end="opacity-0 transform scale-95"
+                                 class="absolute left-0 top-full mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-50"
+                                 style="display: none;">
+                                <div class="space-y-3">
+                                    <h4 class="font-semibold text-gray-900 flex items-center">
+                                        <svg class="w-4 h-4 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                                        </svg>
+                                        How to use Trainer Management?
+                                    </h4>
+                                    <ul class="text-sm text-gray-600 space-y-2">
+                                        <li class="flex items-start">
+                                            <span class="text-orange-500 mr-2">•</span>
+                                            <span><strong>Invite Trainers:</strong> Click "Invite Trainer" to send email invitations to new trainers</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <span class="text-orange-500 mr-2">•</span>
+                                            <span><strong>Manage Invitations:</strong> View and cancel pending invitations</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <span class="text-orange-500 mr-2">•</span>
+                                            <span><strong>Active Trainers:</strong> View all accepted trainers with their team assignments</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <span class="text-orange-500 mr-2">•</span>
+                                            <span><strong>Trainer Limit:</strong> Monitor your available trainer seats via the progress bar</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <p class="text-gray-600 text-sm sm:text-base">Invite and manage trainers for your club teams</p>
                     <?php if ($seat_info !== false && $seat_info['total'] > 0): ?>
                         <div class="mt-3">
