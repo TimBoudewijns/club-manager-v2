@@ -9,14 +9,14 @@
     <div class="bg-gradient-to-r from-gray-50 to-gray-100 px-3 sm:px-4 md:px-8 py-4 border-b border-gray-200">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <!-- Navigation Tabs - Desktop -->
-            <div class="hidden sm:flex items-center space-x-1">
-                <button class="py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200"
+            <div class="hidden sm:flex items-center space-x-2">
+                <button class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
                         :class="activeTab === 'player-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'player-management'"
                         x-show="isTabAvailable('player-management')">
                     <span class="flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 715.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                         <span>Players</span>
                     </span>
@@ -24,11 +24,11 @@
                 
                 <button x-show="isTabAvailable('team-management')"
                         x-cloak
-                        class="py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200"
+                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
                         :class="activeTab === 'team-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'team-management'">
                     <span class="flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                         </svg>
                         <span>Teams</span>
@@ -37,11 +37,11 @@
                 
                 <button x-show="isTabAvailable('trainer-management')"
                         x-cloak
-                        class="py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200"
+                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
                         :class="activeTab === 'trainer-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'trainer-management'">
                     <span class="flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                         </svg>
                         <span>Trainers</span>
@@ -50,11 +50,11 @@
                 
                 <button x-show="isTabAvailable('import-export')"
                         x-cloak
-                        class="py-2 px-4 rounded-lg font-medium text-sm transition-all duration-200"
+                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
                         :class="activeTab === 'import-export' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'import-export'">
                     <span class="flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
                         <span>Import/Export</span>
@@ -88,12 +88,12 @@
         <!-- Mobile Navigation -->
         <div class="sm:hidden mt-4">
             <div class="flex space-x-2 overflow-x-auto scrollbar-hide">
-                <button class="flex-shrink-0 py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap"
+                <button class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
                         :class="activeTab === 'player-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'player-management'"
                         x-show="isTabAvailable('player-management')">
                     <span class="flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                         </svg>
                         <span>Players</span>
@@ -102,11 +102,11 @@
                 
                 <button x-show="isTabAvailable('team-management')"
                         x-cloak
-                        class="flex-shrink-0 py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap"
+                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
                         :class="activeTab === 'team-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'team-management'">
                     <span class="flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
                         </svg>
                         <span>Teams</span>
@@ -115,11 +115,11 @@
                 
                 <button x-show="isTabAvailable('trainer-management')"
                         x-cloak
-                        class="flex-shrink-0 py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap"
+                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
                         :class="activeTab === 'trainer-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'trainer-management'">
                     <span class="flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                         </svg>
                         <span>Trainers</span>
@@ -128,11 +128,11 @@
                 
                 <button x-show="isTabAvailable('import-export')"
                         x-cloak
-                        class="flex-shrink-0 py-2 px-3 rounded-lg font-medium text-sm transition-all duration-200 whitespace-nowrap"
+                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
                         :class="activeTab === 'import-export' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'import-export'">
                     <span class="flex items-center space-x-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                         </svg>
                         <span>Import/Export</span>
