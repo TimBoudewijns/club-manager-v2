@@ -6,40 +6,21 @@
 <!-- Integrated Header Section -->
 <div class="bg-white rounded-t-2xl shadow-xl border border-gray-200 overflow-hidden">
     <!-- Header Content -->
-    <div class="p-4 sm:p-6 md:p-8 border-b border-gray-100">
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div class="flex items-center space-x-4">
-                <!-- Icon -->
-                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-4 shadow-lg">
-                    <svg class="w-8 h-8 md:w-10 md:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                    </svg>
-                </div>
-                <div>
-                    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                        Club Manager
-                    </h1>
-                    <p class="text-gray-600 text-sm md:text-base">
-                        Manage your hockey teams and players efficiently
-                    </p>
-                </div>
-            </div>
-            
-            <div class="flex items-center space-x-4">
-                <!-- Season Selector -->
+    <div class="p-4 sm:p-6 border-b border-gray-100">
+        <div class="flex justify-end">
+            <!-- Season Selector -->
+            <div class="relative">
+                <label class="text-sm font-medium text-gray-700 mb-1 block">Season</label>
                 <div class="relative">
-                    <label class="text-sm font-medium text-gray-700 mb-1 block">Season</label>
-                    <div class="relative">
-                        <select x-model="currentSeason" @change="changeSeason" 
-                            class="select select-bordered bg-white border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg px-4 py-2 pr-10 appearance-none cursor-pointer shadow-sm hover:shadow-md transition-shadow">
-                            <option value="2024-2025">2024-2025</option>
-                            <option value="2025-2026">2025-2026</option>
-                        </select>
-                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none mt-6">
-                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </div>
+                    <select x-model="currentSeason" @change="changeSeason" 
+                        class="select select-bordered bg-white border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg px-4 py-2 pr-10 appearance-none cursor-pointer shadow-sm hover:shadow-md transition-shadow">
+                        <option value="2024-2025">2024-2025</option>
+                        <option value="2025-2026">2025-2026</option>
+                    </select>
+                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none mt-6">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
                     </div>
                 </div>
             </div>
