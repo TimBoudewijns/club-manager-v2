@@ -6,10 +6,10 @@
 <!-- Import/Export Management Content Container -->
 <div class="bg-white rounded-b-2xl shadow-xl border-x border-b border-gray-200 overflow-hidden">
     <!-- Header -->
-    <div class="bg-gradient-to-r from-purple-50 to-purple-100 border-b border-purple-200 p-6 md:p-8">
+    <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 p-6 md:p-8">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
-                <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-3 shadow-lg">
+                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                     </svg>

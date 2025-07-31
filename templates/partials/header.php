@@ -66,7 +66,7 @@
                 <button x-show="isTabAvailable('team-management')"
                         x-cloak
                         class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm"
-                        :class="activeTab === 'team-management' ? 'bg-blue-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:text-blue-600 hover:bg-white/80 hover:shadow-sm'"
+                        :class="activeTab === 'team-management' ? 'bg-orange-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:text-orange-600 hover:bg-white/80 hover:shadow-sm'"
                         @click="activeTab = 'team-management'">
                     <span class="flex items-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,7 +79,7 @@
                 <button x-show="isTabAvailable('trainer-management')"
                         x-cloak
                         class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm"
-                        :class="activeTab === 'trainer-management' ? 'bg-green-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:text-green-600 hover:bg-white/80 hover:shadow-sm'"
+                        :class="activeTab === 'trainer-management' ? 'bg-orange-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:text-orange-600 hover:bg-white/80 hover:shadow-sm'"
                         @click="activeTab = 'trainer-management'">
                     <span class="flex items-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@
                 <button x-show="isTabAvailable('import-export')"
                         x-cloak
                         class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm"
-                        :class="activeTab === 'import-export' ? 'bg-purple-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:text-purple-600 hover:bg-white/80 hover:shadow-sm'"
+                        :class="activeTab === 'import-export' ? 'bg-orange-500 text-white shadow-lg transform scale-105' : 'text-gray-600 hover:text-orange-600 hover:bg-white/80 hover:shadow-sm'"
                         @click="activeTab = 'import-export'">
                     <span class="flex items-center space-x-2">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -121,7 +121,7 @@
             <button x-show="isTabAvailable('team-management')"
                     x-cloak
                     class="py-4 px-6 font-semibold transition-all duration-300 text-base border-b-4 border-transparent relative"
-                    :class="activeTab === 'team-management' ? 'text-blue-600 border-blue-500 bg-white shadow-sm' : 'text-gray-600 hover:text-blue-600 hover:bg-gray-100/50 hover:border-blue-200'"
+                    :class="activeTab === 'team-management' ? 'text-orange-600 border-orange-500 bg-white shadow-sm' : 'text-gray-600 hover:text-orange-600 hover:bg-gray-100/50 hover:border-orange-200'"
                     @click="activeTab = 'team-management'">
                 <span class="flex items-center space-x-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,7 +134,7 @@
             <button x-show="isTabAvailable('trainer-management')"
                     x-cloak
                     class="py-4 px-6 font-semibold transition-all duration-300 text-base border-b-4 border-transparent relative"
-                    :class="activeTab === 'trainer-management' ? 'text-green-600 border-green-500 bg-white shadow-sm' : 'text-gray-600 hover:text-green-600 hover:bg-gray-100/50 hover:border-green-200'"
+                    :class="activeTab === 'trainer-management' ? 'text-orange-600 border-orange-500 bg-white shadow-sm' : 'text-gray-600 hover:text-orange-600 hover:bg-gray-100/50 hover:border-orange-200'"
                     @click="activeTab = 'trainer-management'">
                 <span class="flex items-center space-x-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -147,7 +147,7 @@
             <button x-show="isTabAvailable('import-export')"
                     x-cloak
                     class="py-4 px-6 font-semibold transition-all duration-300 text-base border-b-4 border-transparent relative"
-                    :class="activeTab === 'import-export' ? 'text-purple-600 border-purple-500 bg-white shadow-sm' : 'text-gray-600 hover:text-purple-600 hover:bg-gray-100/50 hover:border-purple-200'"
+                    :class="activeTab === 'import-export' ? 'text-orange-600 border-orange-500 bg-white shadow-sm' : 'text-gray-600 hover:text-orange-600 hover:bg-gray-100/50 hover:border-orange-200'"
                     @click="activeTab = 'import-export'">
                 <span class="flex items-center space-x-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
