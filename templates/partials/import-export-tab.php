@@ -4,19 +4,19 @@
  */
 ?>
 <!-- Import/Export Management Content Container -->
-<div class="bg-white border-x border-b border-gray-200 overflow-hidden">
+<div class="bg-white rounded-b-2xl shadow-xl border-x border-b border-gray-200 overflow-hidden">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-100 px-6 md:px-8 py-6">
+    <div class="bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200 p-6 md:p-8">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
-                <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-3 shadow-lg">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-xl font-semibold text-gray-900">Import/Export</h2>
-                    <p class="text-gray-500 text-sm mt-0.5">Bulk manage your club data</p>
+                    <h2 class="text-2xl font-bold text-gray-900 mb-1">Import/Export</h2>
+                    <p class="text-gray-600">Bulk manage your club data</p>
                 </div>
             </div>
         </div>
