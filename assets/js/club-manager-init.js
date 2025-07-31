@@ -8,10 +8,6 @@ window.clubManager = function() {
         currentSeason: window.clubManagerAjax?.preferred_season || '2024-2025',
         userPermissions: window.clubManagerAjax?.permissions || {},
         
-        // Sidebar states
-        sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true' || false,
-        mobileSidebarOpen: false,
-        
         // Global loading state
         globalLoading: false,
         loadingMessage: '',
@@ -332,20 +328,6 @@ window.clubManager = function() {
         isTabAvailable(tab) {
             return this.userPermissions.available_tabs && 
                    this.userPermissions.available_tabs.includes(tab);
-        },
-        
-        // Sidebar management
-        toggleSidebar() {
-            this.sidebarCollapsed = !this.sidebarCollapsed;
-            localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed.toString());
-        },
-        
-        toggleMobileSidebar() {
-            this.mobileSidebarOpen = !this.mobileSidebarOpen;
-        },
-        
-        closeMobileSidebar() {
-            this.mobileSidebarOpen = false;
         }
     };
 };

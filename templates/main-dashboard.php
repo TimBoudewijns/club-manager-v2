@@ -42,44 +42,6 @@
     /* Hide elements with x-cloak until Alpine loads */
     [x-cloak] { display: none !important; }
     
-    /* Sidebar transition animations */
-    .sidebar-transition {
-        transition: width 0.3s ease-in-out;
-    }
-    
-    /* Smooth transitions for main content */
-    .main-content-transition {
-        transition: margin-left 0.3s ease-in-out;
-    }
-    
-    /* Mobile sidebar overlay */
-    @media (max-width: 1023px) {
-        .mobile-sidebar-overlay {
-            backdrop-filter: blur(2px);
-        }
-    }
-    
-    /* Bottom navigation styling */
-    .bottom-nav-item {
-        transition: all 0.2s ease-in-out;
-    }
-    
-    .bottom-nav-item:hover {
-        transform: translateY(-2px);
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 640px) {
-        .club-manager-app .p-4 {
-            padding: 1rem;
-        }
-        
-        .club-manager-app .px-4 {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
-    }
-    
     /* Z-INDEX HIERARCHY FIX FOR MODALS AND LOADING */
     /* Base modal z-indexes */
     .club-manager-app [x-show="showCreateTeamModal"] { z-index: 40 !important; }
@@ -104,18 +66,10 @@
     }
 </style>
 
-<div class="club-manager-app min-h-screen bg-gray-50" x-data="clubManager()" data-theme="light">
-    
-    <!-- Include Sidebar -->
-    <?php include 'partials/sidebar.php'; ?>
-    
-    <!-- Include Modern Header -->
-    <?php include 'partials/modern-header.php'; ?>
-    
-    <!-- Main Content Area -->
-    <div class="min-h-screen main-content-transition" 
-         :class="sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'">
-        <div class="w-full px-4 md:px-6 lg:px-8 py-4 lg:py-8">
+<div class="club-manager-app min-h-screen bg-white" x-data="clubManager()" data-theme="light">
+    <div class="w-full px-4 md:px-6 lg:px-8 py-8">
+        
+        <?php include 'partials/header.php'; ?>
         
         <!-- Player Management Tab (Combined My Teams + Club Teams) -->
         <div x-show="activeTab === 'player-management'" 
@@ -388,9 +342,4 @@
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/player-card-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/import-export-modal.php';
     ?>
-        </div>
-    </div>
-    
-    <!-- Include Bottom Navigation for Mobile -->
-    <?php include 'partials/bottom-navigation.php'; ?>
 </div>
