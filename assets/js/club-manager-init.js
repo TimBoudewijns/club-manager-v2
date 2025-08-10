@@ -12,6 +12,11 @@ window.clubManager = function() {
         globalLoading: false,
         loadingMessage: '',
         
+        // Data properties (initialized for all users to prevent Alpine errors)
+        clubTeams: [],
+        managedTeams: [],
+        myTeams: [],
+        
         // Module instances
         teamModule: null,
         playerModule: null,
