@@ -7,7 +7,7 @@
 <div class="bg-white rounded-t-2xl shadow-xl border border-gray-200 overflow-hidden">
     <!-- Navigation and Season Header -->
     <div class="bg-gradient-to-r from-gray-50 to-gray-100 py-4 border-b border-gray-200">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-3 sm:px-4 md:px-8">
             <!-- Navigation Tabs - Desktop -->
             <div class="hidden sm:flex items-center space-x-2">
                 <button class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
