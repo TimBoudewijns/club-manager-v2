@@ -29,9 +29,9 @@
                            x-text="modalViewingPlayer?.first_name + ' ' + modalViewingPlayer?.last_name"></p>
                     </div>
                     <button @click="closePlayerCardModal()" 
-                            class="text-white hover:bg-white/20 rounded-full p-2 transition-all duration-200 hover:scale-110 hover:rotate-90 group">
-                        <svg class="w-5 h-5 stroke-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+                            class="text-white hover:bg-white/10 rounded-full p-1.5 transition-colors">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
