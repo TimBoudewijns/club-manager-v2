@@ -984,7 +984,7 @@ class Club_Manager_Trainer_Invitation_Handler {
             return;
         }
         
-        $subject = sprintf('[%s] Trainer invitation accepted', get_bloginfo('name'));
+        $subject = '[Dutch Field Hockey Drills] Trainer invitation accepted';
         
         $message = sprintf(
            "Hello %s,\n\n%s has accepted your invitation to become a trainer for the following teams:\n\n%s\n\nThey now have access to the Club Manager dashboard and can view/evaluate players in these teams.\n\nBest regards,\n%s",

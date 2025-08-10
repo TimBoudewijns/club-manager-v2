@@ -542,7 +542,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         // Build email subject
-        $subject = sprintf('[%s] Trainer Invitation', $club_name);
+        $subject = '[Dutch Field Hockey Drills] Trainer Invitation';
         
         // Build professional HTML email
         $body = $this->get_trainer_invitation_email_template([
@@ -557,7 +557,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         // Add headers for HTML email
         $headers = array(
             'Content-Type: text/html; charset=UTF-8',
-            'From: ' . $club_name . ' <' . get_option('admin_email') . '>'
+            'From: ' . get_bloginfo('name') . ' <' . get_option('admin_email') . '>'
         );
         
         // Send email
