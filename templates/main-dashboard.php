@@ -93,7 +93,7 @@
 </style>
 
 <div class="club-manager-app min-h-screen bg-white" x-data="clubManager()" data-theme="light">
-    <div class="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 md:py-8">
+    <div class="w-full py-6 md:py-8">
         
         <?php include 'partials/header.php'; ?>
         
