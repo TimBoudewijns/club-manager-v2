@@ -192,7 +192,7 @@
                                                             </svg>
                                                         </button>
                                                         <!-- Remove Button - Alleen voor club managers en independent trainers -->
-                                                        <button x-show="hasPermission('can_delete_players')"
+                                                        <button x-show="hasPermission('can_delete_players')" x-init="console.log('Delete button permission check:', hasPermission('can_delete_players'), 'User type:', userPermissions.user_type)"
                                                                 @click="handleRemoveClick(player.id)" 
                                                                 class="text-red-600 hover:text-red-900 transition-colors p-2 rounded-lg hover:bg-red-50 active:bg-red-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                                 title="Remove from team"
