@@ -517,7 +517,10 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
      */
     private function send_trainer_invitation_email($email, $token, $inviter_id, $team_names, $message) {
         $inviter = get_user_by('id', $inviter_id);
-        $club_name = get_bloginfo('name');
+        
+        // Get the actual club name from WooCommerce Teams
+        $actual_club_name = $this->get_wc_team_name($inviter_id);
+        $club_name = $actual_club_name ?: get_bloginfo('name');
         
         // Get accept URL
         global $wpdb;
@@ -623,7 +626,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 Trainer Invitation
             </h1>
             <p style="margin: 10px 0 0 0; color: #FED7AA; font-size: 16px;">
-                ' . $club_name . '
+                Dutch Field Hockey Drills
             </p>
         </div>
         
@@ -910,5 +913,28 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         return false;
+    }
+    
+    /**
+     * Get WooCommerce Team name for a user
+     */
+    private function get_wc_team_name($user_id) {
+        if (!class_exists('Club_Manager_Teams_Helper') || !function_exists('wc_memberships_for_teams')) {
+            return null;
+        }
+        
+        // Get managed teams
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        
+        if (!empty($managed_teams)) {
+            $wc_team_id = $managed_teams[0]['team_id'];
+            $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
+            
+            if ($wc_team && is_object($wc_team) && method_exists($wc_team, 'get_name')) {
+                return $wc_team->get_name();
+            }
+        }
+        
+        return null;
     }
 }
