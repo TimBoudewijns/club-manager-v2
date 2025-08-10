@@ -394,6 +394,31 @@ body.modal-open {
         height: 20px !important;
     }
     
+    /* Override for close/cancel X buttons */
+    .club-manager-app button.close-button svg,
+    .club-manager-app button[class*="rounded-full"] svg,
+    .club-manager-app button svg.w-4.h-4,
+    .club-manager-app button svg[class*="w-4"][class*="h-4"] {
+        width: 16px !important;
+        height: 16px !important;
+    }
+    
+    /* Make close buttons smaller on mobile */
+    @media (max-width: 640px) {
+        .club-manager-app button.close-button svg,
+        .club-manager-app button[class*="rounded-full"] svg,
+        .club-manager-app button svg.w-4.h-4,
+        .club-manager-app button svg[class*="w-4"][class*="h-4"] {
+            width: 14px !important;
+            height: 14px !important;
+        }
+    }
+    
+    /* Ensure proper padding for smaller close buttons */
+    .club-manager-app button[class*="p-1.5"] {
+        padding: 0.375rem !important;
+    }
+    
     /* Fix table row interactions on mobile */
     .club-manager-app tbody tr {
         position: relative !important;

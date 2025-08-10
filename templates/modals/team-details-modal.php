@@ -39,7 +39,7 @@
                         <button @click="closeTeamDetailsModal()" 
                                 class="text-white p-1.5 rounded-full transition-colors"
                                 :class="isViewingClubTeam ? 'hover:text-blue-200 hover:bg-white/10' : 'hover:text-orange-200 hover:bg-white/10'">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4" style="width: 16px; height: 16px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
