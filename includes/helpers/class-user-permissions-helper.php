@@ -338,7 +338,8 @@ class Club_Manager_User_Permissions_Helper {
                     'can_view_all_club_teams' => true,
                     'can_create_teams' => true,
                     'can_import_export' => true,
-                    'can_manage_trainers' => true
+                    'can_manage_trainers' => true,
+                    'can_delete_players' => true
                 ]);
                 break;
                 
@@ -354,7 +355,8 @@ class Club_Manager_User_Permissions_Helper {
                     'can_view_all_club_teams' => false,
                     'can_create_teams' => false,
                     'can_import_export' => false,
-                    'can_manage_trainers' => false
+                    'can_manage_trainers' => false,
+                    'can_delete_players' => false
                 ]);
                 break;
                 
@@ -370,7 +372,8 @@ class Club_Manager_User_Permissions_Helper {
                     'can_view_all_club_teams' => false,
                     'can_create_teams' => true,
                     'can_import_export' => false,
-                    'can_manage_trainers' => false
+                    'can_manage_trainers' => false,
+                    'can_delete_players' => true
                 ]);
                 break;
                 
@@ -386,7 +389,8 @@ class Club_Manager_User_Permissions_Helper {
                     'can_view_all_club_teams' => false,
                     'can_create_teams' => false,
                     'can_import_export' => false,
-                    'can_manage_trainers' => false
+                    'can_manage_trainers' => false,
+                    'can_delete_players' => false
                 ]);
         }
         

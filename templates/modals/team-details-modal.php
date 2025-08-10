@@ -191,8 +191,8 @@
                                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                             </svg>
                                                         </button>
-                                                        <!-- Remove Button - Alleen voor team owners -->
-                                                        <button x-show="hasPermission('can_create_teams')"
+                                                        <!-- Remove Button - Alleen voor club managers en independent trainers -->
+                                                        <button x-show="hasPermission('can_delete_players')"
                                                                 @click="handleRemoveClick(player.id)" 
                                                                 class="text-red-600 hover:text-red-900 transition-colors p-2 rounded-lg hover:bg-red-50 active:bg-red-100 min-w-[44px] min-h-[44px] flex items-center justify-center"
                                                                 title="Remove from team"
