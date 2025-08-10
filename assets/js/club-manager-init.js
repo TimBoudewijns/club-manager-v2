@@ -50,7 +50,7 @@ window.clubManager = function() {
         
         // Initialize all modules
         initializeModules() {
-            // Check if modules exist in global scope
+            // Always initialize core modules that all users need
             if (typeof TeamModule !== 'undefined') {
                 this.teamModule = new TeamModule(this);
             }
@@ -85,6 +85,9 @@ window.clubManager = function() {
             if (this.userPermissions.can_import_export && typeof ImportExportModule !== 'undefined') {
                 this.importExportModule = new ImportExportModule(this);
             }
+            
+            // Add fallback functions for missing modules/methods
+            this.initializeFallbackMethods();
         },
         
         // Set initial tab based on user permissions
@@ -333,6 +336,59 @@ window.clubManager = function() {
         isTabAvailable(tab) {
             return this.userPermissions.available_tabs && 
                    this.userPermissions.available_tabs.includes(tab);
+        },
+        
+        // Initialize fallback methods for missing functionality
+        initializeFallbackMethods() {
+            // Fallback for handlePlayerCardModalClick if PlayerModule doesn't have it
+            if (!this.handlePlayerCardModalClick) {
+                this.handlePlayerCardModalClick = (playerId, isClubView = false) => {
+                    console.warn('handlePlayerCardModalClick called but not available for this user type');
+                    if (this.playerCardModule && typeof this.playerCardModule.viewPlayerCardInModal === 'function') {
+                        this.playerCardModule.viewPlayerCardInModal(playerId, isClubView);
+                    }
+                };
+            }
+            
+            // Fallback for other potentially missing methods
+            const fallbackMethods = [
+                'openCreateTeamModal',
+                'openEditTeamModal',
+                'openTeamDetailsModal',
+                'openPlayerModal',
+                'openTrainerModal',
+                'deletePlayer',
+                'deleteTeam',
+                'deleteTrainer',
+                'createTeam',
+                'editTeam',
+                'importExportData'
+            ];
+            
+            fallbackMethods.forEach(methodName => {
+                if (!this[methodName]) {
+                    this[methodName] = (...args) => {
+                        console.warn(`${methodName} called but not available for this user type`);
+                    };
+                }
+            });
+            
+            // Initialize safe data properties to prevent undefined errors
+            if (!this.clubTeamPlayers) {
+                this.clubTeamPlayers = [];
+            }
+            
+            if (!this.teamPlayers) {
+                this.teamPlayers = [];
+            }
+            
+            if (!this.evaluationCategories) {
+                this.evaluationCategories = [];
+            }
+            
+            if (!this.evaluations) {
+                this.evaluations = {};
+            }
         }
     };
 };

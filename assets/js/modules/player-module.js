@@ -214,9 +214,17 @@ class PlayerModule {
     }
     
     handlePlayerCardModalClick(playerId, isClubView = false) {
-        const player = this.app.teamPlayers.find(p => p.id == playerId);
-        if (player && this.app.viewPlayerCardInModal) {
-            this.app.viewPlayerCardInModal(playerId, isClubView);
+        const players = isClubView ? this.app.clubTeamPlayers : this.app.teamPlayers;
+        const player = players && players.find(p => p.id == playerId);
+        
+        if (player) {
+            if (this.app.viewPlayerCardInModal) {
+                this.app.viewPlayerCardInModal(playerId, isClubView);
+            } else if (this.app.playerCardModule && typeof this.app.playerCardModule.viewPlayerCardInModal === 'function') {
+                this.app.playerCardModule.viewPlayerCardInModal(playerId, isClubView);
+            } else {
+                console.warn('Player card modal functionality not available');
+            }
         }
     }
 }
