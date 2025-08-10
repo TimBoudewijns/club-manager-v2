@@ -3,7 +3,12 @@
     "allow": [
       "Bash(find:*)",
       "Bash(php -l:*)",
-      "Bash(touch:*)"
+      "Bash(touch:*)",
+      "Bash(grep:*)",
+      "Bash(if [ -f \"package.json\" ])",
+      "Bash(then npm run lint --if-present)",
+      "Bash(else echo \"No package.json found\")",
+      "Bash(fi)"
     ],
     "deny": []
   }

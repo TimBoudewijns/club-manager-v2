@@ -12,11 +12,6 @@ window.clubManager = function() {
         globalLoading: false,
         loadingMessage: '',
         
-        // Data properties (initialized for all users to prevent Alpine errors)
-        clubTeams: [],
-        managedTeams: [],
-        myTeams: [],
-        
         // Module instances
         teamModule: null,
         playerModule: null,
@@ -26,6 +21,199 @@ window.clubManager = function() {
         playerCardModule: null,
         clubTeamsModule: null,
         importExportModule: null,
+        
+        // Initialize ALL data properties upfront to prevent Alpine errors
+        // Team Module variables
+        myTeams: [],
+        selectedTeam: null,
+        teamPlayers: [],
+        viewingPlayer: null,
+        selectedPlayerCard: null,
+        showCreateTeamModal: false,
+        newTeam: {
+            name: '',
+            coach: ''
+        },
+        showTeamDetailsModal: false,
+        
+        // Club Teams Module variables
+        clubTeams: [],
+        selectedClubTeam: null,
+        clubTeamPlayers: [],
+        viewingClubPlayer: null,
+        selectedClubPlayerCard: null,
+        isViewingClubTeam: false,
+        
+        // Team Management Module variables
+        managedTeams: [],
+        selectedManagedTeam: null,
+        teamTrainers: [],
+        availableTrainers: [],
+        availableTrainersLoading: false,
+        showCreateClubTeamModal: false,
+        newClubTeam: {
+            name: '',
+            coach: '',
+            trainers: []
+        },
+        showEditTeamModal: false,
+        editingTeam: null,
+        editTeamData: {
+            name: '',
+            coach: ''
+        },
+        showAssignTrainerModal: false,
+        trainerAssignment: {
+            teamId: null,
+            trainerId: null
+        },
+        
+        // Trainer Module variables
+        showInviteTrainerModal: false,
+        showEditTrainerModal: false,
+        pendingInvitations: [],
+        activeTrainers: [],
+        trainerLimit: window.clubManagerAjax?.trainer_limit || null,
+        newTrainerInvite: {
+            email: '',
+            selectedTeams: [],
+            role: 'trainer',
+            message: ''
+        },
+        editingTrainer: null,
+        editTrainerData: {
+            selectedTeams: [],
+            role: 'trainer'
+        },
+        
+        // Player Module variables
+        showAddPlayerModal: false,
+        showAddExistingPlayerModal: false,
+        showPlayerHistoryModal: false,
+        playerSearch: '',
+        searchResults: [],
+        selectedExistingPlayer: null,
+        playerHistory: [],
+        historyPlayer: null,
+        historyLoading: false,
+        newPlayer: {
+            first_name: '',
+            last_name: '',
+            birth_date: '',
+            email: '',
+            position: '',
+            jersey_number: '',
+            notes: ''
+        },
+        existingPlayerTeamData: {
+            position: '',
+            jersey_number: '',
+            notes: ''
+        },
+        
+        // Evaluation Module variables
+        evaluationCategories: [],
+        evaluations: {},
+        showEvaluationModal: false,
+        evaluatingPlayer: null,
+        evaluatingPlayerFrom: 'myTeam',
+        evaluationScores: {},
+        evaluationDate: new Date().toISOString().split('T')[0],
+        
+        // Player Card Module variables
+        showPlayerCardModal: false,
+        playerCardChart: null,
+        modalPlayerCardChart: null,
+        playerEvaluationHistory: [],
+        availableEvaluationDates: [],
+        selectedEvaluationDate: 'all',
+        playerAdvice: null,
+        adviceLoading: false,
+        adviceStatus: 'no_evaluations',
+        lastAdviceTimestamp: null,
+        modalViewingPlayer: null,
+        modalIsClubView: false,
+        playerCardLoading: false,
+        playerCardLoadingMessage: '',
+        
+        // Import/Export Module variables
+        showImportExportModal: false,
+        importExportMode: 'import',
+        importWizardStep: 1,
+        importType: '',
+        importFile: null,
+        importFileData: null,
+        importTempKey: null,
+        importMapping: {},
+        importPreviewData: [],
+        importOptions: {
+            duplicateHandling: 'skip',
+            sendInvitations: true,
+            validateEmails: true,
+            dateFormat: 'DD-MM-YYYY'
+        },
+        importProgress: {
+            total: 0,
+            processed: 0,
+            successful: 0,
+            failed: 0,
+            errors: [],
+            isProcessing: false,
+            isPaused: false,
+            sessionId: null
+        },
+        importResults: {
+            created: 0,
+            updated: 0,
+            skipped: 0,
+            failed: 0,
+            errors: []
+        },
+        exportType: 'teams',
+        exportFilters: {
+            season: '',
+            teamIds: [],
+            includeEvaluations: false
+        },
+        exportFormat: 'csv',
+        fieldMappings: {
+            'name': ['name', 'team_name', 'teamname', 'naam'],
+            'coach': ['coach', 'coach_name', 'trainer', 'head_coach'],
+            'season': ['season', 'year', 'seizoen'],
+            'first_name': ['first_name', 'firstname', 'voornaam', 'fname'],
+            'last_name': ['last_name', 'lastname', 'achternaam', 'lname'],
+            'email': ['email', 'email_address', 'e-mail', 'emailadres'],
+            'birth_date': ['birth_date', 'birthdate', 'date_of_birth', 'dob', 'geboortedatum'],
+            'position': ['position', 'pos', 'positie'],
+            'jersey_number': ['jersey_number', 'jersey', 'number', 'shirt_number', 'rugnummer'],
+            'team_name': ['team_name', 'team', 'teamname', 'ploeg'],
+            'team_names': ['team_names', 'teams', 'assigned_teams', 'ploegen']
+        },
+        availableFields: {
+            teams: [
+                { key: 'name', label: 'Team Name', required: true },
+                { key: 'coach', label: 'Coach', required: true },
+                { key: 'season', label: 'Season', required: true }
+            ],
+            players: [
+                { key: 'first_name', label: 'First Name', required: true },
+                { key: 'last_name', label: 'Last Name', required: true },
+                { key: 'email', label: 'Email', required: true },
+                { key: 'birth_date', label: 'Birth Date', required: true },
+                { key: 'position', label: 'Position', required: false },
+                { key: 'jersey_number', label: 'Jersey Number', required: false },
+                { key: 'team_name', label: 'Team Name', required: false }
+            ],
+            trainers: [
+                { key: 'email', label: 'Email', required: true },
+                { key: 'team_names', label: 'Team Names (semicolon separated)', required: false }
+            ]
+        },
+        importTemplates: {
+            teams: 'name,coach,season\nHockey Team Alpha,John Doe,2024-2025\nHockey Team Beta,Jane Smith,2024-2025\nHockey Team Gamma,Bob Wilson,2024-2025',
+            players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\nJohn,Doe,john.doe@email.com,15-03-2005,Forward,10,Hockey Team Alpha\nJane,Smith,jane.smith@email.com,22-07-2006,Defense,5,Hockey Team Alpha\nBob,Johnson,bob.j@email.com,01-01-2005,Goalkeeper,1,Hockey Team Beta\nAlice,Wilson,alice.w@email.com,30-09-2005,Midfield,8,Hockey Team Beta',
+            trainers: 'email,team_names\ntrainer1@club.com,Hockey Team Alpha\ntrainer2@club.com,Hockey Team Alpha;Hockey Team Beta\nheadcoach@club.com,Hockey Team Gamma'
+        },
         
         // Initialize
         async init() {
@@ -46,6 +234,38 @@ window.clubManager = function() {
             this.$watch('activeTab', async (value) => {
                 await this.handleTabChange(value);
             });
+        },
+        
+        // Import/Export helper methods that might be called from templates
+        canInviteMoreTrainers() {
+            // Fallback method for when TrainerModule is not loaded
+            return false;
+        },
+        
+        getImportTypeFields() {
+            return this.availableFields[this.importType] || [];
+        },
+        
+        getFieldLabel(key) {
+            const fields = this.getImportTypeFields();
+            const field = fields.find(f => f.key === key);
+            return field ? field.label : key;
+        },
+        
+        isFieldRequired(key) {
+            const fields = this.getImportTypeFields();
+            const field = fields.find(f => f.key === key);
+            return field ? field.required : false;
+        },
+        
+        formatProgress() {
+            if (this.importProgress.total === 0) return '0%';
+            const percentage = (this.importProgress.processed / this.importProgress.total) * 100;
+            return percentage.toFixed(1) + '%';
+        },
+        
+        isTrainerImport() {
+            return this.importType === 'trainers';
         },
         
         // Initialize all modules
@@ -362,7 +582,38 @@ window.clubManager = function() {
                 'deleteTrainer',
                 'createTeam',
                 'editTeam',
-                'importExportData'
+                'importExportData',
+                'openImportExport',
+                'switchImportExportMode',
+                'selectImportType',
+                'handleFileUpload',
+                'parseImportFile',
+                'autoMapColumns',
+                'validateImportData',
+                'startImport',
+                'pauseImport',
+                'resumeImport',
+                'cancelImport',
+                'resetImportWizard',
+                'nextImportStep',
+                'previousImportStep',
+                'downloadTemplate',
+                'exportData',
+                'toggleExportTeam',
+                'toggleTeamSelection',
+                'toggleEditTeamSelection',
+                'checkTrainerLimit',
+                'inviteTrainer',
+                'cancelInvitation',
+                'editTrainer',
+                'updateTrainer',
+                'removeTrainer',
+                'loadAvailableTrainers',
+                'assignTrainerToTeam',
+                'removeTrainerFromTeam',
+                'selectManagedTeam',
+                'createClubTeam',
+                'loadManagedTeams'
             ];
             
             fallbackMethods.forEach(methodName => {
@@ -372,438 +623,6 @@ window.clubManager = function() {
                     };
                 }
             });
-            
-            // Initialize safe data properties to prevent undefined errors
-            
-            // Team Module variables (always needed for all users)
-            if (!this.myTeams) {
-                this.myTeams = [];
-            }
-            
-            if (!this.selectedTeam) {
-                this.selectedTeam = null;
-            }
-            
-            if (!this.teamPlayers) {
-                this.teamPlayers = [];
-            }
-            
-            if (!this.viewingPlayer) {
-                this.viewingPlayer = null;
-            }
-            
-            if (!this.selectedPlayerCard) {
-                this.selectedPlayerCard = null;
-            }
-            
-            if (!this.showCreateTeamModal) {
-                this.showCreateTeamModal = false;
-            }
-            
-            if (!this.newTeam) {
-                this.newTeam = {
-                    name: '',
-                    coach: ''
-                };
-            }
-            
-            if (!this.showTeamDetailsModal) {
-                this.showTeamDetailsModal = false;
-            }
-            
-            // Club Teams Module variables
-            if (!this.clubTeams) {
-                this.clubTeams = [];
-            }
-            
-            if (!this.selectedClubTeam) {
-                this.selectedClubTeam = null;
-            }
-            
-            if (!this.clubTeamPlayers) {
-                this.clubTeamPlayers = [];
-            }
-            
-            if (!this.viewingClubPlayer) {
-                this.viewingClubPlayer = null;
-            }
-            
-            if (!this.selectedClubPlayerCard) {
-                this.selectedClubPlayerCard = null;
-            }
-            
-            if (!this.isViewingClubTeam) {
-                this.isViewingClubTeam = false;
-            }
-            
-            // Evaluation Module variables
-            if (!this.evaluationCategories) {
-                this.evaluationCategories = [];
-            }
-            
-            if (!this.evaluations) {
-                this.evaluations = {};
-            }
-            
-            if (!this.showEvaluationModal) {
-                this.showEvaluationModal = false;
-            }
-            
-            if (!this.evaluatingPlayer) {
-                this.evaluatingPlayer = null;
-            }
-            
-            if (!this.evaluatingPlayerFrom) {
-                this.evaluatingPlayerFrom = 'myTeam';
-            }
-            
-            if (!this.evaluationScores) {
-                this.evaluationScores = {};
-            }
-            
-            if (!this.evaluationDate) {
-                this.evaluationDate = new Date().toISOString().split('T')[0];
-            }
-            
-            // Player Module variables
-            if (!this.showAddPlayerModal) {
-                this.showAddPlayerModal = false;
-            }
-            
-            if (!this.showAddExistingPlayerModal) {
-                this.showAddExistingPlayerModal = false;
-            }
-            
-            if (!this.showPlayerHistoryModal) {
-                this.showPlayerHistoryModal = false;
-            }
-            
-            if (!this.playerSearch) {
-                this.playerSearch = '';
-            }
-            
-            if (!this.searchResults) {
-                this.searchResults = [];
-            }
-            
-            if (!this.selectedExistingPlayer) {
-                this.selectedExistingPlayer = null;
-            }
-            
-            if (!this.playerHistory) {
-                this.playerHistory = [];
-            }
-            
-            if (!this.historyPlayer) {
-                this.historyPlayer = null;
-            }
-            
-            if (!this.historyLoading) {
-                this.historyLoading = false;
-            }
-            
-            if (!this.newPlayer) {
-                this.newPlayer = {
-                    first_name: '',
-                    last_name: '',
-                    birth_date: '',
-                    email: '',
-                    position: '',
-                    jersey_number: '',
-                    notes: ''
-                };
-            }
-            
-            if (!this.existingPlayerTeamData) {
-                this.existingPlayerTeamData = {
-                    position: '',
-                    jersey_number: '',
-                    notes: ''
-                };
-            }
-            
-            // Player Card Module variables
-            if (!this.showPlayerCardModal) {
-                this.showPlayerCardModal = false;
-            }
-            
-            if (!this.playerCardChart) {
-                this.playerCardChart = null;
-            }
-            
-            if (!this.modalPlayerCardChart) {
-                this.modalPlayerCardChart = null;
-            }
-            
-            if (!this.playerEvaluationHistory) {
-                this.playerEvaluationHistory = [];
-            }
-            
-            if (!this.availableEvaluationDates) {
-                this.availableEvaluationDates = [];
-            }
-            
-            if (!this.selectedEvaluationDate) {
-                this.selectedEvaluationDate = 'all';
-            }
-            
-            if (!this.playerAdvice) {
-                this.playerAdvice = null;
-            }
-            
-            if (!this.adviceLoading) {
-                this.adviceLoading = false;
-            }
-            
-            if (!this.adviceStatus) {
-                this.adviceStatus = 'no_evaluations';
-            }
-            
-            if (!this.lastAdviceTimestamp) {
-                this.lastAdviceTimestamp = null;
-            }
-            
-            if (!this.modalViewingPlayer) {
-                this.modalViewingPlayer = null;
-            }
-            
-            if (!this.modalIsClubView) {
-                this.modalIsClubView = false;
-            }
-            
-            if (!this.playerCardLoading) {
-                this.playerCardLoading = false;
-            }
-            
-            if (!this.playerCardLoadingMessage) {
-                this.playerCardLoadingMessage = '';
-            }
-            
-            // Team Management Module variables (not available for club trainers)
-            if (!this.managedTeams) {
-                this.managedTeams = [];
-            }
-            
-            if (!this.selectedManagedTeam) {
-                this.selectedManagedTeam = null;
-            }
-            
-            if (!this.teamTrainers) {
-                this.teamTrainers = [];
-            }
-            
-            if (!this.availableTrainers) {
-                this.availableTrainers = [];
-            }
-            
-            // Trainer Module variables
-            if (!this.pendingInvitations) {
-                this.pendingInvitations = [];
-            }
-            
-            if (!this.activeTrainers) {
-                this.activeTrainers = [];
-            }
-            
-            // Modal states
-            if (!this.showCreateClubTeamModal) {
-                this.showCreateClubTeamModal = false;
-            }
-            
-            if (!this.showEditTeamModal) {
-                this.showEditTeamModal = false;
-            }
-            
-            if (!this.showAssignTrainerModal) {
-                this.showAssignTrainerModal = false;
-            }
-            
-            if (!this.showInviteTrainerModal) {
-                this.showInviteTrainerModal = false;
-            }
-            
-            if (!this.showEditTrainerModal) {
-                this.showEditTrainerModal = false;
-            }
-            
-            // Form data objects
-            if (!this.newClubTeam) {
-                this.newClubTeam = {
-                    name: '',
-                    coach: '',
-                    trainers: []
-                };
-            }
-            
-            if (!this.editingTeam) {
-                this.editingTeam = null;
-            }
-            
-            if (!this.editTeamData) {
-                this.editTeamData = {
-                    name: '',
-                    coach: ''
-                };
-            }
-            
-            if (!this.trainerAssignment) {
-                this.trainerAssignment = {
-                    teamId: null,
-                    trainerId: null
-                };
-            }
-            
-            if (!this.newTrainerInvite) {
-                this.newTrainerInvite = {
-                    email: '',
-                    selectedTeams: [],
-                    role: 'trainer',
-                    message: ''
-                };
-            }
-            
-            if (!this.editingTrainer) {
-                this.editingTrainer = null;
-            }
-            
-            if (!this.editTrainerData) {
-                this.editTrainerData = {
-                    selectedTeams: [],
-                    role: 'trainer'
-                };
-            }
-            
-            // Import/Export Module variables
-            if (!this.showImportExportModal) {
-                this.showImportExportModal = false;
-            }
-            
-            if (!this.importExportMode) {
-                this.importExportMode = 'import';
-            }
-            
-            if (!this.importWizardStep) {
-                this.importWizardStep = 1;
-            }
-            
-            if (!this.importType) {
-                this.importType = '';
-            }
-            
-            if (!this.importFile) {
-                this.importFile = null;
-            }
-            
-            if (!this.importFileData) {
-                this.importFileData = null;
-            }
-            
-            if (!this.importTempKey) {
-                this.importTempKey = null;
-            }
-            
-            if (!this.importMapping) {
-                this.importMapping = {};
-            }
-            
-            if (!this.importPreviewData) {
-                this.importPreviewData = [];
-            }
-            
-            if (!this.importOptions) {
-                this.importOptions = {
-                    duplicateHandling: 'skip',
-                    sendInvitations: true,
-                    validateEmails: true,
-                    dateFormat: 'DD-MM-YYYY'
-                };
-            }
-            
-            if (!this.importProgress) {
-                this.importProgress = {
-                    total: 0,
-                    processed: 0,
-                    successful: 0,
-                    failed: 0,
-                    errors: [],
-                    isProcessing: false,
-                    isPaused: false,
-                    sessionId: null
-                };
-            }
-            
-            if (!this.importResults) {
-                this.importResults = {
-                    created: 0,
-                    updated: 0,
-                    skipped: 0,
-                    failed: 0,
-                    errors: []
-                };
-            }
-            
-            if (!this.exportType) {
-                this.exportType = 'teams';
-            }
-            
-            if (!this.exportFilters) {
-                this.exportFilters = {
-                    season: '',
-                    teamIds: [],
-                    includeEvaluations: false
-                };
-            }
-            
-            if (!this.exportFormat) {
-                this.exportFormat = 'csv';
-            }
-            
-            if (!this.fieldMappings) {
-                this.fieldMappings = {
-                    'name': ['name', 'team_name', 'teamname', 'naam'],
-                    'coach': ['coach', 'coach_name', 'trainer', 'head_coach'],
-                    'season': ['season', 'year', 'seizoen'],
-                    'first_name': ['first_name', 'firstname', 'voornaam', 'fname'],
-                    'last_name': ['last_name', 'lastname', 'achternaam', 'lname'],
-                    'email': ['email', 'email_address', 'e-mail', 'emailadres'],
-                    'birth_date': ['birth_date', 'birthdate', 'date_of_birth', 'dob', 'geboortedatum'],
-                    'position': ['position', 'pos', 'positie'],
-                    'jersey_number': ['jersey_number', 'jersey', 'number', 'shirt_number', 'rugnummer'],
-                    'team_name': ['team_name', 'team', 'teamname', 'ploeg'],
-                    'team_names': ['team_names', 'teams', 'assigned_teams', 'ploegen']
-                };
-            }
-            
-            if (!this.availableFields) {
-                this.availableFields = {
-                    teams: [
-                        { key: 'name', label: 'Team Name', required: true },
-                        { key: 'coach', label: 'Coach', required: true },
-                        { key: 'season', label: 'Season', required: true }
-                    ],
-                    players: [
-                        { key: 'first_name', label: 'First Name', required: true },
-                        { key: 'last_name', label: 'Last Name', required: true },
-                        { key: 'email', label: 'Email', required: true },
-                        { key: 'birth_date', label: 'Birth Date', required: true },
-                        { key: 'position', label: 'Position', required: false },
-                        { key: 'jersey_number', label: 'Jersey Number', required: false },
-                        { key: 'team_name', label: 'Team Name', required: false }
-                    ],
-                    trainers: [
-                        { key: 'email', label: 'Email', required: true },
-                        { key: 'team_names', label: 'Team Names (semicolon separated)', required: false }
-                    ]
-                };
-            }
-            
-            if (!this.importTemplates) {
-                this.importTemplates = {
-                    teams: 'name,coach,season\nHockey Team Alpha,John Doe,2024-2025\nHockey Team Beta,Jane Smith,2024-2025\nHockey Team Gamma,Bob Wilson,2024-2025',
-                    players: 'first_name,last_name,email,birth_date,position,jersey_number,team_name\nJohn,Doe,john.doe@email.com,15-03-2005,Forward,10,Hockey Team Alpha\nJane,Smith,jane.smith@email.com,22-07-2006,Defense,5,Hockey Team Alpha\nBob,Johnson,bob.j@email.com,01-01-2005,Goalkeeper,1,Hockey Team Beta\nAlice,Wilson,alice.w@email.com,30-09-2005,Midfield,8,Hockey Team Beta',
-                    trainers: 'email,team_names\ntrainer1@club.com,Hockey Team Alpha\ntrainer2@club.com,Hockey Team Alpha;Hockey Team Beta\nheadcoach@club.com,Hockey Team Gamma'
-                };
-            }
         }
     };
 };
