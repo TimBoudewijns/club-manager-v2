@@ -135,7 +135,8 @@ class Club_Manager_Player_Ajax extends Club_Manager_Ajax_Handler {
         $player_id = $this->get_post_data('player_id', 'int');
         $season = $this->get_post_data('season');
         
-        $this->verify_team_ownership($team_id, $user_id);
+        // Use new permission check - only club managers or independent trainers can delete
+        $this->verify_player_ownership_or_independent($player_id, $user_id);
         
         $player_model = new Club_Manager_Player_Model();
         $result = $player_model->remove_from_team($team_id, $player_id, $season);
@@ -154,7 +155,7 @@ class Club_Manager_Player_Ajax extends Club_Manager_Ajax_Handler {
         $user_id = $this->verify_request();
         
         $player_id = $this->get_post_data('player_id', 'int');
-        $this->verify_player_ownership($player_id, $user_id);
+        $this->verify_player_access($player_id, $user_id);
         
         $player_model = new Club_Manager_Player_Model();
         $player = $player_model->get($player_id);

@@ -134,6 +134,121 @@ abstract class Club_Manager_Ajax_Handler {
     }
     
     /**
+     * Verify player access - for both owners and assigned trainers.
+     */
+    protected function verify_player_access($player_id, $user_id) {
+        global $wpdb;
+        
+        if (!$player_id || !$user_id) {
+            wp_send_json_error('Invalid player or user ID');
+            exit;
+        }
+        
+        // First check if user owns the player
+        $players_table = Club_Manager_Database::get_table_name('players');
+        $owner = $wpdb->get_var($wpdb->prepare(
+            "SELECT created_by FROM $players_table WHERE id = %d",
+            $player_id
+        ));
+        
+        if ($owner == $user_id) {
+            return true; // User owns the player
+        }
+        
+        // Check if user is trainer for any team that contains this player
+        $team_players_table = Club_Manager_Database::get_table_name('team_players');
+        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
+        
+        $trainer_access = $wpdb->get_var($wpdb->prepare(
+            "SELECT tp.id FROM $team_players_table tp
+            INNER JOIN $trainers_table tt ON tp.team_id = tt.team_id
+            WHERE tp.player_id = %d AND tt.trainer_id = %d AND tt.is_active = 1",
+            $player_id, $user_id
+        ));
+        
+        if ($trainer_access) {
+            return true; // User is assigned as trainer to a team containing this player
+        }
+        
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("Club Manager: User $user_id tried to access player $player_id without permission");
+        }
+        
+        wp_send_json_error('You do not have permission to access this player.');
+        exit;
+    }
+    
+    /**
+     * Check if user is independent trainer (not part of club management).
+     */
+    protected function is_independent_trainer($user_id) {
+        // Check if user has WooCommerce Teams membership (part of a club)
+        if (class_exists('Club_Manager_Teams_Helper') && function_exists('wc_memberships_for_teams')) {
+            $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+            if (!empty($managed_teams)) {
+                return false; // User is club manager
+            }
+            
+            // Check if user is member of any team
+            if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+                $user_teams = wc_memberships_for_teams_get_user_teams($user_id);
+                if (!empty($user_teams)) {
+                    return false; // User is part of a club
+                }
+            }
+        }
+        
+        return true; // User is independent trainer
+    }
+    
+    /**
+     * Verify player ownership for modification actions (allows independent trainers).
+     */
+    protected function verify_player_ownership_or_independent($player_id, $user_id) {
+        global $wpdb;
+        
+        if (!$player_id || !$user_id) {
+            wp_send_json_error('Invalid player or user ID');
+            exit;
+        }
+        
+        $players_table = Club_Manager_Database::get_table_name('players');
+        $owner = $wpdb->get_var($wpdb->prepare(
+            "SELECT created_by FROM $players_table WHERE id = %d",
+            $player_id
+        ));
+        
+        // Allow if user owns the player
+        if ($owner == $user_id) {
+            return true;
+        }
+        
+        // Allow if user is independent trainer and player is in their team
+        if ($this->is_independent_trainer($user_id)) {
+            $team_players_table = Club_Manager_Database::get_table_name('team_players');
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            
+            $independent_access = $wpdb->get_var($wpdb->prepare(
+                "SELECT tp.id FROM $team_players_table tp
+                INNER JOIN $teams_table t ON tp.team_id = t.id
+                WHERE tp.player_id = %d AND t.created_by = %d",
+                $player_id, $user_id
+            ));
+            
+            if ($independent_access) {
+                return true; // Independent trainer with access
+            }
+        }
+        
+        if (defined('WP_DEBUG') && WP_DEBUG) {
+            error_log("Club Manager: User $user_id tried to modify player $player_id without permission");
+        }
+        
+        wp_send_json_error('You do not have permission to modify this player.');
+        exit;
+    }
+    
+    /**
      * Get and sanitize POST data.
      */
     protected function get_post_data($key, $type = 'text', $default = '') {
