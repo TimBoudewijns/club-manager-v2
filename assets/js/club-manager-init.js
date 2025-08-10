@@ -314,7 +314,7 @@ window.clubManager = function() {
                     }
                 } catch (error) {
                     console.error('Error changing season:', error);
-                    alert('Error changing season: ' + error.message);
+                    console.error('Error changing season: ', error.message);
                 }
             }, 'Changing season...');
         },

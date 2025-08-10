@@ -102,7 +102,7 @@ class TrainerModule {
     
     checkTrainerLimit() {
         if (!this.canInviteMoreTrainers()) {
-            alert(`You have reached your trainer limit of ${this.app.trainerLimit}. Please upgrade your membership to invite more trainers.`);
+            console.error(`You have reached your trainer limit of ${this.app.trainerLimit}. Please upgrade your membership to invite more trainers.`);
             return false;
         }
         return true;
@@ -110,7 +110,7 @@ class TrainerModule {
     
     async inviteTrainer(event) {
         if (!this.app.newTrainerInvite.selectedTeams || this.app.newTrainerInvite.selectedTeams.length === 0) {
-            alert('Please select at least one team for the trainer');
+            console.error('Please select at least one team for the trainer');
             return;
         }
         
@@ -135,10 +135,10 @@ class TrainerModule {
                 };
                 
                 await this.loadTrainerManagementData();
-                alert('Invitation sent successfully!');
+                console.log('Invitation sent successfully!');
                 
             } catch (error) {
-                alert('Error sending invitation: ' + (error.message || 'Unknown error'));
+                console.error('Error sending invitation: ', error.message || 'Unknown error');
             } finally {
                 this.app.setButtonLoading(button, false, 'Send Invitation');
             }
@@ -159,7 +159,7 @@ class TrainerModule {
                 await this.loadTrainerManagementData();
                 
             } catch (error) {
-                alert('Error canceling invitation');
+                console.error('Error canceling invitation');
             }
         }, 'Canceling invitation...');
     }
@@ -175,7 +175,7 @@ class TrainerModule {
     
     async updateTrainer(event) {
         if (!this.app.editTrainerData.selectedTeams || this.app.editTrainerData.selectedTeams.length === 0) {
-            alert('Please select at least one team for the trainer');
+            console.error('Please select at least one team for the trainer');
             return;
         }
         
@@ -198,10 +198,10 @@ class TrainerModule {
                 };
                 
                 await this.loadTrainerManagementData();
-                alert('Trainer updated successfully!');
+                console.log('Trainer updated successfully!');
                 
             } catch (error) {
-                alert('Error updating trainer: ' + (error.message || 'Unknown error'));
+                console.error('Error updating trainer: ', error.message || 'Unknown error');
             } finally {
                 this.app.setButtonLoading(button, false, 'Update Trainer');
             }
@@ -222,7 +222,7 @@ class TrainerModule {
                 await this.loadTrainerManagementData();
                 
             } catch (error) {
-                alert('Error removing trainer');
+                console.error('Error removing trainer');
             }
         }, `Removing ${trainer.display_name}...`);
     }

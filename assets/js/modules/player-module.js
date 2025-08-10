@@ -77,7 +77,7 @@ class PlayerModule {
             await this.app.teamModule.loadTeamPlayers();
             
         } catch (error) {
-            alert('Error creating player');
+            console.error('Error creating player');
         } finally {
             this.app.setButtonLoading(button, false, 'Add Player');
         }
@@ -123,7 +123,7 @@ class PlayerModule {
             await this.app.teamModule.loadTeamPlayers();
             
         } catch (error) {
-            alert('Error adding player to team');
+            console.error('Error adding player to team');
         } finally {
             this.app.setButtonLoading(button, false, 'Add to Team');
         }
@@ -163,7 +163,7 @@ class PlayerModule {
                 await this.app.teamModule.loadTeamPlayers();
                 
             } catch (error) {
-                alert('Error removing player from team');
+                console.error('Error removing player from team');
             }
         }, 'Removing player...');
     }
@@ -196,7 +196,7 @@ class PlayerModule {
             };
             
         } catch (error) {
-            alert('Error loading player history');
+            console.error('Error loading player history');
         } finally {
             this.app.historyLoading = false;
         }

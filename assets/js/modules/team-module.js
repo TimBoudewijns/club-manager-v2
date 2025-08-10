@@ -45,7 +45,7 @@ class TeamModule {
             });
         } catch (error) {
             console.error('Error loading teams:', error);
-            alert('Error loading teams');
+            console.error('Error loading teams');
         }
     }
     
@@ -56,7 +56,7 @@ class TeamModule {
     
     async createTeam(event) {
         if (!this.canCreateTeam()) {
-            alert('You do not have permission to create teams');
+            console.error('You do not have permission to create teams');
             return;
         }
         
@@ -75,7 +75,7 @@ class TeamModule {
             await this.loadMyTeams();
             
         } catch (error) {
-            alert('Error creating team: ' + (error.message || 'Unknown error'));
+            console.error('Error creating team: ', error.message || 'Unknown error');
         } finally {
             this.app.setButtonLoading(button, false, 'Create Team');
         }
@@ -114,7 +114,7 @@ class TeamModule {
                 season: this.app.currentSeason
             });
         } catch (error) {
-            alert('Error loading players');
+            console.error('Error loading players');
         }
     }
     

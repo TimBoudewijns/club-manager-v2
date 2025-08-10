@@ -123,10 +123,10 @@ class TeamManagementModule {
                 };
                 
                 await this.loadManagedTeams();
-                alert('Team created successfully!');
+                console.log('Team created successfully!');
                 
             } catch (error) {
-                alert('Error creating team: ' + (error.message || 'Unknown error'));
+                console.error('Error creating team: ', error.message || 'Unknown error');
             } finally {
                 this.app.setButtonLoading(button, false, 'Create Team');
             }
@@ -221,10 +221,10 @@ class TeamManagementModule {
                 // BELANGRIJK: Reload de managed teams om de trainer count te updaten
                 await this.loadManagedTeams();
                 
-                alert('Trainer assigned successfully!');
+                console.log('Trainer assigned successfully!');
                 
             } catch (error) {
-                alert('Error assigning trainer: ' + (error.message || 'Unknown error'));
+                console.error('Error assigning trainer: ', error.message || 'Unknown error');
             } finally {
                 this.app.setButtonLoading(button, false, 'Assign Trainer');
             }
@@ -251,7 +251,7 @@ class TeamManagementModule {
                 await this.loadAvailableTrainers();
                 
             } catch (error) {
-                alert('Error removing trainer: ' + (error.message || 'Unknown error'));
+                console.error('Error removing trainer: ', error.message || 'Unknown error');
             }
         }, 'Removing trainer...');
     }
@@ -270,7 +270,7 @@ class TeamManagementModule {
     
     async updateManagedTeam(event) {
         if (!this.app.editingTeam || !this.app.editTeamData.name || !this.app.editTeamData.coach) {
-            alert('Please fill in all fields');
+            console.error('Please fill in all fields');
             return;
         }
         
@@ -293,10 +293,10 @@ class TeamManagementModule {
                 };
                 
                 await this.loadManagedTeams();
-                alert('Team updated successfully!');
+                console.log('Team updated successfully!');
                 
             } catch (error) {
-                alert('Error updating team: ' + (error.message || 'Unknown error'));
+                console.error('Error updating team: ', error.message || 'Unknown error');
             } finally {
                 this.app.setButtonLoading(button, false, 'Update Team');
             }
@@ -322,7 +322,7 @@ class TeamManagementModule {
                 }
                 
             } catch (error) {
-                alert('Error deleting team: ' + (error.message || 'Unknown error'));
+                console.error('Error deleting team: ', error.message || 'Unknown error');
             }
         }, 'Deleting team...');
     }

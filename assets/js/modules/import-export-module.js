@@ -167,14 +167,14 @@ class ImportExportModule {
             const validExtensions = ['csv'];
             
             if (!validExtensions.includes(fileExtension)) {
-                alert('Please upload a CSV file. Only comma-separated values format is supported.');
+                console.error('Please upload a CSV file. Only comma-separated values format is supported.');
                 event.target.value = '';
                 return;
             }
             
             // Validate file size (max 10MB)
             if (file.size > 10 * 1024 * 1024) {
-                alert('File size must be less than 10MB');
+                console.error('File size must be less than 10MB');
                 event.target.value = '';
                 return;
             }
@@ -186,7 +186,7 @@ class ImportExportModule {
             
         } catch (error) {
             console.error('File upload error:', error);
-            alert('Error uploading file: ' + error.message);
+            console.error('Error uploading file: ', error.message);
             event.target.value = '';
         }
     }
@@ -218,7 +218,7 @@ class ImportExportModule {
             
         } catch (error) {
             console.error('Error parsing file:', error);
-            alert('Error parsing file: ' + error.message);
+            console.error('Error parsing file: ', error.message);
             this.app.importFile = null;
             const fileInput = document.getElementById('import-file-input');
             if (fileInput) {
@@ -296,7 +296,7 @@ class ImportExportModule {
             
         } catch (error) {
             console.error('Validation error:', error);
-            alert('Validation error: ' + error.message);
+            console.error('Validation error: ', error.message);
         }
     }
 
@@ -453,7 +453,7 @@ class ImportExportModule {
             );
             
             if (missingFields.length > 0) {
-                alert('Please map all required fields: ' + missingFields.map(f => f.label).join(', '));
+                console.error('Please map all required fields: ', missingFields.map(f => f.label).join(', '));
                 return;
             }
             
@@ -511,7 +511,7 @@ class ImportExportModule {
         try {
             // Check export format
             if (this.app.exportFormat !== 'csv') {
-                alert('Only CSV export format is supported.');
+                console.error('Only CSV export format is supported.');
                 return;
             }
             
@@ -547,7 +547,7 @@ class ImportExportModule {
             
         } catch (error) {
             console.error('Export error:', error);
-            alert('Export failed: ' + error.message);
+            console.error('Export failed: ', error.message);
         }
     }
     

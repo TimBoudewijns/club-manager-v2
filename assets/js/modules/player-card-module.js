@@ -688,7 +688,7 @@ class PlayerCardModule {
         try {
             // Check if jsPDF is loaded
             if (typeof window.jspdf === 'undefined') {
-                alert('PDF library not loaded. Please refresh the page and try again.');
+                console.error('PDF library not loaded. Please refresh the page and try again.');
                 return;
             }
             
@@ -848,7 +848,7 @@ class PlayerCardModule {
             }
             
         } catch (error) {
-            alert('Error generating PDF: ' + error.message);
+            console.error('Error generating PDF: ', error.message);
             
             // Restore button if it exists
             if (button && originalContent) {

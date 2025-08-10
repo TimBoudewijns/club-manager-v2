@@ -247,10 +247,10 @@ class EvaluationModule {
                 }
                 
                 this.closeEvaluationModal();
-                alert('Evaluation saved successfully! AI advice is being generated...');
+                console.log('Evaluation saved successfully! AI advice is being generated...');
                 
             } catch (error) {
-                alert('Error saving evaluation. Please try again.');
+                console.error('Error saving evaluation. Please try again.');
             } finally {
                 this.app.setButtonLoading(button, false, 'Save Evaluation');
             }
