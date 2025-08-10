@@ -9,7 +9,7 @@
     <div class="flex items-center">
         <div class="flex space-x-1 md:space-x-2 min-w-fit">
             <!-- Player Management tab - Everyone gets this -->
-            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
+            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                     :class="activeTab === 'player-management' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
                     @click="activeTab = 'player-management'"
                     x-show="isTabAvailable('player-management')">
@@ -24,7 +24,7 @@
             <!-- Team Management tab - only for owners/managers -->
             <button x-show="isTabAvailable('team-management')"
                     x-cloak
-                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
+                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                     :class="activeTab === 'team-management' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
                     @click="activeTab = 'team-management'">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">
@@ -38,7 +38,7 @@
             <!-- Trainer Management tab - only for owners/managers -->
             <button x-show="isTabAvailable('trainer-management')"
                     x-cloak
-                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
+                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                     :class="activeTab === 'trainer-management' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
                     @click="activeTab = 'trainer-management'">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">
@@ -50,7 +50,7 @@
             </button>
             
             <!-- Help tab - Always available -->
-            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base"
+            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                     :class="activeTab === 'help' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' : 'text-gray-600 hover:text-green-600 hover:bg-green-50'"
                     @click="activeTab = 'help'">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">

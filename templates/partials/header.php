@@ -10,7 +10,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-3 sm:px-4 md:px-8">
             <!-- Navigation Tabs - Desktop -->
             <div class="hidden sm:flex items-center space-x-2">
-                <button class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
+                <button class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'player-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'player-management'"
                         x-show="isTabAvailable('player-management')">
@@ -24,7 +24,7 @@
                 
                 <button x-show="isTabAvailable('team-management')"
                         x-cloak
-                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
+                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'team-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'team-management'">
                     <span class="flex items-center space-x-2">
@@ -37,7 +37,7 @@
                 
                 <button x-show="isTabAvailable('trainer-management')"
                         x-cloak
-                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
+                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'trainer-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'trainer-management'">
                     <span class="flex items-center space-x-2">
@@ -50,7 +50,7 @@
                 
                 <button x-show="isTabAvailable('import-export')"
                         x-cloak
-                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
+                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'import-export' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'import-export'">
                     <span class="flex items-center space-x-2">
@@ -61,7 +61,7 @@
                     </span>
                 </button>
                 
-                <button class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200"
+                <button class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'help' ? 'bg-green-500 text-white shadow-md' : 'text-gray-600 hover:text-green-600 hover:bg-white/70'"
                         @click="activeTab = 'help'">
                     <span class="flex items-center space-x-2">
@@ -97,9 +97,9 @@
         </div>
         
         <!-- Mobile Navigation -->
-        <div class="sm:hidden mt-4">
+        <div class="sm:hidden mt-4 px-3">
             <div class="flex space-x-2 overflow-x-auto scrollbar-hide">
-                <button class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
+                <button class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'player-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'player-management'"
                         x-show="isTabAvailable('player-management')">
@@ -113,7 +113,7 @@
                 
                 <button x-show="isTabAvailable('team-management')"
                         x-cloak
-                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
+                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'team-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'team-management'">
                     <span class="flex items-center space-x-2">
@@ -126,7 +126,7 @@
                 
                 <button x-show="isTabAvailable('trainer-management')"
                         x-cloak
-                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
+                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'trainer-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'trainer-management'">
                     <span class="flex items-center space-x-2">
@@ -139,7 +139,7 @@
                 
                 <button x-show="isTabAvailable('import-export')"
                         x-cloak
-                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
+                        class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'import-export' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
                         @click="activeTab = 'import-export'">
                     <span class="flex items-center space-x-2">
@@ -150,7 +150,7 @@
                     </span>
                 </button>
                 
-                <button class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap"
+                <button class="flex-shrink-0 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-200 whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
                         :class="activeTab === 'help' ? 'bg-green-500 text-white shadow-md' : 'text-gray-600 hover:text-green-600 hover:bg-white/70'"
                         @click="activeTab = 'help'">
                     <span class="flex items-center space-x-2">
