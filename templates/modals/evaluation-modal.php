@@ -64,7 +64,7 @@
                                 <!-- Subcategories -->
                                 <div class="space-y-3">
                                     <template x-for="sub in category.subcategories" :key="sub.key">
-                                        <div class="pl-4 border-l-2 border-orange-200">
+                                        <div class="pl-4 border-l-2 border-orange-200" x-data="{ sliderLocked: true }">
                                             <div class="flex items-center justify-between mb-1">
                                                 <div>
                                                     <span class="text-sm font-medium text-gray-700" x-text="sub.name"></span>
@@ -72,11 +72,24 @@
                                                 </div>
                                                 <span class="text-sm font-bold text-gray-600" x-text="getSubcategoryScore(category.key, sub.key)"></span>
                                             </div>
-                                            <input type="range" 
-                                                   :value="getSubcategoryScore(category.key, sub.key)"
-                                                   @input="updateSubcategoryScore(category.key, sub.key, $event.target.value)"
-                                                   min="1" max="10" step="0.5"
-                                                   class="range range-xs range-orange">
+                                            <div class="relative">
+                                                <input type="range" 
+                                                       :value="getSubcategoryScore(category.key, sub.key)"
+                                                       @input="updateSubcategoryScore(category.key, sub.key, $event.target.value)"
+                                                       @touchstart="sliderLocked = false"
+                                                       @touchend="sliderLocked = true"
+                                                       @mousedown="sliderLocked = false"
+                                                       @mouseup="sliderLocked = true"
+                                                       @mouseleave="sliderLocked = true"
+                                                       :class="{'pointer-events-none opacity-75': sliderLocked && window.innerWidth < 768}"
+                                                       min="1" max="10" step="0.5"
+                                                       class="range range-xs range-orange">
+                                                <div x-show="sliderLocked && window.innerWidth < 768" 
+                                                     @click="sliderLocked = false"
+                                                     class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-10 rounded-lg">
+                                                    <span class="text-xs text-gray-600 bg-white px-2 py-1 rounded shadow-sm">Tap to adjust</span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </template>
                                 </div>

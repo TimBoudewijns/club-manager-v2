@@ -231,6 +231,19 @@ body.modal-open {
     box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
 }
 
+/* Prevent accidental slider adjustments on mobile */
+@media (max-width: 767px) {
+    .club-manager-app input[type="range"] {
+        touch-action: pan-y pinch-zoom;
+    }
+    
+    .club-manager-app input[type="range"].pointer-events-none {
+        touch-action: none;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+}
+
 /* Modal close buttons enhancement */
 .club-manager-app button[class*="hover:bg-white/10"]:focus,
 .club-manager-app button[class*="hover:bg-white/20"]:focus {

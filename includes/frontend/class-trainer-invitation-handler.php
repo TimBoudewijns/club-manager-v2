@@ -162,12 +162,26 @@ class Club_Manager_Trainer_Invitation_Handler {
         // Check for pending assignments
         $this->process_pending_assignments($user_id, $invitation->get_email()); 
         
+        // Get club name from inviter's WooCommerce Team
+        $club_name = get_bloginfo('name'); // Default fallback
+        if ($inviter && class_exists('Club_Manager_Teams_Helper') && function_exists('wc_memberships_for_teams')) {
+            $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($inviter->ID);
+            if (!empty($managed_teams)) {
+                $wc_team_id = $managed_teams[0]['team_id'];
+                $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
+                if ($wc_team && is_object($wc_team) && method_exists($wc_team, 'get_name')) {
+                    $club_name = $wc_team->get_name();
+                }
+            }
+        }
+        
         $invitation_data = (object) array(
             'email' => $invitation->get_email(),
             'team_name' => !empty($team_names) ? implode(', ', $team_names) : ($team ? $team->get_name() : 'Unknown Team'),
             'team_names' => $team_names,
             'inviter_name' => $inviter ? $inviter->display_name : 'Someone',
-            'message' => $message
+            'message' => $message,
+            'club_name' => $club_name
         );
         
         // Check if user is already logged in
@@ -201,7 +215,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                     <h1>Trainer Invitation</h1>
                     <p class="cm-invitation-subtitle">
                         You have been invited by <strong><?php echo esc_html($invitation_data->inviter_name); ?></strong> 
-                        to become a trainer at <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>
+                        to become a trainer at <strong><?php echo esc_html($invitation_data->club_name); ?></strong>
                     </p>
                 </div>
                 
@@ -676,6 +690,19 @@ class Club_Manager_Trainer_Invitation_Handler {
             }
         }
         
+        // Get club name from inviter's WooCommerce Team
+        $club_name = get_bloginfo('name'); // Default fallback
+        if ($inviter && class_exists('Club_Manager_Teams_Helper') && function_exists('wc_memberships_for_teams')) {
+            $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($inviter->ID);
+            if (!empty($managed_teams)) {
+                $wc_team_id = $managed_teams[0]['team_id'];
+                $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
+                if ($wc_team && is_object($wc_team) && method_exists($wc_team, 'get_name')) {
+                    $club_name = $wc_team->get_name();
+                }
+            }
+        }
+        
         ob_start();
         ?>
         <div class="cm-invitation-wrapper">
@@ -686,7 +713,7 @@ class Club_Manager_Trainer_Invitation_Handler {
                 
                 <div style="padding: 30px;">
                     <p>You have been invited by <strong><?php echo $inviter ? esc_html($inviter->display_name) : 'Someone'; ?></strong> 
-                    to become a trainer at <strong><?php echo esc_html(get_bloginfo('name')); ?></strong>.</p>
+                    to become a trainer at <strong><?php echo esc_html($club_name); ?></strong>.</p>
                     
                     <?php if (!empty($team_names)): ?>
                         <div style="margin: 20px 0;">
