@@ -86,6 +86,15 @@ body.modal-open {
 }
 
 /* Fix DaisyUI pink/rose accent colors */
+.club-manager-app {
+    --p: 25 95% 53% !important; /* Orange primary */
+    --pf: 25 95% 48% !important; /* Orange primary focus */
+    --pc: 0 0% 100% !important; /* White on primary */
+    --a: 25 95% 53% !important; /* Orange accent */
+    --af: 25 95% 48% !important; /* Orange accent focus */
+    --ac: 0 0% 100% !important; /* White on accent */
+}
+
 .club-manager-app .btn-primary {
     background-color: #f97316 !important;
     border-color: #f97316 !important;
@@ -94,6 +103,14 @@ body.modal-open {
 .club-manager-app .btn-primary:hover {
     background-color: #ea580c !important;
     border-color: #ea580c !important;
+}
+
+.club-manager-app .btn-primary:focus,
+.club-manager-app .btn-primary:focus-visible {
+    background-color: #f97316 !important;
+    border-color: #f97316 !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3) !important;
+    outline: none !important;
 }
 
 .club-manager-app [type="checkbox"]:checked,
@@ -182,12 +199,36 @@ body.modal-open {
 /* Tab navigation specific styles */
 .club-manager-app button[x-show*="isTabAvailable"]:focus {
     outline: none !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3) !important;
+}
+
+/* All tab buttons focus styling */
+.club-manager-app button[class*="activeTab"]:focus,
+.club-manager-app button[class*="activeTab"]:focus-visible,
+.club-manager-app button[@click*="activeTab"]:focus,
+.club-manager-app button[@click*="activeTab"]:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3) !important;
+    border-color: transparent !important;
 }
 
 /* Active tab should maintain its gradient colors */
 .club-manager-app button.bg-orange-500:focus,
 .club-manager-app button[class*="from-orange-500"]:focus {
     background-image: linear-gradient(to right, #f97316, #ea580c) !important;
+}
+
+/* Green help button focus */
+.club-manager-app button.bg-green-500:focus,
+.club-manager-app button[class*="from-green-500"]:focus {
+    background-image: linear-gradient(to right, #10b981, #059669) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Purple import/export button focus */
+.club-manager-app button[class*="from-purple-500"]:focus {
+    background-image: linear-gradient(to right, #a855f7, #9333ea) !important;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.3) !important;
 }
 
 /* Modal close buttons enhancement */
