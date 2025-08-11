@@ -563,8 +563,20 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
             dbDelta($sql);
             
+            // Check if assignment already exists to prevent duplicates
+            $existing_assignment = $wpdb->get_var($wpdb->prepare(
+                "SELECT id FROM $pending_assignments_table 
+                WHERE team_id = %d AND trainer_email = %s",
+                $team_id, $email
+            ));
+            
+            if ($existing_assignment) {
+                wp_send_json_error('Trainer is already assigned to this team (pending acceptance)');
+                return;
+            }
+            
             // Insert pending assignment
-            $result = $wpdb->replace(
+            $result = $wpdb->insert(
                 $pending_assignments_table,
                 [
                     'team_id' => $team_id,
@@ -635,6 +647,13 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         global $wpdb;
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         
+        // First get the trainer's email before removing
+        $trainer_email = null;
+        $trainer = get_user_by('id', $trainer_id);
+        if ($trainer) {
+            $trainer_email = $trainer->user_email;
+        }
+        
         $result = $wpdb->delete(
             $trainers_table,
             [
@@ -643,6 +662,23 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             ],
             ['%d', '%d']
         );
+        
+        // Also clean up any pending assignments for this trainer on this team
+        if ($trainer_email) {
+            $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+            
+            // Check if table exists
+            if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
+                $wpdb->delete(
+                    $pending_assignments_table,
+                    [
+                        'team_id' => $team_id,
+                        'trainer_email' => $trainer_email
+                    ],
+                    ['%d', '%s']
+                );
+            }
+        }
         
         if ($result !== false) {
             wp_send_json_success(['message' => 'Trainer removed successfully']);

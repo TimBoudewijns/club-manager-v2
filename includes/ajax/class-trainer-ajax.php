@@ -724,32 +724,55 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
             
-            // Get the email from the invitation before cancelling
+            // Get the email from the invitation before cancelling - try multiple sources
             $invitation_email = null;
             $meta_data = get_post_meta($invitation_id);
+            
+            // Try different possible meta keys
             if (isset($meta_data['_email'][0])) {
                 $invitation_email = $meta_data['_email'][0];
             } elseif (isset($meta_data['_recipient_email'][0])) {
                 $invitation_email = $meta_data['_recipient_email'][0];
+            } else {
+                // Try to get email from the invitation object itself
+                $invitation_email = $invitation->get_email();
             }
             
-            // Cancel the invitation
-            $invitation->cancel();
+            // If still no email, try to get from the post title (sometimes used as email)
+            if (empty($invitation_email)) {
+                $invitation_post = get_post($invitation_id);
+                if ($invitation_post && filter_var($invitation_post->post_title, FILTER_VALIDATE_EMAIL)) {
+                    $invitation_email = $invitation_post->post_title;
+                }
+            }
             
-            // IMPORTANT: Also remove any pending assignments for this email
+            // IMPORTANT: Remove pending assignments BEFORE cancelling invitation
+            // This ensures we can always clean up, even if cancellation fails
             if ($invitation_email) {
                 global $wpdb;
                 $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
                 
                 // Check if table exists
                 if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
-                    $wpdb->delete(
+                    $deleted_count = $wpdb->delete(
                         $pending_assignments_table,
                         ['trainer_email' => $invitation_email],
                         ['%s']
                     );
+                    
+                    // Log the cleanup for debugging
+                    if ($deleted_count > 0) {
+                        error_log("Club Manager: Removed {$deleted_count} pending assignments for email: {$invitation_email}");
+                    }
                 }
             }
+            
+            // Cancel the invitation
+            $invitation->cancel();
+            
+            // Additional cleanup: remove any orphaned pending assignments that might exist
+            // This catches any cases where assignments weren't properly cleaned up
+            $this->cleanup_orphaned_pending_assignments($user_id);
             
             wp_send_json_success(['message' => 'Invitation cancelled and pending assignments removed']);
             
@@ -951,5 +974,99 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         return null;
+    }
+    
+    /**
+     * Cleanup orphaned pending assignments that don't have corresponding active invitations
+     */
+    private function cleanup_orphaned_pending_assignments($user_id) {
+        global $wpdb;
+        
+        $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+        
+        // Check if table exists
+        if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") !== $pending_assignments_table) {
+            return;
+        }
+        
+        // Get teams managed by this user
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        if (empty($managed_teams)) {
+            return;
+        }
+        
+        $wc_team_ids = array_column($managed_teams, 'team_id');
+        if (empty($wc_team_ids)) {
+            return;
+        }
+        
+        // Get all pending assignments for teams managed by this user
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        $pending_assignments = $wpdb->get_results($wpdb->prepare(
+            "SELECT pa.*, t.created_by 
+            FROM $pending_assignments_table pa
+            INNER JOIN $teams_table t ON pa.team_id = t.id
+            WHERE t.created_by = %d",
+            $user_id
+        ));
+        
+        if (empty($pending_assignments)) {
+            return;
+        }
+        
+        // Get all active pending invitations for these WC teams
+        $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
+        $active_invitations = $wpdb->get_results($wpdb->prepare(
+            "SELECT p.ID, p.post_parent
+            FROM {$wpdb->posts} p
+            WHERE p.post_type = 'wc_team_invitation'
+            AND p.post_status = 'wcmti-pending'
+            AND p.post_parent IN ($placeholders)
+            ORDER BY p.post_date DESC",
+            ...$wc_team_ids
+        ));
+        
+        // Build array of emails that have active invitations
+        $active_invitation_emails = array();
+        foreach ($active_invitations as $invitation_post) {
+            $meta_data = get_post_meta($invitation_post->ID);
+            $email = null;
+            
+            if (isset($meta_data['_email'][0])) {
+                $email = $meta_data['_email'][0];
+            } elseif (isset($meta_data['_recipient_email'][0])) {
+                $email = $meta_data['_recipient_email'][0];
+            } else {
+                // Try post title
+                $post = get_post($invitation_post->ID);
+                if ($post && filter_var($post->post_title, FILTER_VALIDATE_EMAIL)) {
+                    $email = $post->post_title;
+                }
+            }
+            
+            if ($email) {
+                $active_invitation_emails[] = strtolower($email);
+            }
+        }
+        
+        // Remove pending assignments that don't have corresponding active invitations
+        $cleaned_up = 0;
+        foreach ($pending_assignments as $assignment) {
+            if (!in_array(strtolower($assignment->trainer_email), $active_invitation_emails)) {
+                $deleted = $wpdb->delete(
+                    $pending_assignments_table,
+                    ['id' => $assignment->id],
+                    ['%d']
+                );
+                
+                if ($deleted) {
+                    $cleaned_up++;
+                }
+            }
+        }
+        
+        if ($cleaned_up > 0) {
+            error_log("Club Manager: Cleaned up {$cleaned_up} orphaned pending assignments for user {$user_id}");
+        }
     }
 }
