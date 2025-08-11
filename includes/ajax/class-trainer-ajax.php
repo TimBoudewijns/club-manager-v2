@@ -1063,11 +1063,24 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 }
                 
                 try {
-                    $member = $wc_team->get_member($trainer_id);
-                    if ($member && is_object($member) && method_exists($member, 'delete')) {
-                        $member->delete();
-                        error_log('Club Manager: Successfully removed trainer ' . $trainer_id . ' from WC team ' . $team_data['team_id']);
+                    // Use the correct WooCommerce Teams API method
+                    if (method_exists($wc_team, 'remove_member')) {
+                        $wc_team->remove_member($trainer_id);
+                        error_log('Club Manager: Successfully removed trainer ' . $trainer_id . ' from WC team ' . $team_data['team_id'] . ' using remove_member');
                         return true;
+                    } elseif (method_exists($wc_team, 'get_membership_for_user')) {
+                        // Alternative method: get membership and then delete it
+                        $membership = $wc_team->get_membership_for_user($trainer_id);
+                        if ($membership && method_exists($membership, 'delete')) {
+                            $membership->delete();
+                            error_log('Club Manager: Successfully removed trainer ' . $trainer_id . ' from WC team ' . $team_data['team_id'] . ' using delete membership');
+                            return true;
+                        }
+                    } else {
+                        // Log available methods for debugging
+                        $methods = get_class_methods($wc_team);
+                        error_log('Club Manager: Available WC Team methods: ' . implode(', ', $methods));
+                        error_log('Club Manager: WC Team class: ' . get_class($wc_team));
                     }
                 } catch (Exception $e) {
                     error_log('Club Manager: Failed to remove member from WC Team ' . $team_data['team_id'] . ': ' . $e->getMessage());
