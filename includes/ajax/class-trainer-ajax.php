@@ -989,7 +989,35 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
             
-            wp_send_json_success(['message' => 'Test: Database operations passed, found ' . count($trainer_teams) . ' trainer teams']);
+            // Step 8: Remove from WooCommerce team (non-blocking)
+            $wc_removal_result = 'skipped';
+            try {
+                if ($this->remove_from_wc_team($trainer_id, $user_id)) {
+                    $wc_removal_result = 'success';
+                } else {
+                    $wc_removal_result = 'failed';
+                }
+            } catch (Exception $e) {
+                error_log('Club Manager: Error removing from WC team: ' . $e->getMessage());
+                $wc_removal_result = 'error: ' . $e->getMessage();
+            }
+            
+            // Step 9: Remove trainer from Club Manager tables
+            $delete_result = $wpdb->query($wpdb->prepare(
+                "DELETE tt FROM $trainers_table tt
+                INNER JOIN $teams_table t ON tt.team_id = t.id
+                WHERE tt.trainer_id = %d AND t.created_by = %d",
+                $trainer_id, $user_id
+            ));
+            
+            if ($delete_result === false) {
+                wp_send_json_error('Failed to remove trainer from teams');
+                return;
+            }
+            
+            wp_send_json_success([
+                'message' => 'Test: WC removal (' . $wc_removal_result . '), DB deletion (' . $delete_result . ' rows)'
+            ]);
             
         } catch (Exception $e) {
             error_log('Club Manager: Exception in remove_trainer: ' . $e->getMessage());
