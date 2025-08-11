@@ -83,9 +83,16 @@
                 </div>
                 <div class="relative">
                     <select x-model="currentSeason" @change="changeSeason" 
+                        x-init="$watch('availableSeasons', () => {
+                            console.log('Seasons changed, forcing dropdown update');
+                            $nextTick(() => {
+                                $el.value = currentSeason;
+                                console.log('Forced dropdown to:', currentSeason);
+                            });
+                        })"
                         class="bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg px-3 py-2 pr-8 text-sm appearance-none cursor-pointer shadow-sm hover:shadow-md transition-all">
                         <template x-for="(seasonData, seasonKey) in availableSeasons" :key="seasonKey">
-                            <option :value="seasonKey" x-text="seasonKey"></option>
+                            <option :value="seasonKey" :selected="seasonKey === currentSeason" x-text="seasonKey"></option>
                         </template>
                     </select>
                     <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">

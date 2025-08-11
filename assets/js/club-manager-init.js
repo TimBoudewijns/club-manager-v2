@@ -226,12 +226,33 @@ window.clubManager = function() {
             console.log('User permissions:', this.userPermissions);
             console.log('Preferred season from backend:', window.clubManagerAjax?.preferred_season);
             console.log('Current season is:', this.currentSeason);
+            console.log('Available seasons:', Object.keys(this.availableSeasons));
             
             // Initialize modules
             this.initializeModules();
             
-            // DON'T TOUCH THE FUCKING SEASON - IT'S ALREADY SET FROM BACKEND
-            // this.validateCurrentSeason(); // REMOVED - STOP MESSING WITH IT
+            // FORCE the dropdown to show the correct value after Alpine renders
+            this.$nextTick(() => {
+                // Find all season dropdowns and force them to the correct value
+                const dropdowns = document.querySelectorAll('select[x-model="currentSeason"]');
+                dropdowns.forEach(dropdown => {
+                    dropdown.value = this.currentSeason;
+                    console.log('Forced dropdown value to:', this.currentSeason);
+                });
+                
+                // Double check after a small delay
+                setTimeout(() => {
+                    const dropdowns = document.querySelectorAll('select[x-model="currentSeason"]');
+                    dropdowns.forEach(dropdown => {
+                        if (dropdown.value !== this.currentSeason) {
+                            console.warn('Dropdown STILL wrong, forcing again:', dropdown.value, 'should be:', this.currentSeason);
+                            dropdown.value = this.currentSeason;
+                            // Trigger change event to ensure Alpine picks it up
+                            dropdown.dispatchEvent(new Event('change'));
+                        }
+                    });
+                }, 100);
+            });
             
             // Set initial tab based on permissions
             this.setInitialTab();
