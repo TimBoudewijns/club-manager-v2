@@ -218,6 +218,7 @@ window.clubManager = function() {
         // Season Management variables
         showSeasonManagementModal: false,
         newSeasonName: '',
+        availableSeasons: window.clubManagerAjax?.available_seasons || {},
         
         // Initialize
         async init() {
@@ -579,6 +580,15 @@ window.clubManager = function() {
                 // Refresh available seasons
                 const response = await this.apiPost('cm_get_available_seasons');
                 window.clubManagerAjax.available_seasons = response.seasons;
+                this.availableSeasons = response.seasons; // Update local reactive variable
+                
+                // Force Alpine to re-render by triggering change
+                this.$nextTick(() => {
+                    // If the new season should be selected, update currentSeason
+                    if (!this.currentSeason || !(this.currentSeason in this.availableSeasons)) {
+                        this.currentSeason = Object.keys(this.availableSeasons)[0];
+                    }
+                });
                 
                 alert('Season added successfully!');
                 
@@ -600,6 +610,18 @@ window.clubManager = function() {
                 // Refresh available seasons
                 const response = await this.apiPost('cm_get_available_seasons');
                 window.clubManagerAjax.available_seasons = response.seasons;
+                this.availableSeasons = response.seasons; // Update local reactive variable
+                
+                // If we removed the current season, switch to another one
+                this.$nextTick(() => {
+                    if (this.currentSeason === seasonName) {
+                        const availableSeasons = Object.keys(this.availableSeasons);
+                        if (availableSeasons.length > 0) {
+                            this.currentSeason = availableSeasons[0];
+                            this.changeSeason();
+                        }
+                    }
+                });
                 
                 alert('Season removed successfully!');
                 

@@ -58,7 +58,7 @@
                 <div>
                     <h4 class="text-lg font-semibold text-gray-900 mb-3">Existing Seasons</h4>
                     <div class="space-y-2">
-                        <template x-for="(seasonData, seasonKey) in (window.clubManagerAjax?.available_seasons || {})" :key="seasonKey">
+                        <template x-for="(seasonData, seasonKey) in availableSeasons" :key="seasonKey">
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div class="flex items-center space-x-3">
                                     <div class="w-3 h-3 rounded-full"
@@ -85,7 +85,7 @@
                     </div>
                     
                     <!-- Empty state -->
-                    <div x-show="Object.keys(window.clubManagerAjax?.available_seasons || {}).length === 0" 
+                    <div x-show="Object.keys(availableSeasons).length === 0" 
                          class="text-center py-8 text-gray-500">
                         No seasons available. Add your first season above.
                     </div>
