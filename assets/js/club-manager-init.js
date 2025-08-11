@@ -224,17 +224,14 @@ window.clubManager = function() {
         async init() {
             console.log('Club Manager initializing...');
             console.log('User permissions:', this.userPermissions);
-            console.log('AJAX URL:', window.clubManagerAjax?.ajax_url);
-            console.log('Available seasons object:', this.availableSeasons);
-            console.log('Available seasons keys:', Object.keys(this.availableSeasons));
-            console.log('Initial currentSeason from backend:', this.currentSeason);
             console.log('Preferred season from backend:', window.clubManagerAjax?.preferred_season);
+            console.log('Current season is:', this.currentSeason);
             
             // Initialize modules
             this.initializeModules();
             
-            // Validate and fix currentSeason if needed
-            this.validateCurrentSeason();
+            // DON'T TOUCH THE FUCKING SEASON - IT'S ALREADY SET FROM BACKEND
+            // this.validateCurrentSeason(); // REMOVED - STOP MESSING WITH IT
             
             // Set initial tab based on permissions
             this.setInitialTab();
@@ -563,37 +560,7 @@ window.clubManager = function() {
             }, 'Changing season...');
         },
         
-        // Validate and sync currentSeason with available seasons
-        validateCurrentSeason() {
-            console.log('=== validateCurrentSeason START ===');
-            console.log('Current season from backend:', this.currentSeason);
-            console.log('Available seasons:', Object.keys(this.availableSeasons));
-            
-            // Only validate that the current season exists - DO NOT change it unless it's invalid
-            if (this.currentSeason && this.availableSeasons.hasOwnProperty(this.currentSeason)) {
-                console.log('Current season is valid, keeping:', this.currentSeason);
-                return;
-            }
-            
-            // Only if current season is truly invalid, try to fix it
-            console.warn('Current season is invalid or not set');
-            
-            // First try the backend preferred season
-            if (window.clubManagerAjax?.preferred_season && 
-                this.availableSeasons.hasOwnProperty(window.clubManagerAjax.preferred_season)) {
-                this.currentSeason = window.clubManagerAjax.preferred_season;
-                console.log('Using backend preferred season:', this.currentSeason);
-            } else {
-                // Last resort: use first available
-                const availableSeasons = Object.keys(this.availableSeasons);
-                if (availableSeasons.length > 0) {
-                    this.currentSeason = availableSeasons[0];
-                    console.log('Using first available season:', this.currentSeason);
-                }
-            }
-            
-            console.log('=== validateCurrentSeason END - Final:', this.currentSeason, '===');
-        },
+        // REMOVED validateCurrentSeason - We use the backend value, period.
         
         // Helper method to check if user has permission for a feature
         hasPermission(permission) {
@@ -625,20 +592,12 @@ window.clubManager = function() {
                 window.clubManagerAjax.available_seasons = response.seasons;
                 this.availableSeasons = response.seasons; // Update local reactive variable
                 
-                // Force Alpine to re-render by triggering change
+                // Ask user if they want to switch to the new season
                 this.$nextTick(async () => {
-                    // Check if currentSeason is still valid
-                    if (!this.currentSeason || !(this.currentSeason in this.availableSeasons)) {
-                        this.currentSeason = Object.keys(this.availableSeasons)[0];
-                    }
-                    
-                    // Ask user if they want to switch to the new season
-                    const newSeasonKey = Object.keys(this.availableSeasons)[0]; // First season (newest)
-                    if (newSeasonKey !== this.currentSeason) {
-                        if (confirm(`Would you like to switch to the new season "${newSeasonKey}"?`)) {
-                            this.currentSeason = newSeasonKey;
-                            await this.changeSeason();
-                        }
+                    const newSeasonKey = this.newSeasonName.trim();
+                    if (confirm(`Would you like to switch to the new season "${newSeasonKey}"?`)) {
+                        this.currentSeason = newSeasonKey;
+                        await this.changeSeason();
                     }
                 });
                 
@@ -664,16 +623,14 @@ window.clubManager = function() {
                 window.clubManagerAjax.available_seasons = response.seasons;
                 this.availableSeasons = response.seasons; // Update local reactive variable
                 
-                // If we removed the current season, switch to another one
-                this.$nextTick(() => {
-                    if (this.currentSeason === seasonName) {
-                        const availableSeasons = Object.keys(this.availableSeasons);
-                        if (availableSeasons.length > 0) {
-                            this.currentSeason = availableSeasons[0];
-                            this.changeSeason();
-                        }
+                // If we removed the current season, switch to the first available
+                if (this.currentSeason === seasonName) {
+                    const availableSeasons = Object.keys(this.availableSeasons);
+                    if (availableSeasons.length > 0) {
+                        this.currentSeason = availableSeasons[0];
+                        await this.changeSeason();
                     }
-                });
+                }
                 
                 alert('Season removed successfully!');
                 
