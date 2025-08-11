@@ -44,6 +44,13 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $user_id, $season
         ));
         
+        // Debug logging
+        error_log("Club Manager Debug - get_managed_teams:");
+        error_log("User ID: " . $user_id);
+        error_log("Season: " . $season);
+        error_log("Teams found: " . count($teams));
+        error_log("Teams data: " . print_r($teams, true));
+        
         wp_send_json_success($teams);
     }
 
@@ -400,9 +407,32 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $role = $this->get_post_data('role');
         $message = $this->get_post_data('message', 'textarea');
         
+        // Debug logging
+        error_log("Club Manager Debug - invite_trainer data:");
+        error_log("Email: " . $email);
+        error_log("Team IDs: " . print_r($team_ids, true));
+        error_log("Role: " . $role);
+        error_log("POST data: " . print_r($_POST, true));
+        
         if (empty($email) || empty($team_ids)) {
             wp_send_json_error('Email and teams are required');
             return;
+        }
+        
+        // Verify all selected teams are owned by the current user
+        global $wpdb;
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        $owned_teams = $wpdb->get_col($wpdb->prepare(
+            "SELECT id FROM $teams_table WHERE created_by = %d",
+            $user_id
+        ));
+        
+        foreach ($team_ids as $team_id) {
+            if (!in_array($team_id, $owned_teams)) {
+                error_log("Club Manager Debug - Unauthorized team access: User {$user_id} tried to assign team {$team_id}");
+                wp_send_json_error('Unauthorized access to one or more teams');
+                return;
+            }
         }
         
         // Get the first WC Team where user is owner/manager
@@ -467,23 +497,35 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
             dbDelta($sql);
             
-            // Insert pending assignment for each team
+            // Insert pending assignment for each team (avoid duplicates)
             foreach ($team_ids as $team_id) {
-                $wpdb->replace(
-                    $pending_assignments_table,
-                    [
-                        'team_id' => $team_id,
-                        'trainer_email' => $email,
-                        'assigned_by' => $user_id,
-                        'assigned_at' => current_time('mysql')
-                    ],
-                    ['%d', '%s', '%d', '%s']
-                );
+                // Check if assignment already exists
+                $existing = $wpdb->get_var($wpdb->prepare(
+                    "SELECT id FROM $pending_assignments_table 
+                    WHERE team_id = %d AND trainer_email = %s",
+                    $team_id, $email
+                ));
+                
+                if (!$existing) {
+                    $result = $wpdb->insert(
+                        $pending_assignments_table,
+                        [
+                            'team_id' => $team_id,
+                            'trainer_email' => $email,
+                            'assigned_by' => $user_id,
+                            'assigned_at' => current_time('mysql')
+                        ],
+                        ['%d', '%s', '%d', '%s']
+                    );
+                    
+                    error_log("Club Manager Debug - Created pending assignment for team {$team_id}, email {$email}, result: " . ($result ? 'success' : 'failed'));
+                } else {
+                    error_log("Club Manager Debug - Pending assignment already exists for team {$team_id}, email {$email}");
+                }
             }
             
             // Get team names for email
             $team_names = [];
-            $teams_table = Club_Manager_Database::get_table_name('teams');
             foreach ($team_ids as $team_id) {
                 $team_name = $wpdb->get_var($wpdb->prepare(
                     "SELECT name FROM $teams_table WHERE id = %d",

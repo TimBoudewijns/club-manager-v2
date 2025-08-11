@@ -58,8 +58,9 @@
                                 <template x-for="team in (managedTeams || [])" :key="team.id">
                                     <label class="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
                                         <input type="checkbox" 
-                                               :value="team.id"
-                                               @change="toggleTeamSelection(team.id)"
+                                               :value="parseInt(team.id)"
+                                               :checked="newTrainerInvite.selectedTeams && newTrainerInvite.selectedTeams.includes(parseInt(team.id))"
+                                               @change="toggleTeamSelection(parseInt(team.id))"
                                                class="checkbox checkbox-orange" />
                                         <span class="text-gray-900" x-text="team.name || 'Unknown'"></span>
                                         <span class="text-sm text-gray-500">(<span x-text="team.season || ''"></span>)</span>

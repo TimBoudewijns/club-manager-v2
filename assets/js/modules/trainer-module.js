@@ -51,6 +51,11 @@ class TrainerModule {
             });
             this.app.managedTeams = teamsData || [];
             
+            // Debug logging
+            console.log('Club Manager Debug - loadTrainerManagementData:');
+            console.log('Season:', this.app.currentSeason);
+            console.log('Managed teams loaded:', this.app.managedTeams);
+            
             // Load pending invitations
             const invitationsData = await this.app.apiPost('cm_get_pending_invitations');
             this.app.pendingInvitations = invitationsData || [];
@@ -69,15 +74,26 @@ class TrainerModule {
     }
     
     toggleTeamSelection(teamId) {
+        // Ensure teamId is an integer
+        teamId = parseInt(teamId);
+        console.log('Club Manager Debug - toggleTeamSelection called with teamId:', teamId, 'type:', typeof teamId);
+        
         if (!this.app.newTrainerInvite.selectedTeams) {
             this.app.newTrainerInvite.selectedTeams = [];
         }
+        
+        console.log('Current selectedTeams before toggle:', this.app.newTrainerInvite.selectedTeams);
+        
         const index = this.app.newTrainerInvite.selectedTeams.indexOf(teamId);
         if (index > -1) {
             this.app.newTrainerInvite.selectedTeams.splice(index, 1);
+            console.log('Removed teamId from selection');
         } else {
             this.app.newTrainerInvite.selectedTeams.push(teamId);
+            console.log('Added teamId to selection');
         }
+        
+        console.log('Current selectedTeams after toggle:', this.app.newTrainerInvite.selectedTeams);
     }
     
     toggleEditTeamSelection(teamId) {
@@ -119,6 +135,15 @@ class TrainerModule {
         
         await this.app.withLoading(async () => {
             try {
+                // Debug logging
+                console.log('Club Manager Debug - Sending invite data:', {
+                    email: this.app.newTrainerInvite.email,
+                    teams: this.app.newTrainerInvite.selectedTeams,
+                    role: this.app.newTrainerInvite.role,
+                    message: this.app.newTrainerInvite.message
+                });
+                console.log('All managed teams:', this.app.managedTeams);
+                
                 await this.app.apiPost('cm_invite_trainer', {
                     email: this.app.newTrainerInvite.email,
                     teams: this.app.newTrainerInvite.selectedTeams,
