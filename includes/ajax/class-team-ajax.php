@@ -159,6 +159,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             
             // 2. Check for pending assignments (trainers who were invited but haven't accepted yet)
             $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+            $pending_emails = array(); // Track which emails have pending assignments
             
             // Check if the table exists
             if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
@@ -168,11 +169,23 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 ));
                 
                 foreach ($pending_assignments as $pending) {
-                    $trainer_info[] = array(
-                        'name' => $pending->trainer_email . ' (Invitation Pending)',
-                        'email' => $pending->trainer_email,
-                        'type' => 'pending'
-                    );
+                    // Only add if this trainer is not already active
+                    $is_active = false;
+                    foreach ($trainer_info as $info) {
+                        if ($info['email'] === $pending->trainer_email && $info['type'] === 'active') {
+                            $is_active = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!$is_active) {
+                        $pending_emails[] = strtolower($pending->trainer_email);
+                        $trainer_info[] = array(
+                            'name' => $pending->trainer_email . ' (Invitation Pending)',
+                            'email' => $pending->trainer_email,
+                            'type' => 'pending'
+                        );
+                    }
                 }
             }
             
@@ -193,13 +206,21 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 foreach ($invitations as $invitation) {
                     $email = $invitation->email ?: $invitation->post_title;
                     if ($email && filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                        // Check if not already in list
+                        // Check if not already in list (as active or pending from pending_assignments)
                         $already_exists = false;
+                        $email_lower = strtolower($email);
+                        
+                        // Check if already in trainer_info
                         foreach ($trainer_info as $info) {
-                            if ($info['email'] === $email) {
+                            if (strtolower($info['email']) === $email_lower) {
                                 $already_exists = true;
                                 break;
                             }
+                        }
+                        
+                        // Also check if already in pending_emails from pending_assignments
+                        if (!$already_exists && in_array($email_lower, $pending_emails)) {
+                            $already_exists = true;
                         }
                         
                         if (!$already_exists) {

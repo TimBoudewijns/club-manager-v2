@@ -159,8 +159,7 @@ class Club_Manager_Trainer_Invitation_Handler {
             }
         }
 
-        // Check for pending assignments
-        $this->process_pending_assignments($user_id, $invitation->get_email()); 
+        // Note: Pending assignments will be processed after successful login/registration 
         
         // Get club name from inviter's WooCommerce Team
         $club_name = get_bloginfo('name'); // Default fallback
@@ -908,6 +907,10 @@ class Club_Manager_Trainer_Invitation_Handler {
             // Get team info
             $team = $invitation->get_team();
             $team_name = $team ? $team->get_name() : 'Unknown Team';
+            
+            // Process any pending assignments for this email
+            $user_email = get_user_by('id', $user_id)->user_email;
+            $this->process_pending_assignments($user_id, $user_email);
             
             // Add to Club Manager trainer table for each selected team
             $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);

@@ -878,6 +878,21 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $trainer_id, $user_id
         ));
         
+        // Also remove any pending assignments for this trainer's email
+        $trainer = get_user_by('id', $trainer_id);
+        if ($trainer && $trainer->user_email) {
+            $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+            
+            // Check if table exists
+            if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
+                $wpdb->delete(
+                    $pending_assignments_table,
+                    ['trainer_email' => $trainer->user_email],
+                    ['%s']
+                );
+            }
+        }
+        
         wp_send_json_success(['message' => 'Trainer removed successfully']);
     }
     
