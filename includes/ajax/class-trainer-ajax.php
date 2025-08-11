@@ -1015,8 +1015,32 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
             
+            // Step 10: Remove pending assignments (non-blocking)
+            $pending_cleanup_result = 'skipped';
+            try {
+                if ($trainer->user_email) {
+                    $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+                    
+                    if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
+                        $deleted_assignments = $wpdb->delete(
+                            $pending_assignments_table,
+                            ['trainer_email' => $trainer->user_email],
+                            ['%s']
+                        );
+                        $pending_cleanup_result = $deleted_assignments . ' assignments removed';
+                    } else {
+                        $pending_cleanup_result = 'table not found';
+                    }
+                } else {
+                    $pending_cleanup_result = 'no email';
+                }
+            } catch (Exception $e) {
+                error_log('Club Manager: Error removing pending assignments: ' . $e->getMessage());
+                $pending_cleanup_result = 'error: ' . $e->getMessage();
+            }
+            
             wp_send_json_success([
-                'message' => 'Test: WC removal (' . $wc_removal_result . '), DB deletion (' . $delete_result . ' rows)'
+                'message' => 'Trainer removed successfully from ' . $delete_result . ' teams. WC removal: ' . $wc_removal_result . ', Pending cleanup: ' . $pending_cleanup_result
             ]);
             
         } catch (Exception $e) {
