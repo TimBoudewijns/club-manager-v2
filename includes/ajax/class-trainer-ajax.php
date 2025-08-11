@@ -939,7 +939,26 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             // Step 1: Basic verification
             $user_id = $this->verify_request();
             
-            wp_send_json_success(['message' => 'Test: Basic verification passed, user_id: ' . $user_id]);
+            // Step 2: Check Teams Helper class
+            if (!class_exists('Club_Manager_Teams_Helper')) {
+                wp_send_json_error('Club_Manager_Teams_Helper class not found');
+                return;
+            }
+            
+            // Step 3: Check authorization
+            if (!Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
+                wp_send_json_error('Unauthorized access');
+                return;
+            }
+            
+            // Step 4: Get trainer ID
+            $trainer_id = $this->get_post_data('trainer_id', 'int');
+            if (empty($trainer_id) || $trainer_id <= 0) {
+                wp_send_json_error('Invalid trainer ID: ' . $trainer_id);
+                return;
+            }
+            
+            wp_send_json_success(['message' => 'Test: Authorization and data validation passed, trainer_id: ' . $trainer_id]);
             
         } catch (Exception $e) {
             error_log('Club Manager: Exception in remove_trainer: ' . $e->getMessage());
