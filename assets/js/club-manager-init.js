@@ -225,8 +225,10 @@ window.clubManager = function() {
             console.log('Club Manager initializing...');
             console.log('User permissions:', this.userPermissions);
             console.log('AJAX URL:', window.clubManagerAjax?.ajax_url);
-            console.log('Available seasons:', this.availableSeasons);
-            console.log('Initial currentSeason:', this.currentSeason);
+            console.log('Available seasons object:', this.availableSeasons);
+            console.log('Available seasons keys:', Object.keys(this.availableSeasons));
+            console.log('Initial currentSeason from backend:', this.currentSeason);
+            console.log('Preferred season from backend:', window.clubManagerAjax?.preferred_season);
             
             // Initialize modules
             this.initializeModules();
@@ -563,33 +565,34 @@ window.clubManager = function() {
         
         // Validate and sync currentSeason with available seasons
         validateCurrentSeason() {
-            console.log('Validating currentSeason...');
-            console.log('Initial currentSeason:', this.currentSeason);
+            console.log('=== validateCurrentSeason START ===');
+            console.log('Current season from backend:', this.currentSeason);
             console.log('Available seasons:', Object.keys(this.availableSeasons));
             
-            // If no currentSeason is set, use the first available season
-            if (!this.currentSeason) {
-                const availableSeasons = Object.keys(this.availableSeasons);
-                if (availableSeasons.length > 0) {
-                    this.currentSeason = availableSeasons[0];
-                    console.log('No currentSeason set, using first available:', this.currentSeason);
-                }
+            // Only validate that the current season exists - DO NOT change it unless it's invalid
+            if (this.currentSeason && this.availableSeasons.hasOwnProperty(this.currentSeason)) {
+                console.log('Current season is valid, keeping:', this.currentSeason);
                 return;
             }
             
-            // Check if currentSeason exists in availableSeasons
-            if (!this.availableSeasons[this.currentSeason]) {
-                console.warn('currentSeason', this.currentSeason, 'not found in available seasons:', Object.keys(this.availableSeasons));
+            // Only if current season is truly invalid, try to fix it
+            console.warn('Current season is invalid or not set');
+            
+            // First try the backend preferred season
+            if (window.clubManagerAjax?.preferred_season && 
+                this.availableSeasons.hasOwnProperty(window.clubManagerAjax.preferred_season)) {
+                this.currentSeason = window.clubManagerAjax.preferred_season;
+                console.log('Using backend preferred season:', this.currentSeason);
+            } else {
+                // Last resort: use first available
                 const availableSeasons = Object.keys(this.availableSeasons);
                 if (availableSeasons.length > 0) {
-                    console.log('Switching from invalid currentSeason', this.currentSeason, 'to first available:', availableSeasons[0]);
                     this.currentSeason = availableSeasons[0];
+                    console.log('Using first available season:', this.currentSeason);
                 }
-            } else {
-                console.log('currentSeason', this.currentSeason, 'is valid, keeping it');
             }
             
-            console.log('Final currentSeason after validation:', this.currentSeason);
+            console.log('=== validateCurrentSeason END - Final:', this.currentSeason, '===');
         },
         
         // Helper method to check if user has permission for a feature

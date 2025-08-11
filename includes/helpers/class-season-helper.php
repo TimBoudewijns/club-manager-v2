@@ -30,8 +30,11 @@ class Club_Manager_Season_Helper {
             update_option('cm_available_seasons', $seasons);
         }
         
-        // Sorteer op aflopende volgorde (nieuwste eerst)
-        arsort($seasons);
+        // Sorteer op season key (name) in aflopende volgorde (nieuwste eerst)
+        // krsort sorts by KEY in reverse order (maintains key-value associations)
+        krsort($seasons);
+        
+        error_log("Club Manager Debug - Available seasons after sorting: " . print_r(array_keys($seasons), true));
         
         return $seasons;
     }
