@@ -338,7 +338,9 @@ class Club_Manager_Assets {
             'plugin_url' => CLUB_MANAGER_PLUGIN_URL,
             'user_id' => $user_id,
             'is_logged_in' => is_user_logged_in(),
-            'preferred_season' => get_user_meta($user_id, 'cm_preferred_season', true) ?: '2024-2025',
+            'preferred_season' => Club_Manager_Season_Helper::get_user_preferred_season($user_id),
+            'available_seasons' => Club_Manager_Season_Helper::get_available_seasons(),
+            'is_first_season_selection' => Club_Manager_Season_Helper::is_first_season_selection($user_id),
             'permissions' => $permissions,
             'trainer_limit' => $trainer_limit
         );

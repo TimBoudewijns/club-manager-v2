@@ -215,6 +215,10 @@ window.clubManager = function() {
             trainers: 'email,team_names\ntrainer1@club.com,Hockey Team Alpha\ntrainer2@club.com,Hockey Team Alpha;Hockey Team Beta\nheadcoach@club.com,Hockey Team Gamma'
         },
         
+        // Season Management variables
+        showSeasonManagementModal: false,
+        newSeasonName: '',
+        
         // Initialize
         async init() {
             console.log('Club Manager initializing...');
@@ -556,6 +560,52 @@ window.clubManager = function() {
         isTabAvailable(tab) {
             return this.userPermissions.available_tabs && 
                    this.userPermissions.available_tabs.includes(tab);
+        },
+        
+        // Season Management Methods
+        async addSeason() {
+            if (!this.newSeasonName.trim()) {
+                alert('Please enter a season name');
+                return;
+            }
+            
+            try {
+                await this.apiPost('cm_add_season', {
+                    season_name: this.newSeasonName.trim()
+                });
+                
+                this.newSeasonName = '';
+                
+                // Refresh available seasons
+                const response = await this.apiPost('cm_get_available_seasons');
+                window.clubManagerAjax.available_seasons = response.seasons;
+                
+                alert('Season added successfully!');
+                
+            } catch (error) {
+                alert('Error adding season: ' + error.message);
+            }
+        },
+        
+        async removeSeason(seasonName) {
+            if (!confirm(`Are you sure you want to remove season ${seasonName}?`)) {
+                return;
+            }
+            
+            try {
+                await this.apiPost('cm_remove_season', {
+                    season_name: seasonName
+                });
+                
+                // Refresh available seasons
+                const response = await this.apiPost('cm_get_available_seasons');
+                window.clubManagerAjax.available_seasons = response.seasons;
+                
+                alert('Season removed successfully!');
+                
+            } catch (error) {
+                alert('Error removing season: ' + error.message);
+            }
         },
         
         // Initialize fallback methods for missing functionality

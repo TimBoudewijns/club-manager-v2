@@ -56,6 +56,14 @@ class Club_Manager {
             error_log('Club Manager: User permissions helper file missing at ' . $permissions_file);
         }
         
+        // Season Helper
+        $season_file = CLUB_MANAGER_PLUGIN_DIR . 'includes/helpers/class-season-helper.php';
+        if (file_exists($season_file)) {
+            require_once $season_file;
+        } else {
+            error_log('Club Manager: Season helper file missing at ' . $season_file);
+        }
+        
         // Database
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-database.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/database/class-teams-table.php';
@@ -94,6 +102,7 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-club-ajax.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-trainer-ajax.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-import-export-ajax.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-season-ajax.php';
         
         // AI
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ai/class-ai-manager.php';
@@ -141,6 +150,7 @@ class Club_Manager {
         $club_ajax = new Club_Manager_Club_Ajax();
         $trainer_ajax = new Club_Manager_Trainer_Ajax();
         $import_export_ajax = new Club_Manager_Import_Export_Ajax();
+        $season_ajax = new Club_Manager_Season_Ajax();
         
         // Initialize AJAX handlers immediately
         $team_ajax->init();
@@ -150,6 +160,7 @@ class Club_Manager {
         $club_ajax->init();
         $trainer_ajax->init();
         $import_export_ajax->init();
+        $season_ajax->init();
         
         // AI Manager
         $ai_manager = new Club_Manager_AI_Manager();

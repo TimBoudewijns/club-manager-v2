@@ -375,5 +375,6 @@
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/edit-team-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/player-card-modal.php';
     include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/import-export-modal.php';
+    include CLUB_MANAGER_PLUGIN_DIR . 'templates/modals/season-management-modal.php';
     ?>
 </div>

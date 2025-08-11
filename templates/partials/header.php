@@ -84,8 +84,9 @@
                 <div class="relative">
                     <select x-model="currentSeason" @change="changeSeason" 
                         class="bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg px-3 py-2 pr-8 text-sm appearance-none cursor-pointer shadow-sm hover:shadow-md transition-all">
-                        <option value="2024-2025">2024-2025</option>
-                        <option value="2025-2026">2025-2026</option>
+                        <template x-for="(seasonData, seasonKey) in (window.clubManagerAjax?.available_seasons || {})" :key="seasonKey">
+                            <option :value="seasonKey" x-text="seasonKey"></option>
+                        </template>
                     </select>
                     <div class="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
                         <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,6 +94,17 @@
                         </svg>
                     </div>
                 </div>
+                
+                <!-- Season Management Button (alleen voor WordPress administrators) -->
+                <?php if (current_user_can('manage_options')) : ?>
+                <button @click="showSeasonManagementModal = true"
+                        class="p-2 text-gray-600 hover:text-orange-600 hover:bg-white/70 rounded-lg transition-all duration-200"
+                        title="Manage seasons">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                    </svg>
+                </button>
+                <?php endif; ?>
             </div>
         </div>
         
