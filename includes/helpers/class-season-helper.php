@@ -155,12 +155,16 @@ class Club_Manager_Season_Helper {
         }
         
         $preferred = get_user_meta($user_id, 'cm_preferred_season', true);
+        error_log("Club Manager Debug - get_user_preferred_season: User {$user_id}, preferred: {$preferred}");
         
         // Check if preferred season still exists
         if (!empty($preferred)) {
             $available_seasons = self::get_available_seasons();
             if (isset($available_seasons[$preferred])) {
+                error_log("Club Manager Debug - Using preferred season: {$preferred}");
                 return $preferred;
+            } else {
+                error_log("Club Manager Debug - Preferred season {$preferred} not found in available seasons: " . print_r(array_keys($available_seasons), true));
             }
         }
         
@@ -179,11 +183,14 @@ class Club_Manager_Season_Helper {
         // If user has data in multiple seasons, use the most recent one with data
         if (!empty($seasons_with_data)) {
             // seasons_with_data will be in the same order as available_seasons (newest first)
+            error_log("Club Manager Debug - User has data in seasons: " . print_r($seasons_with_data, true) . ", using: {$seasons_with_data[0]}");
             return $seasons_with_data[0];
         }
         
         // Fallback to current season
-        return self::get_current_season();
+        $current_season = self::get_current_season();
+        error_log("Club Manager Debug - Using fallback current season: {$current_season}");
+        return $current_season;
     }
     
     /**

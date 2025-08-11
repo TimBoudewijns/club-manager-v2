@@ -345,51 +345,72 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        // Get trainers for teams owned by user in current season
-        $trainers_data = $wpdb->get_results($wpdb->prepare(
-            "SELECT DISTINCT tt.trainer_id, tt.role, tt.is_active, u.display_name, u.user_email as email,
-                    um1.meta_value as first_name, um2.meta_value as last_name
+        // First, get all trainers who have EVER been assigned to user's teams (across all seasons)
+        $all_trainer_ids = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT tt.trainer_id
             FROM $trainers_table tt
             INNER JOIN $teams_table t ON tt.team_id = t.id
-            INNER JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
-            LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
-            LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
-            WHERE t.created_by = %d AND t.season = %s
-            ORDER BY u.display_name",
-            $user_id, $season
+            WHERE t.created_by = %d",
+            $user_id
         ));
         
-        // Group teams by trainer
         $trainers = [];
-        foreach ($trainers_data as $trainer) {
-            $trainer_id = $trainer->trainer_id;
+        
+        if (!empty($all_trainer_ids)) {
+            $placeholders = implode(',', array_fill(0, count($all_trainer_ids), '%d'));
             
-            if (!isset($trainers[$trainer_id])) {
-                $trainers[$trainer_id] = [
+            // Get all trainer details
+            $trainers_data = $wpdb->get_results($wpdb->prepare(
+                "SELECT u.ID as trainer_id, u.display_name, u.user_email as email,
+                        um1.meta_value as first_name, um2.meta_value as last_name
+                FROM {$wpdb->users} u
+                LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
+                LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
+                WHERE u.ID IN ($placeholders)
+                ORDER BY u.display_name",
+                ...$all_trainer_ids
+            ));
+            
+            foreach ($trainers_data as $trainer) {
+                $trainer_id = $trainer->trainer_id;
+                
+                // Get teams for this trainer in current season only
+                $trainer_teams = $wpdb->get_results($wpdb->prepare(
+                    "SELECT t.id, t.name, tt.role, tt.is_active
+                    FROM $trainers_table tt
+                    INNER JOIN $teams_table t ON tt.team_id = t.id
+                    WHERE tt.trainer_id = %d AND t.created_by = %d AND t.season = %s",
+                    $trainer_id, $user_id, $season
+                ));
+                
+                // Get the role and active status (from current season if available, otherwise default)
+                $role = 'trainer';
+                $is_active = 1;
+                if (!empty($trainer_teams)) {
+                    $role = $trainer_teams[0]->role;
+                    $is_active = $trainer_teams[0]->is_active;
+                }
+                
+                $trainers[] = [
                     'id' => $trainer_id,
                     'display_name' => $trainer->display_name,
                     'email' => $trainer->email,
                     'first_name' => $trainer->first_name,
                     'last_name' => $trainer->last_name,
-                    'role' => $trainer->role,
-                    'is_active' => $trainer->is_active,
-                    'teams' => []
+                    'role' => $role,
+                    'is_active' => $is_active,
+                    'teams' => array_map(function($team) {
+                        return [
+                            'id' => $team->id,
+                            'name' => $team->name
+                        ];
+                    }, $trainer_teams),
+                    'has_teams_in_season' => !empty($trainer_teams)
                 ];
             }
-            
-            // Get teams for this trainer in current season
-            $trainer_teams = $wpdb->get_results($wpdb->prepare(
-                "SELECT t.id, t.name 
-                FROM $trainers_table tt
-                INNER JOIN $teams_table t ON tt.team_id = t.id
-                WHERE tt.trainer_id = %d AND t.created_by = %d AND t.season = %s",
-                $trainer_id, $user_id, $season
-            ));
-            
-            $trainers[$trainer_id]['teams'] = $trainer_teams;
         }
         
-        wp_send_json_success(array_values($trainers));
+        wp_send_json_success($trainers);
     }
     
     /**

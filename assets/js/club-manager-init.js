@@ -564,6 +564,8 @@ window.clubManager = function() {
         // Validate and sync currentSeason with available seasons
         validateCurrentSeason() {
             console.log('Validating currentSeason...');
+            console.log('Initial currentSeason:', this.currentSeason);
+            console.log('Available seasons:', Object.keys(this.availableSeasons));
             
             // If no currentSeason is set, use the first available season
             if (!this.currentSeason) {
@@ -577,11 +579,14 @@ window.clubManager = function() {
             
             // Check if currentSeason exists in availableSeasons
             if (!this.availableSeasons[this.currentSeason]) {
+                console.warn('currentSeason', this.currentSeason, 'not found in available seasons:', Object.keys(this.availableSeasons));
                 const availableSeasons = Object.keys(this.availableSeasons);
                 if (availableSeasons.length > 0) {
-                    console.log('currentSeason not found in available seasons, switching from', this.currentSeason, 'to', availableSeasons[0]);
+                    console.log('Switching from invalid currentSeason', this.currentSeason, 'to first available:', availableSeasons[0]);
                     this.currentSeason = availableSeasons[0];
                 }
+            } else {
+                console.log('currentSeason', this.currentSeason, 'is valid, keeping it');
             }
             
             console.log('Final currentSeason after validation:', this.currentSeason);

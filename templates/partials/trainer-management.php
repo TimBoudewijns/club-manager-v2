@@ -257,6 +257,9 @@ $seat_info = cm_get_available_trainer_seats();
                                             <template x-for="team in (trainer.teams || [])" :key="team.id">
                                                 <span class="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800" x-text="team.name || 'Unknown'"></span>
                                             </template>
+                                            <template x-if="!trainer.teams || trainer.teams.length === 0">
+                                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-600 italic">No teams in this season</span>
+                                            </template>
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
