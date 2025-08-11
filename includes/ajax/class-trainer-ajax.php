@@ -936,98 +936,20 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
      */
     public function remove_trainer() {
         try {
+            // Step 1: Basic verification
             $user_id = $this->verify_request();
             
-            if (!class_exists('Club_Manager_Teams_Helper') || !Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
-                wp_send_json_error('Unauthorized access');
-                return;
-            }
-            
-            $trainer_id = $this->get_post_data('trainer_id', 'int');
-            
-            // Validate trainer ID
-            if (empty($trainer_id) || $trainer_id <= 0) {
-                wp_send_json_error('Invalid trainer ID');
-                return;
-            }
-            
-            // Check if trainer exists
-            $trainer = get_user_by('id', $trainer_id);
-            if (!$trainer) {
-                wp_send_json_error('Trainer not found');
-                return;
-            }
-            
-            global $wpdb;
-            $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
-            $teams_table = Club_Manager_Database::get_table_name('teams');
-            
-            // Verify database tables exist
-            if (!$trainers_table || !$teams_table) {
-                wp_send_json_error('Database tables not available');
-                return;
-            }
-            
-            // Get all teams this trainer is part of that belong to current user
-            $trainer_teams = $wpdb->get_results($wpdb->prepare(
-                "SELECT tt.*, t.created_by
-                FROM $trainers_table tt
-                INNER JOIN $teams_table t ON tt.team_id = t.id
-                WHERE tt.trainer_id = %d AND t.created_by = %d",
-                $trainer_id, $user_id
-            ));
-            
-            // Check if trainer belongs to any of user's teams
-            if (empty($trainer_teams)) {
-                wp_send_json_error('Trainer is not associated with your teams');
-                return;
-            }
-            
-            // Remove from WooCommerce team (non-blocking)
-            try {
-                $this->remove_from_wc_team($trainer_id, $user_id);
-            } catch (Exception $e) {
-                error_log('Club Manager: Error removing from WC team: ' . $e->getMessage());
-                // Continue with removal from Club Manager tables
-            }
-            
-            // Remove trainer from Club Manager tables
-            $delete_result = $wpdb->query($wpdb->prepare(
-                "DELETE tt FROM $trainers_table tt
-                INNER JOIN $teams_table t ON tt.team_id = t.id
-                WHERE tt.trainer_id = %d AND t.created_by = %d",
-                $trainer_id, $user_id
-            ));
-            
-            if ($delete_result === false) {
-                wp_send_json_error('Failed to remove trainer from teams');
-                return;
-            }
-            
-            // Also remove any pending assignments for this trainer's email (non-blocking)
-            try {
-                if ($trainer->user_email) {
-                    $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
-                    
-                    // Check if table exists
-                    if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
-                        $wpdb->delete(
-                            $pending_assignments_table,
-                            ['trainer_email' => $trainer->user_email],
-                            ['%s']
-                        );
-                    }
-                }
-            } catch (Exception $e) {
-                error_log('Club Manager: Error removing pending assignments: ' . $e->getMessage());
-                // Not critical, trainer was already removed from main tables
-            }
-            
-            wp_send_json_success(['message' => 'Trainer removed successfully']);
+            wp_send_json_success(['message' => 'Test: Basic verification passed, user_id: ' . $user_id]);
             
         } catch (Exception $e) {
-            error_log('Club Manager: Critical error in remove_trainer: ' . $e->getMessage());
-            wp_send_json_error('An unexpected error occurred while removing the trainer');
+            error_log('Club Manager: Exception in remove_trainer: ' . $e->getMessage());
+            wp_send_json_error('Error: ' . $e->getMessage());
+        } catch (Error $e) {
+            error_log('Club Manager: Fatal error in remove_trainer: ' . $e->getMessage());
+            wp_send_json_error('Fatal error: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            error_log('Club Manager: Throwable in remove_trainer: ' . $e->getMessage());
+            wp_send_json_error('Throwable error: ' . $e->getMessage());
         }
     }
     
