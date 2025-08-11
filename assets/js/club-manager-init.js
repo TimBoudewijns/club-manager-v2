@@ -225,9 +225,14 @@ window.clubManager = function() {
             console.log('Club Manager initializing...');
             console.log('User permissions:', this.userPermissions);
             console.log('AJAX URL:', window.clubManagerAjax?.ajax_url);
+            console.log('Available seasons:', this.availableSeasons);
+            console.log('Initial currentSeason:', this.currentSeason);
             
             // Initialize modules
             this.initializeModules();
+            
+            // Validate and fix currentSeason if needed
+            this.validateCurrentSeason();
             
             // Set initial tab based on permissions
             this.setInitialTab();
@@ -356,6 +361,7 @@ window.clubManager = function() {
                         break;
                         
                     case 'trainer-management':
+                        console.log('Loading trainer management data for season:', this.currentSeason);
                         if (this.trainerModule) {
                             await this.trainerModule.loadTrainerManagementData();
                         }
@@ -526,12 +532,15 @@ window.clubManager = function() {
         
         // Season management
         async changeSeason() {
+            console.log('changeSeason called for season:', this.currentSeason);
             await this.withLoading(async () => {
                 try {
+                    console.log('Saving season preference:', this.currentSeason);
                     await this.apiPost('cm_save_season_preference', {
                         season: this.currentSeason
                     });
                     
+                    console.log('Reloading data for current tab:', this.activeTab);
                     // Reload data for current tab
                     await this.handleTabChange(this.activeTab);
                     
@@ -550,6 +559,32 @@ window.clubManager = function() {
                     console.error('Error changing season: ', error.message);
                 }
             }, 'Changing season...');
+        },
+        
+        // Validate and sync currentSeason with available seasons
+        validateCurrentSeason() {
+            console.log('Validating currentSeason...');
+            
+            // If no currentSeason is set, use the first available season
+            if (!this.currentSeason) {
+                const availableSeasons = Object.keys(this.availableSeasons);
+                if (availableSeasons.length > 0) {
+                    this.currentSeason = availableSeasons[0];
+                    console.log('No currentSeason set, using first available:', this.currentSeason);
+                }
+                return;
+            }
+            
+            // Check if currentSeason exists in availableSeasons
+            if (!this.availableSeasons[this.currentSeason]) {
+                const availableSeasons = Object.keys(this.availableSeasons);
+                if (availableSeasons.length > 0) {
+                    console.log('currentSeason not found in available seasons, switching from', this.currentSeason, 'to', availableSeasons[0]);
+                    this.currentSeason = availableSeasons[0];
+                }
+            }
+            
+            console.log('Final currentSeason after validation:', this.currentSeason);
         },
         
         // Helper method to check if user has permission for a feature
@@ -583,10 +618,19 @@ window.clubManager = function() {
                 this.availableSeasons = response.seasons; // Update local reactive variable
                 
                 // Force Alpine to re-render by triggering change
-                this.$nextTick(() => {
-                    // If the new season should be selected, update currentSeason
+                this.$nextTick(async () => {
+                    // Check if currentSeason is still valid
                     if (!this.currentSeason || !(this.currentSeason in this.availableSeasons)) {
                         this.currentSeason = Object.keys(this.availableSeasons)[0];
+                    }
+                    
+                    // Ask user if they want to switch to the new season
+                    const newSeasonKey = Object.keys(this.availableSeasons)[0]; // First season (newest)
+                    if (newSeasonKey !== this.currentSeason) {
+                        if (confirm(`Would you like to switch to the new season "${newSeasonKey}"?`)) {
+                            this.currentSeason = newSeasonKey;
+                            await this.changeSeason();
+                        }
                     }
                 });
                 

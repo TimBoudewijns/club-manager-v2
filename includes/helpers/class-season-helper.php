@@ -164,8 +164,59 @@ class Club_Manager_Season_Helper {
             }
         }
         
+        // If this is the first time or preferred season doesn't exist anymore,
+        // check if user has access to current season data, otherwise use their most recent season with data
+        $available_seasons = self::get_available_seasons();
+        $seasons_with_data = [];
+        
+        // Check which seasons have data for this user
+        foreach ($available_seasons as $season_key => $season_data) {
+            if (self::user_has_data_in_season($user_id, $season_key)) {
+                $seasons_with_data[] = $season_key;
+            }
+        }
+        
+        // If user has data in multiple seasons, use the most recent one with data
+        if (!empty($seasons_with_data)) {
+            // seasons_with_data will be in the same order as available_seasons (newest first)
+            return $seasons_with_data[0];
+        }
+        
         // Fallback to current season
         return self::get_current_season();
+    }
+    
+    /**
+     * Check if user has data in a specific season (teams, evaluations, etc.)
+     * 
+     * @param int $user_id
+     * @param string $season_name
+     * @return bool
+     */
+    public static function user_has_data_in_season($user_id, $season_name) {
+        global $wpdb;
+        
+        // Check if user has teams in this season
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        $team_count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(*) FROM $teams_table WHERE created_by = %d AND season = %s",
+            $user_id, $season_name
+        ));
+        
+        if ($team_count > 0) {
+            return true;
+        }
+        
+        // Check if user has evaluations in this season
+        $evaluations_table = Club_Manager_Database::get_table_name('evaluations');
+        $eval_count = $wpdb->get_var($wpdb->prepare(
+            "SELECT COUNT(DISTINCT e.id) FROM $evaluations_table e 
+             INNER JOIN $teams_table t ON e.team_id = t.id 
+             WHERE t.created_by = %d AND e.season = %s",
+            $user_id, $season_name
+        ));
+        
+        return $eval_count > 0;
     }
     
     /**

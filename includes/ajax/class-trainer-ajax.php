@@ -229,6 +229,9 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
+        // Get current season preference
+        $season = Club_Manager_Season_Helper::get_user_preferred_season($user_id);
+        
         $invitations = [];
         
         // Get all WC Teams where user is owner/manager
@@ -280,8 +283,8 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                     if ($cm_team_ids && is_array($cm_team_ids)) {
                         foreach ($cm_team_ids as $team_id) {
                             $team_name = $wpdb->get_var($wpdb->prepare(
-                                "SELECT name FROM $teams_table WHERE id = %d",
-                                $team_id
+                                "SELECT name FROM $teams_table WHERE id = %d AND season = %s",
+                                $team_id, $season
                             ));
                             if ($team_name) {
                                 $team_names[] = $team_name;
@@ -298,8 +301,8 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                                 "SELECT t.name 
                                 FROM $pending_assignments_table pa
                                 INNER JOIN $teams_table t ON pa.team_id = t.id
-                                WHERE pa.trainer_email = %s",
-                                $email
+                                WHERE pa.trainer_email = %s AND t.season = %s",
+                                $email, $season
                             ));
                             
                             foreach ($assigned_teams as $team) {
@@ -335,11 +338,14 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             return;
         }
         
+        // Get current season preference
+        $season = Club_Manager_Season_Helper::get_user_preferred_season($user_id);
+        
         global $wpdb;
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        // Get trainers for teams owned by user
+        // Get trainers for teams owned by user in current season
         $trainers_data = $wpdb->get_results($wpdb->prepare(
             "SELECT DISTINCT tt.trainer_id, tt.role, tt.is_active, u.display_name, u.user_email as email,
                     um1.meta_value as first_name, um2.meta_value as last_name
@@ -348,9 +354,9 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             INNER JOIN {$wpdb->users} u ON tt.trainer_id = u.ID
             LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
             LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
-            WHERE t.created_by = %d
+            WHERE t.created_by = %d AND t.season = %s
             ORDER BY u.display_name",
-            $user_id
+            $user_id, $season
         ));
         
         // Group teams by trainer
@@ -371,13 +377,13 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 ];
             }
             
-            // Get teams for this trainer
+            // Get teams for this trainer in current season
             $trainer_teams = $wpdb->get_results($wpdb->prepare(
                 "SELECT t.id, t.name 
                 FROM $trainers_table tt
                 INNER JOIN $teams_table t ON tt.team_id = t.id
-                WHERE tt.trainer_id = %d AND t.created_by = %d",
-                $trainer_id, $user_id
+                WHERE tt.trainer_id = %d AND t.created_by = %d AND t.season = %s",
+                $trainer_id, $user_id, $season
             ));
             
             $trainers[$trainer_id]['teams'] = $trainer_teams;
