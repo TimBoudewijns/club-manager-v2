@@ -333,7 +333,7 @@ class Club_Manager_User_Permissions_Helper {
                     'can_see_club_teams_in_player_mgmt' => true,
                     'can_see_team_management' => true,
                     'can_make_evaluations' => true,
-                    'can_add_teams_player_mgmt' => true,
+                    'can_add_teams_player_mgmt' => false, // Owners/managers should use Team Management tab
                     'can_manage_team_roster' => true,
                     'can_view_all_club_teams' => true,
                     'can_create_teams' => true,
