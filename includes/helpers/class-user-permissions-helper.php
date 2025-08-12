@@ -238,17 +238,19 @@ class Club_Manager_User_Permissions_Helper {
                 
             case 'owner':
             case 'manager':
-                // For owners/managers, they see their created teams in My Teams
+                // For owners/managers, they only see teams where they are assigned as trainers in My Teams
                 // They manage all club teams in Team Management tab
-                $query = "SELECT * FROM $teams_table WHERE created_by = %d";
+                $query = "SELECT t.* FROM $teams_table t
+                         INNER JOIN $trainers_table tt ON t.id = tt.team_id
+                         WHERE tt.trainer_id = %d AND tt.is_active = 1";
                 $params = [$user_id];
                 
                 if (!empty($season)) {
-                    $query .= " AND season = %s";
+                    $query .= " AND t.season = %s";
                     $params[] = $season;
                 }
                 
-                $query .= " ORDER BY name";
+                $query .= " ORDER BY t.name";
                 
                 return $wpdb->get_results($wpdb->prepare($query, ...$params));
                 

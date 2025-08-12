@@ -402,7 +402,26 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         // Get club member IDs first
         $club_member_ids = $this->get_club_member_ids($user_id);
         
-        // 1. FIRST: Get ALL trainers from Club Manager system (dit was het probleem!)
+        // 0. FIRST: Add current user (club owner/manager) as available trainer
+        $current_user = get_user_by('id', $user_id);
+        if ($current_user) {
+            $first_name = get_user_meta($user_id, 'first_name', true);
+            $last_name = get_user_meta($user_id, 'last_name', true);
+            
+            $available_trainers[] = array(
+                'id' => $user_id,
+                'display_name' => $current_user->display_name,
+                'email' => $current_user->user_email,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'type' => 'active'
+            );
+            
+            $processed_users[] = $user_id;
+            $processed_emails[] = strtolower($current_user->user_email);
+        }
+        
+        // 1. Then get ALL trainers from Club Manager system
         if (!empty($club_member_ids)) {
             $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
             $teams_table = Club_Manager_Database::get_table_name('teams');
