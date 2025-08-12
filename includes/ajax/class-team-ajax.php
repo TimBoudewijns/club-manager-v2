@@ -320,7 +320,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                 $trainer_names = array_map(function($t) { return $t['name']; }, $trainer_info);
                 $team->trainer_names = implode(', ', $trainer_names);
             } else {
-                $team->trainer_names = null;
+                $team->trainer_names = '';  // Use empty string instead of null for consistency
             }
         }
         
