@@ -157,7 +157,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                     $team->trainer_names = implode(', ', $trainer_names);
                     error_log("Team {$team->name} has trainers: " . $team->trainer_names);
                 } else {
-                    $team->trainer_names = null;
+                    $team->trainer_names = '';  // Use empty string instead of null
                     error_log("Team {$team->name} has no trainers");
                 }
             }
