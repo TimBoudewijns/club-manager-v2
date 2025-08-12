@@ -91,8 +91,12 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             global $wpdb;
             $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
             
+            $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+            
             foreach ($teams as $team) {
-                // Get trainers for this team
+                $trainer_info = array();
+                
+                // 1. Get active trainers
                 $trainers = $wpdb->get_results($wpdb->prepare(
                     "SELECT u.ID, u.display_name, u.user_email,
                             um1.meta_value as first_name,
@@ -106,20 +110,55 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                     $team->id
                 ));
                 
-                if (!empty($trainers)) {
-                    $trainer_names = array();
-                    foreach ($trainers as $trainer) {
-                        // Use first/last name if available, otherwise display_name
-                        if (!empty($trainer->first_name) || !empty($trainer->last_name)) {
-                            $name = trim($trainer->first_name . ' ' . $trainer->last_name);
-                        } else {
-                            $name = $trainer->display_name;
-                        }
-                        $trainer_names[] = $name;
+                // Add active trainers to the list
+                foreach ($trainers as $trainer) {
+                    if (!empty($trainer->first_name) || !empty($trainer->last_name)) {
+                        $name = trim($trainer->first_name . ' ' . $trainer->last_name);
+                    } else {
+                        $name = $trainer->display_name;
                     }
+                    $trainer_info[] = array(
+                        'name' => $name,
+                        'email' => $trainer->user_email,
+                        'type' => 'active'
+                    );
+                }
+                
+                // 2. Check for pending assignments (trainers who were invited but haven't accepted yet)
+                if ($wpdb->get_var("SHOW TABLES LIKE '$pending_assignments_table'") === $pending_assignments_table) {
+                    $pending_assignments = $wpdb->get_results($wpdb->prepare(
+                        "SELECT trainer_email FROM $pending_assignments_table WHERE team_id = %d",
+                        $team->id
+                    ));
+                    
+                    foreach ($pending_assignments as $pending) {
+                        // Check if this trainer is not already active
+                        $is_active = false;
+                        foreach ($trainer_info as $info) {
+                            if ($info['email'] === $pending->trainer_email && $info['type'] === 'active') {
+                                $is_active = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!$is_active) {
+                            $trainer_info[] = array(
+                                'name' => $pending->trainer_email . ' (Pending)',
+                                'email' => $pending->trainer_email,
+                                'type' => 'pending'
+                            );
+                        }
+                    }
+                }
+                
+                // Create trainer_names string
+                if (!empty($trainer_info)) {
+                    $trainer_names = array_map(function($t) { return $t['name']; }, $trainer_info);
                     $team->trainer_names = implode(', ', $trainer_names);
+                    error_log("Team {$team->name} has trainers: " . $team->trainer_names);
                 } else {
                     $team->trainer_names = null;
+                    error_log("Team {$team->name} has no trainers");
                 }
             }
         }

@@ -43,6 +43,13 @@ class TeamModule {
             this.app.myTeams = await this.app.apiPost('cm_get_my_teams', {
                 season: this.app.currentSeason
             });
+            console.log('My Teams loaded:', this.app.myTeams);
+            // Check if trainer_names is present
+            if (this.app.myTeams && this.app.myTeams.length > 0) {
+                this.app.myTeams.forEach(team => {
+                    console.log(`Team: ${team.name}, Trainers: ${team.trainer_names || 'None'}`);
+                });
+            }
         } catch (error) {
             console.error('Error loading teams:', error);
             console.error('Error loading teams');
