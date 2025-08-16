@@ -50,7 +50,7 @@ class Club_Manager_Shortcode {
                     </svg>
                 </div>
                 <div>
-                    <h3 class="text-xl font-bold text-gray-900">Login Required</h3>
+                    <h3 class="text-lg font-bold text-gray-900">Login Required</h3>
                     <p class="text-gray-600 mt-1">Please log in to access the Club Manager dashboard.</p>
                 </div>
             </div>

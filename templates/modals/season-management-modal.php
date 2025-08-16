@@ -39,7 +39,7 @@
             <div class="p-6">
                 <!-- Add New Season -->
                 <div class="mb-6">
-                    <h4 class="text-lg font-semibold text-gray-900 mb-3">Add New Season</h4>
+                    <h4 class="text-base font-semibold text-gray-900 mb-3">Add New Season</h4>
                     <div class="flex space-x-3">
                         <input type="text" 
                                x-model="newSeasonName"
@@ -56,7 +56,7 @@
                 
                 <!-- Existing Seasons -->
                 <div>
-                    <h4 class="text-lg font-semibold text-gray-900 mb-3">Existing Seasons</h4>
+                    <h4 class="text-base font-semibold text-gray-900 mb-3">Existing Seasons</h4>
                     <div class="space-y-2">
                         <template x-for="(seasonData, seasonKey) in availableSeasons" :key="seasonKey">
                             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">

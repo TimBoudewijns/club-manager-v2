@@ -23,7 +23,7 @@
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-lg">Assign Trainer</h3>
+                        <h3 class="font-semibold text-base">Assign Trainer</h3>
                         <p class="text-orange-100 mt-1">Add a trainer to <span x-text="selectedManagedTeam?.name" class="font-semibold"></span></p>
                     </div>
                     <button @click="showAssignTrainerModal = false" 

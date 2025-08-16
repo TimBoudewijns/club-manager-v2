@@ -10,7 +10,13 @@
       "Bash(else echo \"No package.json found\")",
       "Bash(fi)",
       "WebFetch(domain:dutch-fieldhockey-drills.com)",
-      "WebFetch(domain:www.miter.com)"
+      "WebFetch(domain:www.miter.com)",
+      "Bash(for file in \"C:\\Users\\TimBoudewijns\\OneDrive - Troublefree Software BV\\Bureaublad\\club-manager-v2\\templates\\modals\"/*.php)",
+      "Bash(do sed -i 's/<h3 class=\"\"font-semibold text-lg\"\">/<h3 class=\"\"font-semibold text-base\"\">/g' \"$file\")",
+      "Bash(done)",
+      "Bash(do sed -i 's/<h3 class=\"\"text-lg font-semibold/<h3 class=\"\"text-base font-semibold/g' \"$file\")",
+      "Bash(do sed -i 's/text-2xl font-semibold/text-base font-semibold/g' \"$file\")",
+      "Bash(do sed -i 's/text-xl font-bold/text-base font-bold/g' \"$file\")"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

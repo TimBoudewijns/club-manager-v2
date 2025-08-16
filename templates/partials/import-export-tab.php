@@ -35,7 +35,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-base font-semibold text-gray-900">Import Data</h3>
+                        <h3 class="text-sm font-semibold text-gray-900">Import Data</h3>
                         <p class="text-gray-600">Upload CSV files</p>
                     </div>
                 </div>
@@ -57,7 +57,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h3 class="text-base font-semibold text-gray-900">Export Data</h3>
+                        <h3 class="text-sm font-semibold text-gray-900">Export Data</h3>
                         <p class="text-gray-600">Download your club data</p>
                     </div>
                 </div>
@@ -73,7 +73,7 @@
         
         <!-- Templates Section -->
         <div class="bg-gray-50 rounded-2xl p-8 border border-gray-200">
-            <h3 class="text-base font-semibold text-gray-900 mb-4">Import Templates</h3>
+            <h3 class="text-sm font-semibold text-gray-900 mb-4">Import Templates</h3>
             <p class="text-gray-600 mb-6">Download these templates to ensure your data is formatted correctly for import.</p>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
