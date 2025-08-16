@@ -23,15 +23,15 @@
     --transition-base: all 0.2s cubic-bezier(0.2, 0.65, 0.3, 1);
     --transition-hover: transform 0.25s ease, box-shadow 0.25s ease;
     
-    /* Typography Scale - SMALLER SIZES */
-    --text-xs: 0.625rem;     /* 10px */
-    --text-sm: 0.75rem;      /* 12px */
-    --text-base: 0.875rem;   /* 14px */
-    --text-lg: 1rem;         /* 16px */
-    --text-xl: 1.125rem;     /* 18px */
-    --text-2xl: 1.25rem;     /* 20px */
-    --text-3xl: 1.5rem;      /* 24px */
-    --text-4xl: 1.875rem;    /* 30px */
+    /* Typography Scale - NORMAL SIZES */
+    --text-xs: 0.75rem;      /* 12px */
+    --text-sm: 0.875rem;     /* 14px */
+    --text-base: 1rem;       /* 16px */
+    --text-lg: 1.125rem;     /* 18px */
+    --text-xl: 1.25rem;      /* 20px */
+    --text-2xl: 1.5rem;      /* 24px */
+    --text-3xl: 1.875rem;    /* 30px */
+    --text-4xl: 2.25rem;     /* 36px */
 }
 
 .club-manager-app {
@@ -41,41 +41,41 @@
     scroll-behavior: smooth;
 }
 
-/* FORCED SMALLER TYPOGRAPHY */
+/* NORMAL TYPOGRAPHY SIZES */
 .club-manager-app h1 {
-    font-size: 1.25rem !important;  /* 20px */
+    font-size: 1.875rem !important;  /* 30px */
     font-weight: 700;
     line-height: 1.2;
     letter-spacing: -0.025em;
 }
 
 .club-manager-app h2 {
-    font-size: 1.125rem !important; /* 18px */
+    font-size: 1.5rem !important;    /* 24px */
     font-weight: 600;
     line-height: 1.3;
     letter-spacing: -0.025em;
 }
 
 .club-manager-app h3 {
-    font-size: 1rem !important;     /* 16px */
+    font-size: 1.25rem !important;   /* 20px */
     font-weight: 600;
     line-height: 1.4;
 }
 
 .club-manager-app h4 {
-    font-size: 0.875rem !important; /* 14px */
+    font-size: 1.125rem !important;  /* 18px */
     font-weight: 600;
     line-height: 1.4;
 }
 
 .club-manager-app h5 {
-    font-size: 0.75rem !important;  /* 12px */
+    font-size: 1rem !important;      /* 16px */
     font-weight: 600;
     line-height: 1.4;
 }
 
 .club-manager-app h6 {
-    font-size: 0.625rem !important; /* 10px */
+    font-size: 0.875rem !important;  /* 14px */
     font-weight: 600;
     line-height: 1.4;
 }
@@ -83,57 +83,57 @@
 /* Better paragraph spacing */
 .club-manager-app p {
     line-height: 1.6;
-    font-size: 0.875rem !important; /* 14px */
+    font-size: 1rem !important; /* 16px */
 }
 
-/* OVERRIDE ALL TAILWIND TEXT SIZES */
+/* NORMAL TAILWIND TEXT SIZE OVERRIDES */
 .club-manager-app .text-xs {
-    font-size: 0.625rem !important; /* 10px */
+    font-size: 0.75rem !important;   /* 12px */
     line-height: 1.4;
 }
 
 .club-manager-app .text-sm {
-    font-size: 0.75rem !important;  /* 12px */
+    font-size: 0.875rem !important;  /* 14px */
     line-height: 1.5;
 }
 
 .club-manager-app .text-base {
-    font-size: 0.875rem !important; /* 14px */
+    font-size: 1rem !important;      /* 16px */
     line-height: 1.6;
 }
 
 .club-manager-app .text-lg {
-    font-size: 1rem !important;     /* 16px */
+    font-size: 1.125rem !important;  /* 18px */
     line-height: 1.6;
 }
 
 .club-manager-app .text-xl {
-    font-size: 1.125rem !important; /* 18px */
+    font-size: 1.25rem !important;   /* 20px */
     line-height: 1.4;
 }
 
 .club-manager-app .text-2xl {
-    font-size: 1.25rem !important;  /* 20px */
+    font-size: 1.5rem !important;    /* 24px */
     line-height: 1.3;
 }
 
 .club-manager-app .text-3xl {
-    font-size: 1.5rem !important;   /* 24px */
+    font-size: 1.875rem !important;  /* 30px */
     line-height: 1.2;
 }
 
 .club-manager-app .text-4xl {
-    font-size: 1.875rem !important; /* 30px */
+    font-size: 2.25rem !important;   /* 36px */
     line-height: 1.1;
 }
 
 .club-manager-app .text-5xl {
-    font-size: 2.25rem !important;  /* 36px */
+    font-size: 3rem !important;      /* 48px */
     line-height: 1;
 }
 
 .club-manager-app .text-6xl {
-    font-size: 3rem !important;     /* 48px */
+    font-size: 3.75rem !important;   /* 60px */
     line-height: 1;
 }
 
@@ -146,44 +146,44 @@
     font-size: inherit !important;
 }
 
-/* SPECIFIC OVERRIDES FOR PROBLEMATIC AREAS */
+/* SPECIFIC OVERRIDES FOR CONSISTENCY */
 /* Modal headers */
 .club-manager-app [class*="modal"] h3,
 .club-manager-app [class*="modal"] h2 {
-    font-size: 0.875rem !important; /* 14px */
+    font-size: 1.125rem !important; /* 18px */
 }
 
 /* Tab headers */
 .club-manager-app .tab-content h3,
 .club-manager-app .tab-content h2 {
-    font-size: 0.875rem !important; /* 14px */
+    font-size: 1.125rem !important; /* 18px */
 }
 
 /* Section titles */
 .club-manager-app h3.text-lg,
 .club-manager-app h3.text-xl,
 .club-manager-app h3.text-2xl {
-    font-size: 0.875rem !important; /* 14px */
+    font-size: 1.125rem !important; /* 18px */
 }
 
 /* Button text */
 .club-manager-app button {
-    font-size: 0.75rem !important; /* 12px */
+    font-size: 0.875rem !important; /* 14px */
 }
 
 /* Label text */
 .club-manager-app label {
-    font-size: 0.75rem !important; /* 12px */
+    font-size: 0.875rem !important; /* 14px */
 }
 
 /* Table headers */
 .club-manager-app th {
-    font-size: 0.75rem !important; /* 12px */
+    font-size: 0.875rem !important; /* 14px */
 }
 
 /* Table cells */
 .club-manager-app td {
-    font-size: 0.75rem !important; /* 12px */
+    font-size: 0.875rem !important; /* 14px */
 }
 
 /* Fix body scroll when modals are open */
@@ -257,23 +257,10 @@ body.modal-open {
     .club-manager-app input[type="date"],
     .club-manager-app select,
     .club-manager-app textarea {
-        font-size: 14px !important; /* Smaller but still prevents iOS zoom */
+        font-size: 16px !important; /* Prevents iOS zoom on focus */
         -webkit-appearance: none !important;
         -moz-appearance: none !important;
         appearance: none !important;
-    }
-    
-    /* Force smaller fonts on mobile */
-    .club-manager-app h1,
-    .club-manager-app h2,
-    .club-manager-app h3 {
-        font-size: 0.875rem !important; /* 14px */
-    }
-    
-    .club-manager-app p,
-    .club-manager-app span,
-    .club-manager-app div {
-        font-size: 0.75rem !important; /* 12px */
     }
 }
 
@@ -794,7 +781,7 @@ body.modal-open {
     .club-manager-app input[type="date"],
     .club-manager-app select,
     .club-manager-app textarea {
-        font-size: 14px !important;
+        font-size: 16px !important;
     }
 }
 
@@ -895,113 +882,3 @@ body.modal-open {
     z-index: 9999 !important;
 }
 
-/* ============================================= */
-/* ULTIMATE FONT SIZE OVERRIDES - FORCE SMALLER */
-/* ============================================= */
-
-/* Force ALL text to be smaller - nuclear option */
-.club-manager-app * {
-    font-size: inherit !important;
-    max-font-size: 1rem !important;
-}
-
-/* Headers - maximum sizes */
-.club-manager-app h1,
-.club-manager-app .text-4xl,
-.club-manager-app .text-3xl,
-.club-manager-app .text-2xl {
-    font-size: 1rem !important; /* 16px max for largest headers */
-}
-
-.club-manager-app h2,
-.club-manager-app .text-xl {
-    font-size: 0.9375rem !important; /* 15px */
-}
-
-.club-manager-app h3,
-.club-manager-app .text-lg {
-    font-size: 0.875rem !important; /* 14px */
-}
-
-.club-manager-app h4,
-.club-manager-app .text-base {
-    font-size: 0.8125rem !important; /* 13px */
-}
-
-.club-manager-app h5,
-.club-manager-app .text-sm,
-.club-manager-app p,
-.club-manager-app span:not(.sr-only),
-.club-manager-app div,
-.club-manager-app li,
-.club-manager-app td,
-.club-manager-app th {
-    font-size: 0.75rem !important; /* 12px */
-}
-
-.club-manager-app h6,
-.club-manager-app .text-xs,
-.club-manager-app small {
-    font-size: 0.6875rem !important; /* 11px */
-}
-
-/* Buttons - consistent small size */
-.club-manager-app button,
-.club-manager-app .btn,
-.club-manager-app [type="button"],
-.club-manager-app [type="submit"] {
-    font-size: 0.75rem !important; /* 12px */
-    padding: 0.375rem 0.75rem !important;
-}
-
-/* Form elements */
-.club-manager-app input,
-.club-manager-app select,
-.club-manager-app textarea,
-.club-manager-app label {
-    font-size: 0.75rem !important; /* 12px */
-}
-
-/* Modal specific overrides */
-.club-manager-app .modal-content h1,
-.club-manager-app .modal-content h2,
-.club-manager-app .modal-content h3 {
-    font-size: 0.875rem !important; /* 14px for modal headers */
-}
-
-/* Tab navigation */
-.club-manager-app [role="tab"],
-.club-manager-app .tab-button {
-    font-size: 0.75rem !important; /* 12px */
-}
-
-/* Cards and sections */
-.club-manager-app .card-title,
-.club-manager-app .section-title {
-    font-size: 0.875rem !important; /* 14px */
-}
-
-/* Override any inline styles */
-.club-manager-app [style*="font-size"] {
-    font-size: 0.75rem !important; /* 12px */
-}
-
-/* Mobile specific - even smaller */
-@media (max-width: 768px) {
-    .club-manager-app * {
-        max-font-size: 0.875rem !important;
-    }
-    
-    .club-manager-app h1,
-    .club-manager-app h2,
-    .club-manager-app h3 {
-        font-size: 0.8125rem !important; /* 13px */
-    }
-    
-    .club-manager-app p,
-    .club-manager-app span,
-    .club-manager-app div,
-    .club-manager-app button {
-        font-size: 0.6875rem !important; /* 11px */
-    }
-}
