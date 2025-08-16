@@ -48,7 +48,7 @@
                             </label>
                             <input type="text" x-model="newTeam.name" 
                                    placeholder="Enter team name" 
-                                   class="input input-bordered w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg" 
+                                   class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg" 
                                    required />
                         </div>
                         
@@ -58,7 +58,7 @@
                             </label>
                             <input type="text" x-model="newTeam.coach" 
                                    placeholder="Enter coach name" 
-                                   class="input input-bordered w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg" 
+                                   class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg" 
                                    required />
                         </div>
                     </div>
@@ -66,10 +66,10 @@
                     <!-- Action Buttons -->
                     <div class="mt-8 flex flex-col sm:flex-row gap-3">
                         <button type="button" 
-                                class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6 order-2 sm:order-1" 
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg font-medium py-2 px-6 order-2 sm:order-1" 
                                 @click="showCreateTeamModal = false">Cancel</button>
                         <button type="submit" 
-                                class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg order-1 sm:order-2">
+                                class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg order-1 sm:order-2">
                             Create Team
                         </button>
                     </div>

@@ -115,7 +115,7 @@
                     <!-- Action Button -->
                     <div class="mt-8">
                         <button type="button" 
-                                class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6" 
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg font-medium py-2 px-6" 
                                 @click="showPlayerHistoryModal = false">Close</button>
                     </div>
                 </div>

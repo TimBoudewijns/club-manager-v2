@@ -208,7 +208,7 @@
                         
                         <div class="flex justify-between">
                             <button @click="previousImportStep" 
-                                    class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6">
+                                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg font-medium py-2 px-6">
                                 Back
                             </button>
                         </div>
@@ -238,7 +238,7 @@
                                     <div class="w-2/3">
                                         <select x-model="importMapping[field.key]" 
                                                 :required="field.required"
-                                                class="select select-bordered w-full bg-white">
+                                                class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-white">
                                             <option value="">-- Select column --</option>
                                             <template x-for="(header, index) in importFileData?.headers || []" :key="index">
                                                 <option :value="index" x-text="header"></option>
@@ -251,11 +251,11 @@
                         
                         <div class="flex justify-between">
                             <button @click="previousImportStep" 
-                                    class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6">
+                                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg font-medium py-2 px-6">
                                 Back
                             </button>
                             <button @click="nextImportStep" 
-                                    class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
+                                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
                                 Next
                             </button>
                         </div>
@@ -271,7 +271,7 @@
                             
                             <div>
                                 <label class="text-sm font-medium text-gray-700">How to handle duplicates?</label>
-                                <select x-model="importOptions.duplicateHandling" class="mt-1 select select-bordered w-full bg-white">
+                                <select x-model="importOptions.duplicateHandling" class="mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-white">
                                     <option value="skip">Skip duplicate records</option>
                                     <option value="update">Update existing records</option>
                                     <option value="create">Create new records anyway</option>
@@ -346,11 +346,11 @@
                         
                         <div class="flex justify-between">
                             <button @click="previousImportStep" 
-                                    class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6">
+                                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg font-medium py-2 px-6">
                                 Back
                             </button>
                             <button @click="startImport" 
-                                    class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
+                                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
                                 Start Import
                             </button>
                         </div>
@@ -490,7 +490,7 @@
                         
                         <div class="flex justify-center">
                             <button @click="showImportExportModal = false; resetImportWizard()" 
-                                    class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
+                                    class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
                                 Close
                             </button>
                         </div>
@@ -504,7 +504,7 @@
                     <!-- Export Type -->
                     <div>
                         <label class="text-sm font-medium text-gray-700">What would you like to export?</label>
-                        <select x-model="exportType" class="mt-1 select select-bordered w-full bg-white">
+                        <select x-model="exportType" class="mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-white">
                             <option value="teams">Teams</option>
                             <option value="players">Players</option>
                             <option value="trainers" x-show="hasPermission('can_manage_trainers')">Trainers</option>
@@ -518,7 +518,7 @@
                         <!-- Season Filter -->
                         <div>
                             <label class="text-sm font-medium text-gray-700">Season</label>
-                            <select x-model="exportFilters.season" class="mt-1 select select-bordered w-full bg-white">
+                            <select x-model="exportFilters.season" class="mt-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-white">
                                 <option value="">All seasons</option>
                                 <option value="2024-2025">2024-2025</option>
                                 <option value="2025-2026">2025-2026</option>
@@ -600,11 +600,11 @@
                     <!-- Export Button -->
                     <div class="flex justify-end space-x-4">
                         <button @click="showImportExportModal = false" 
-                                class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6">
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg font-medium py-2 px-6">
                             Cancel
                         </button>
                         <button @click="exportData" 
-                                class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
+                                class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg">
                             Export Data
                         </button>
                     </div>

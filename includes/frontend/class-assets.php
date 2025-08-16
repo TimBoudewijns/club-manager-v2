@@ -24,22 +24,11 @@ class Club_Manager_Assets {
             return;
         }
         
-        // Inline CSS for theme override
-        wp_add_inline_style('wp-block-library', $this->get_theme_override_css());
-        
-        // Enqueue DaisyUI
-        wp_enqueue_style(
-            'daisyui',
-            'https://cdn.jsdelivr.net/npm/daisyui@4.6.0/dist/full.min.css',
-            array(),
-            '4.6.0'
-        );
-        
-        // Enqueue custom CSS
+        // Enqueue custom CSS (no DaisyUI dependency)
         wp_enqueue_style(
             $this->plugin_name,
             CLUB_MANAGER_PLUGIN_URL . 'assets/css/club-manager-styles.css',
-            array('daisyui'),
+            array(),
             $this->version
         );
     }
@@ -190,51 +179,6 @@ class Club_Manager_Assets {
         }, 10, 2);
     }
     
-    /**
-     * Get theme override CSS.
-     */
-    private function get_theme_override_css() {
-        return '
-            :root {
-                --p: 25 95% 53%;
-                --pf: 27 96% 48%;
-                --pc: 0 0% 100%;
-                --s: 25 95% 53%;
-                --sf: 27 96% 48%;
-                --sc: 0 0% 100%;
-                --a: 25 95% 53%;
-                --af: 27 96% 48%;
-                --ac: 0 0% 100%;
-            }
-            
-            [data-theme="light"] {
-                --p: 25 95% 53%;
-                --pf: 27 96% 48%;
-                --pc: 0 0% 100%;
-            }
-            
-            .btn-primary {
-                background-color: #f97316 !important;
-                border-color: #f97316 !important;
-            }
-            
-            .btn-primary:hover {
-                background-color: #ea580c !important;
-                border-color: #ea580c !important;
-            }
-            
-            /* Purple theme for import/export */
-            .checkbox-purple:checked {
-                background-color: #a855f7 !important;
-                border-color: #a855f7 !important;
-            }
-            
-            .radio-purple:checked {
-                background-color: #a855f7 !important;
-                border-color: #a855f7 !important;
-            }
-        ';
-    }
     
     /**
      * Get Tailwind configuration.

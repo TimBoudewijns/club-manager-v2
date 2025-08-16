@@ -30,7 +30,7 @@
                             <span class="label-text font-semibold text-gray-700">First Name</span>
                         </label>
                         <input type="text" x-model="newPlayer.first_name" 
-                               class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl" 
+                               class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl" 
                                required />
                     </div>
                     
@@ -39,7 +39,7 @@
                             <span class="label-text font-semibold text-gray-700">Last Name</span>
                         </label>
                         <input type="text" x-model="newPlayer.last_name" 
-                               class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl" 
+                               class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl" 
                                required />
                     </div>
                     
@@ -48,7 +48,7 @@
                             <span class="label-text font-semibold text-gray-700">Birth Date</span>
                         </label>
                         <input type="date" x-model="newPlayer.birth_date" 
-                               class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl" 
+                               class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl" 
                                required />
                     </div>
                     
@@ -57,7 +57,7 @@
                             <span class="label-text font-semibold text-gray-700">Email</span>
                         </label>
                         <input type="email" x-model="newPlayer.email" 
-                               class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl" 
+                               class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl" 
                                required />
                     </div>
                     
@@ -66,7 +66,7 @@
                             <span class="label-text font-semibold text-gray-700">Position</span>
                         </label>
                         <select x-model="newPlayer.position" 
-                                class="select select-bordered w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl">
+                                class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl">
                             <option value="">Select position</option>
                             <option value="Forward">Forward</option>
                             <option value="Midfielder">Midfielder</option>
@@ -81,7 +81,7 @@
                         </label>
                         <input type="number" x-model="newPlayer.jersey_number" 
                                min="1" max="999" 
-                               class="input input-bordered w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl"
+                               class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-slate-50 border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl"
                                inputmode="numeric"
                                pattern="[0-9]*" />
                     </div>

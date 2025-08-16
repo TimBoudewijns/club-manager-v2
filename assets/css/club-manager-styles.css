@@ -264,61 +264,7 @@ body.modal-open {
     }
 }
 
-/* DFD Brand Colors Override */
-.club-manager-app {
-    --p: 25 100% 50% !important; /* DFD Orange primary */
-    --pf: 25 100% 45% !important; /* DFD Orange primary focus */
-    --pc: 0 0% 100% !important; /* White on primary */
-    --a: 229 59% 57% !important; /* DFD Blue accent */
-    --af: 229 59% 52% !important; /* DFD Blue accent focus */
-    --ac: 0 0% 100% !important; /* White on accent */
-}
 
-.club-manager-app .btn-primary {
-    background-color: var(--brand-orange) !important;
-    border-color: var(--brand-orange) !important;
-    font-weight: 600;
-    border-radius: var(--radius-lg);
-    transition: var(--transition-base);
-    box-shadow: var(--shadow-card);
-}
-
-.club-manager-app .btn-primary:hover {
-    background-color: #ea580c !important;
-    border-color: #ea580c !important;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-}
-
-.club-manager-app .btn-primary:active {
-    transform: translateY(0) scale(0.98);
-}
-
-.club-manager-app .btn-primary:focus,
-.club-manager-app .btn-primary:focus-visible {
-    background-color: var(--brand-orange) !important;
-    border-color: var(--brand-orange) !important;
-    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.3) !important;
-    outline: none !important;
-}
-
-/* Secondary Button Style - DFD Blue */
-.club-manager-app .btn-secondary {
-    background-color: transparent !important;
-    border: 1px solid var(--brand-blue) !important;
-    color: var(--brand-blue) !important;
-    font-weight: 600;
-    border-radius: var(--radius-lg);
-    transition: var(--transition-base);
-}
-
-.club-manager-app .btn-secondary:hover {
-    background-color: var(--brand-blue) !important;
-    border-color: var(--brand-blue) !important;
-    color: white !important;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-}
 
 .club-manager-app [type="checkbox"]:checked,
 .club-manager-app [type="radio"]:checked {
@@ -326,36 +272,6 @@ body.modal-open {
     border-color: var(--brand-orange) !important;
 }
 
-.club-manager-app .checkbox-orange:checked {
-    background-color: var(--brand-orange) !important;
-    border-color: var(--brand-orange) !important;
-}
-
-.club-manager-app .range-orange::-webkit-slider-thumb {
-    background-color: var(--brand-orange) !important;
-}
-
-.club-manager-app .range-orange::-moz-range-thumb {
-    background-color: var(--brand-orange) !important;
-}
-
-.club-manager-app .range-xs::-webkit-slider-thumb {
-    background-color: var(--brand-orange) !important;
-    width: 1rem;
-    height: 1rem;
-}
-
-.club-manager-app .range-xs::-moz-range-thumb {
-    background-color: var(--brand-orange) !important;
-    width: 1rem;
-    height: 1rem;
-}
-
-/* Remove DaisyUI theme colors */
-.club-manager-app * {
-    --fallback-p: 25 84% 50% !important;
-    --fallback-pc: 0 0% 100% !important;
-}
 
 /* ==================================== */
 /* FIX FOR BUTTON FOCUS STATES         */
@@ -459,7 +375,57 @@ body.modal-open {
     border-radius: 0.5rem !important;
 }
 
-/* Enhanced button transitions - DFD Style */
+/* Pure Tailwind Range Slider Styling */
+.club-manager-app input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.club-manager-app input[type="range"]::-webkit-slider-track {
+    background: #e5e7eb;
+    height: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.club-manager-app input[type="range"]::-moz-range-track {
+    background: #e5e7eb;
+    height: 0.5rem;
+    border-radius: 0.5rem;
+}
+
+.club-manager-app input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    background: #F77F00;
+    height: 1.25rem;
+    width: 1.25rem;
+    border-radius: 50%;
+    margin-top: -0.375rem;
+}
+
+.club-manager-app input[type="range"]::-moz-range-thumb {
+    border: none;
+    background: #F77F00;
+    height: 1.25rem;
+    width: 1.25rem;
+    border-radius: 50%;
+}
+
+.club-manager-app input[type="range"]:focus {
+    outline: none;
+}
+
+.club-manager-app input[type="range"]:focus::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.2);
+}
+
+.club-manager-app input[type="range"]:focus::-moz-range-thumb {
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.2);
+}
+
+/* Enhanced button transitions - Pure Tailwind Style */
 .club-manager-app button {
     transition: var(--transition-base) !important;
     font-family: 'Inter', sans-serif;
@@ -564,13 +530,6 @@ body.modal-open {
 }
 
 /* Range input styles - DFD Brand */
-.club-manager-app .range {
-    --range-shdw: var(--brand-orange);
-}
-
-.club-manager-app .range:focus {
-    outline: none;
-}
 
 /* Progress bar for category average - DFD Style */
 .category-average-bar {
@@ -591,24 +550,6 @@ body.modal-open {
 }
 
 /* DFD Badge Styles */
-.club-manager-app .badge {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 9999px;
-    padding: 0.25rem 0.75rem;
-    font-size: 0.875rem;
-    font-weight: 600;
-}
-
-.club-manager-app .badge-orange {
-    background-color: rgba(247, 127, 0, 0.1);
-    color: var(--brand-orange);
-}
-
-.club-manager-app .badge-blue {
-    background-color: rgba(65, 105, 225, 0.1);
-    color: var(--brand-blue);
-}
 
 /* Mobile-specific action button fixes */
 @media (max-width: 768px) {

@@ -83,7 +83,7 @@
                                                        @mouseleave="sliderLocked = true"
                                                        :class="{'pointer-events-none opacity-75': sliderLocked && window.innerWidth < 768}"
                                                        min="1" max="10" step="0.5"
-                                                       class="range range-xs range-orange">
+                                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-orange-500">
                                                 <div x-show="sliderLocked && window.innerWidth < 768" 
                                                      @click="sliderLocked = false"
                                                      class="absolute inset-0 flex items-center justify-center bg-gray-900 bg-opacity-10 rounded-lg">
@@ -111,11 +111,11 @@
                     <!-- Action Buttons -->
                     <div class="mt-6 md:mt-8 flex flex-col sm:flex-row gap-2">
                         <button type="button" 
-                                class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6 order-2 sm:order-1" 
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg font-medium py-2 px-6 order-2 sm:order-1" 
                                 @click="closeEvaluationModal">Cancel</button>
                         <button type="button" 
                                 @click="saveEvaluation($event)"
-                                class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg order-1 sm:order-2">
+                                class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg order-1 sm:order-2">
                             Save Evaluation
                         </button>
                     </div>

@@ -104,7 +104,7 @@
                                     <select x-model="selectedEvaluationDate" 
                                             @change="onEvaluationDateChange"
                                             x-show="availableEvaluationDates.length > 0"
-                                            class="select select-sm select-bordered bg-white border-gray-300 focus:ring-2 rounded-lg text-sm w-full sm:w-auto"
+                                            class="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white border-gray-300 focus:ring-2 rounded-lg text-sm w-full sm:w-auto"
                                             :class="modalIsClubView ? 'focus:border-blue-500 focus:ring-blue-200' : 'focus:border-orange-500 focus:ring-orange-200'">
                                         <option value="all">All Evaluations</option>
                                         <template x-for="date in availableEvaluationDates" :key="date">

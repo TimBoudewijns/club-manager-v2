@@ -35,7 +35,7 @@
                             x-model="playerSearch" 
                             @input.debounce.300ms="searchPlayers"
                             placeholder="Search by name or email..." 
-                            class="input input-bordered w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg pl-10"
+                            class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg pl-10"
                             autocomplete="off"
                             autocorrect="off"
                             autocapitalize="off"
@@ -87,7 +87,7 @@
                                 <span class="label-text font-semibold text-gray-700">Position</span>
                             </label>
                             <select x-model="existingPlayerTeamData.position" 
-                                    class="select select-bordered w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg">
+                                    class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg">
                                 <option value="">Select position</option>
                                 <option value="Forward">Forward</option>
                                 <option value="Midfielder">Midfielder</option>
@@ -102,7 +102,7 @@
                             </label>
                             <input type="number" x-model="existingPlayerTeamData.jersey_number" 
                                    min="1" max="999" 
-                                   class="input input-bordered w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg"
+                                   class="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 w-full bg-gray-50 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg"
                                    inputmode="numeric"
                                    pattern="[0-9]*" />
                         </div>
@@ -120,10 +120,10 @@
                     
                     <div class="modal-action mt-6 md:mt-8 flex flex-col sm:flex-row gap-2">
                         <button type="button" 
-                                class="btn bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg px-6 order-2 sm:order-1" 
+                                class="bg-gray-200 hover:bg-gray-300 text-gray-800 border-0 rounded-lg font-medium py-2 px-6 order-2 sm:order-1" 
                                 @click="closeAddExistingPlayerModal">Cancel</button>
                         <button type="submit" 
-                                class="btn bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg order-1 sm:order-2">
+                                class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white border-0 rounded-lg px-8 shadow-lg order-1 sm:order-2">
                             Add to Team
                         </button>
                     </div>
