@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Complete Player Development — Salient stijl</title>
+<meta content="Kwaliteitsdrills + professioneel tracken in een rustig, modern ontwerp." name="description"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: { colors: { brand2: '#4169E1' },
+          colors: {
+            brand: '#F77F00', brand2: '#4169E1'
+          },
+          fontFamily: {
+            sans: ['Inter','ui-sans-serif','system-ui','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif']
+          },
+          boxShadow: {
+            subtle: '0 1px 0 rgba(15, 23, 42, 0.06)',
+            card: '0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04)'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    html, body { scroll-behavior: smooth; }
+    .section { padding-top: 5rem; padding-bottom: 5rem; }
+    .container-salient { max-width: 72rem; margin-inline: auto; padding-inline: 1.5rem; }
+    .bg-grid { background-image: radial-gradient(rgba(15,23,42,.06) 1px, transparent 1px); background-size: 12px 12px; }
+    .bg-blob { filter: blur(60px); opacity: .55; }
+  </style>
+<style>
+      .a-fade-up { opacity: 0; transform: translateY(12px); transition: opacity .6s cubic-bezier(.2,.65,.3,1), transform .6s cubic-bezier(.2,.65,.3,1); will-change: transform, opacity; }
+      .a-inview { opacity: 1; transform: translateY(0); }
+      .btn { transition: transform .2s ease, box-shadow .2s ease; }
+      .btn:hover { transform: translateY(-2px); }
+      .btn:active { transform: translateY(0) scale(.98); }
+      .btn-secondary { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease; }
+      .btn-secondary:hover { transform: translateY(-2px); }
+      .card { transition: transform .25s ease, box-shadow .25s ease; }
+      .card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(15,23,42,.08); }
+      .step-badge { transition: transform .2s ease; }
+      .step-badge:hover { transform: scale(1.05); }
+      @keyframes arrowPulse { 0%,100% { transform: translateX(0) } 50% { transform: translateX(3px) } }
+      .arrow-right-anim { animation: arrowPulse 1.8s ease-in-out infinite; }
+      @keyframes arrowDownPulse { 0%,100% { transform: translateY(0) } 50% { transform: translateY(3px) } }
+      .arrow-down-anim { animation: arrowDownPulse 1.8s ease-in-out infinite; }
+      .li-icon { transition: transform .2s ease; }
+      li:hover .li-icon { transform: translateY(-1px); }
+    </style>
+</head>
+<body class="bg-white text-slate-900 antialiased font-sans">
+<!-- Decorative background -->
+<div class="pointer-events-none fixed inset-0 -z-10">
+<div class="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-brand/30 bg-blob"></div>
+<div class="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-orange-200/60 bg-blob"></div>
+<div class="absolute inset-0 bg-grid"></div>
+</div>
+<!-- Header -->
+<header class="sticky top-0 z-50 backdrop-blur bg-white/70 border-b border-slate-100">
+<div class="container-salient py-4 flex items-center justify-between">
+<a class="flex items-center gap-2 font-extrabold tracking-tight text-slate-900" data-animate="1" href="#top">
+<span class="inline-block h-6 w-6 rounded bg-slate-900"></span>
+<span>Player Development</span>
+</a>
+<nav class="hidden md:flex items-center gap-8 text-base text-slate-600">
+<a class="hover:text-slate-900" data-animate="1" href="#problem">Problem</a><a class="hover:text-slate-900" data-animate="1" href="#solutions">Solution</a><a class="hover:text-slate-900" data-animate="1" href="#flow">Workflow</a><a class="hover:text-slate-900" data-animate="1" href="#results">Results</a>
+</nav>
+<a class="ml-6 inline-flex items-center rounded-xl bg-brand text-white px-4 py-2 text-base font-semibold hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-brand/40 btn" data-animate="1" href="#cta">
+        Start free trial
+      </a>
+</div>
+</header>
+<!-- Hero -->
+<section class="section pt-20" id="top">
+<div class="container-salient grid gap-12 md:grid-cols-2 items-center">
+<div>
+<span class="inline-flex items-center rounded-full bg-brand/10 text-brand px-3 py-1 text-sm font-semibold">For individual coaches</span>
+<h1 class="mt-4 text-5xl md:text-6xl font-extrabold leading-tight tracking-tight" data-animate="1">Run better sessions, faster</h1>
+<p class="mt-5 text-xl md:text-xl text-slate-600 leading-relaxed" data-animate="1">Plan purposeful practices in minutes with 8,000+ drills and simple player tracking.</p>
+<div class="mt-8 flex flex-wrap gap-3">
+<a class="inline-flex items-center justify-center rounded-xl bg-brand text-white px-6 py-3 font-semibold hover:bg-black focus:outline-none focus:ring-2 focus:ring-brand/40 btn" data-animate="1" href="#cta">Start Free Trial</a>
+<a class="inline-flex items-center justify-center rounded-xl border border-brand2 text-brand2 px-6 py-3 font-semibold hover:bg-brand2 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-brand/40 btn btn-secondary" data-animate="1" href="#solutions">Explore features</a>
+</div>
+<p class="mt-6 text-base text-slate-500 leading-relaxed" data-animate="1">All devices • AI assistant • Visual progress</p>
+</div>
+<div class="relative">
+<div class="rounded-2xl border border-slate-200 shadow-card p-6 bg-white card" data-animate="1">
+<div class="text-base">
+<p class="font-semibold leading-relaxed" data-animate="1">Extensive library</p>
+<p class="text-slate-500 leading-relaxed" data-animate="1">8,000+ proven drills</p>
+</div>
+<dl class="mt-6 grid gap-3 text-base">
+<div class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+<dt class="text-slate-600">Niveaus</dt><dd class="font-semibold text-slate-900">Beginner → Elite</dd>
+</div>
+<div class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+<dt class="text-slate-600">Ages</dt><dd class="font-semibold text-slate-900">U8 → Seniors</dd>
+</div>
+<div class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+<dt class="text-slate-600">AI assistant</dt><dd class="font-semibold text-slate-900">24/7</dd>
+</div>
+<div class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
+<dt class="text-slate-600">Access</dt><dd class="font-semibold text-slate-900">Alle devices</dd>
+</div>
+</dl>
+<p class="mt-4 text-center text-sm text-slate-500 italic leading-relaxed" data-animate="1">“Professional content with clear instructions.”</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Problem -->
+<section class="section bg-slate-50 border-y border-slate-100" id="problem">
+<div class="container-salient">
+<div class="max-w-3xl">
+<h2 class="text-4xl md:text-4xl font-extrabold tracking-tight">Stop juggling tabs and guessing progress</h2>
+<p class="mt-4 text-xl text-slate-600 leading-relaxed">Build a repeatable session workflow that saves time and shows real improvement for every player.</p>
+</div>
+</div>
+</section>
+<!-- Solutions -->
+<section class="section" id="solutions">
+<div class="container-salient">
+<div class="grid gap-10 md:grid-cols-2">
+<article class="space-y-6">
+<header>
+<h3 class="text-3xl font-bold">Drill Library + Session Planner</h3>
+<p class="mt-2 text-slate-600 leading-relaxed">Find the right drills fast, then build structured sessions with timing and equipment.</p>
+</header>
+<ul class="space-y-3 text-slate-700"><li>8,000+ drills with filters by age, skill and theme</li><li>Session Planner with timing, reps and equipment</li><li>WhatsApp sharing &amp; device sync</li><li>AI assistant for quick ideas</li></ul>
+</article>
+<article class="space-y-6">
+<header>
+<h3 class="text-3xl font-bold">Player Tracking &amp; Insights</h3>
+<p class="mt-2 text-slate-600 leading-relaxed">Capture quick notes and ratings, then get clear next steps for each player.</p>
+</header>
+<ul class="space-y-3 text-slate-700"><li>Quick 1–5 ratings by skill</li><li>Notes during or after practice</li><li>Progress timeline per player</li><li>AI tips for your next session</li></ul>
+</article>
+</div>
+<!-- Cards -->
+<div class="mt-16 grid gap-6 md:grid-cols-3">
+<div class="rounded-2xl border border-slate-200 p-6 shadow-subtle bg-white card" data-animate="1"><div class="h-1 w-10 bg-brand rounded-full mb-4"></div><h4 class="text-xl font-semibold">Quality content</h4><p class="mt-2 text-base text-slate-600 leading-relaxed">Clear instructions &amp; diagrams for skills &amp; gameplay.</p></div>
+<div class="rounded-2xl border border-slate-200 p-6 shadow-subtle bg-white card" data-animate="1"><div class="h-1 w-10 bg-brand rounded-full mb-4"></div><h4 class="text-xl font-semibold">Professional management</h4><p class="mt-2 text-base text-slate-600 leading-relaxed">Teams &amp; players with profiles and seasons.</p></div>
+<div class="rounded-2xl border border-slate-200 p-6 shadow-subtle bg-white card" data-animate="1"><div class="h-1 w-10 bg-brand rounded-full mb-4"></div><h4 class="text-xl font-semibold">Smart evaluations</h4><p class="mt-2 text-base text-slate-600 leading-relaxed">AI insights and recommendations.</p></div>
+</div>
+</div>
+</section>
+<!-- Flow -->
+<section class="section bg-slate-50 border-t border-slate-100" id="flow"><div class="container-salient"><h3 class="text-4xl md:text-5xl font-extrabold tracking-tight">How it works</h3><div class="mt-10 hidden md:grid grid-cols-7 items-start gap-6"><div class="col-span-1"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">1</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Plan your session</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Pick goals &amp; drills in minutes.</p></div></div><div class="col-span-1 flex items-center justify-center"><svg class="w-8 h-8 arrow-right-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 5l7 7-7 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><div class="col-span-1"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">2</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Run the practice</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Guided flow with diagrams &amp; timings.</p></div></div><div class="col-span-1 flex items-center justify-center"><svg class="w-8 h-8 arrow-right-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 5l7 7-7 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><div class="col-span-1"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">3</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Track players</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Quick notes &amp; 1–5 ratings.</p></div></div><div class="col-span-1 flex items-center justify-center"><svg class="w-8 h-8 arrow-right-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 5l7 7-7 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><div class="col-span-1"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">4</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Get next-session tips</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">AI suggests what to focus on next.</p></div></div></div><div class="mt-8 md:hidden flex flex-col gap-4"><div class="flex flex-col gap-2"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">1</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Plan your session</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Pick goals &amp; drills in minutes.</p></div></div><svg class="w-8 h-8 mx-auto arrow-down-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 9l7 7 7-7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><div class="flex flex-col gap-2"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">2</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Run the practice</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Guided flow with diagrams &amp; timings.</p></div></div><svg class="w-8 h-8 mx-auto arrow-down-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 9l7 7 7-7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><div class="flex flex-col gap-2"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">3</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Track players</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Quick notes &amp; 1–5 ratings.</p></div></div><svg class="w-8 h-8 mx-auto arrow-down-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 9l7 7 7-7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><div class="flex flex-col gap-2"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">4</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Get next-session tips</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">AI suggests what to focus on next.</p></div></div></div></div></section>
+<!-- Results -->
+<section class="section bg-slate-50 border-t border-slate-100" id="how"><div class="container-salient"><h3 class="text-4xl md:text-5xl font-extrabold tracking-tight">How it works</h3><div class="mt-10 hidden md:grid grid-cols-7 items-start gap-6"><div class="col-span-1"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">1</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Plan your session</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Pick goals &amp; drills in minutes.</p></div></div><div class="col-span-1 flex items-center justify-center"><svg class="w-8 h-8 arrow-right-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 5l7 7-7 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><div class="col-span-1"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">2</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Run the practice</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Guided flow with diagrams &amp; timings.</p></div></div><div class="col-span-1 flex items-center justify-center"><svg class="w-8 h-8 arrow-right-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 5l7 7-7 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><div class="col-span-1"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">3</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Track players</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Quick notes &amp; 1–5 ratings.</p></div></div><div class="col-span-1 flex items-center justify-center"><svg class="w-8 h-8 arrow-right-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 5l7 7-7 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></div><div class="col-span-1"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">4</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Get next-session tips</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">AI suggests what to focus on next.</p></div></div></div><div class="mt-8 md:hidden flex flex-col gap-4"><div class="flex flex-col gap-2"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">1</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Plan your session</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Pick goals &amp; drills in minutes.</p></div></div><svg class="w-8 h-8 mx-auto arrow-down-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 9l7 7 7-7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><div class="flex flex-col gap-2"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">2</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Run the practice</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Guided flow with diagrams &amp; timings.</p></div></div><svg class="w-8 h-8 mx-auto arrow-down-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 9l7 7 7-7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><div class="flex flex-col gap-2"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">3</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Track players</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">Quick notes &amp; 1–5 ratings.</p></div></div><svg class="w-8 h-8 mx-auto arrow-down-anim" data-animate="1" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 9l7 7 7-7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><div class="flex flex-col gap-2"><div class="flex flex-col gap-2"><div class="inline-flex h-12 w-12 md:h-14 md:w-14 items-center justify-center rounded-full border-2 border-brand2 text-brand2 text-2xl md:text-3xl font-extrabold step-badge" data-animate="1">4</div><h4 class="mt-1 font-semibold text-xl md:text-2xl" data-animate="1">Get next-session tips</h4><p class="text-base md:text-lg leading-relaxed text-slate-600" data-animate="1">AI suggests what to focus on next.</p></div></div></div></div></section><section class="section" id="results">
+<div class="container-salient">
+<h3 class="text-4xl md:text-4xl font-extrabold tracking-tight" data-animate="1">The results</h3>
+<div class="mt-10 grid gap-6 md:grid-cols-3">
+<div class="rounded-2xl border border-slate-200 p-6 bg-white shadow-subtle card" data-animate="1"><div class="h-1 w-10 bg-brand rounded-full mb-4"></div><h4 class="text-xl font-semibold" data-animate="1"><span class="inline-flex items-center gap-2"><svg class="w-5 h-5 flex-shrink-0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span>Less prep time</span></span></h4><p class="mt-2 text-base text-slate-600 leading-relaxed" data-animate="1">Plan complete sessions in 5–10 minutes.</p></div>
+<div class="rounded-2xl border border-slate-200 p-6 bg-white shadow-subtle card" data-animate="1"><div class="h-1 w-10 bg-brand rounded-full mb-4"></div><h4 class="text-xl font-semibold" data-animate="1"><span class="inline-flex items-center gap-2"><svg class="w-5 h-5 flex-shrink-0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span>Stronger, repeatable sessions</span></span></h4><p class="mt-2 text-base text-slate-600 leading-relaxed" data-animate="1">Clear structure your players understand.</p></div>
+<div class="rounded-2xl border border-slate-200 p-6 bg-white shadow-subtle card" data-animate="1"><div class="h-1 w-10 bg-brand rounded-full mb-4"></div><h4 class="text-xl font-semibold" data-animate="1"><span class="inline-flex items-center gap-2"><svg class="w-5 h-5 flex-shrink-0" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg><span>Visible player progress</span></span></h4><p class="mt-2 text-base text-slate-600 leading-relaxed" data-animate="1">Simple ratings &amp; notes turn into insights.</p></div>
+</div>
+</div>
+</section>
+<!-- CTA -->
+<section class="section pt-0"><div class="container-salient"><div class="grid items-center gap-10 md:grid-cols-2"><div class="a-fade-up" data-animate="">
+<h3 class="text-3xl md:text-4xl font-extrabold tracking-tight">Focus on coaching, not admin</h3>
+<p class="mt-3 text-base md:text-lg text-slate-600 leading-relaxed">Plan fast, run a clear practice, and track players without leaving the pitch.</p>
+<ul class="mt-4 space-y-2 text-slate-700">
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Build sessions in minutes</span></li><li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Notes &amp; quick ratings per player</span></li><li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewbox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>AI tips for your next practice</span></li>
+</ul>
+<div class="mt-5">
+<a class="inline-flex items-center rounded-xl bg-brand text-white px-5 py-3 font-semibold hover:opacity-90" href="#how">See how it works</a>
+</div>
+</div><div class="relative a-fade-up" data-animate="" style="--d:120ms">
+<img alt="Field hockey practice" class="w-full h-72 md:h-[22rem] object-cover rounded-2xl border border-slate-200 shadow-card" src="https://images.unsplash.com/photo-1531415074968-036ba1b575da?q=80&amp;w=1200&amp;auto=format&amp;fit=crop"/>
+<div class="absolute -bottom-6 -left-6 hidden md:block w-40 rounded-xl bg-white p-3 border border-slate-200 shadow-card">
+<p class="text-xs text-slate-500">Quick build</p>
+<p class="text-sm font-semibold">Session: U12 ball control</p>
+<div class="mt-1 h-1 w-16 bg-brand rounded-full"></div>
+</div>
+</div></div></div></section><section class="section bg-slate-50 border-t border-slate-100" id="cta">
+<div class="container-salient text-center">
+<h3 class="text-4xl md:text-4xl font-extrabold tracking-tight">Ready for complete player development?</h3>
+<p class="mt-4 text-xl text-slate-600 leading-relaxed">Sluit je aan bij trainers die systematisch ontwikkelen met duidelijke data.</p>
+<div class="mt-8 flex flex-wrap justify-center gap-3">
+<a class="inline-flex items-center justify-center rounded-xl bg-brand text-white px-6 py-3 font-semibold hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-brand/40 btn" data-animate="1" href="#">Start Free Trial</a>
+<a class="inline-flex items-center justify-center rounded-xl border border-brand2 text-brand2 px-6 py-3 font-semibold hover:bg-brand2 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-brand/40 btn btn-secondary" data-animate="1" href="#flow">See the flow</a>
+</div>
+<p class="mt-4 text-sm text-slate-500 leading-relaxed">No setup fees. Cancel anytime.</p>
+</div>
+</section>
+<footer class="border-t border-slate-100 py-10">
+<div class="container-salient text-base text-slate-500">© Player Development</div>
+</footer>
+<script>
+      (function(){
+        const q = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+        const all = q("[data-animate]");
+        all.forEach((el, i) => {
+          el.classList.add("a-fade-up");
+          const d = el.dataset.delay || (i * 60);
+          el.style.setProperty('--d', `${d}ms`);
+        });
+        const io = new IntersectionObserver((entries)=>{
+          entries.forEach(e => {
+            if (e.isIntersecting) {
+              e.target.classList.add("a-inview");
+              io.unobserve(e.target);
+            }
+          });
+        }, { threshold: 0.12 });
+        all.forEach(el => io.observe(el));
+      })();
+    </script>
+</body>
+</html>

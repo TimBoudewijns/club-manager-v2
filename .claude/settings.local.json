@@ -8,8 +8,11 @@
       "Bash(if [ -f \"package.json\" ])",
       "Bash(then npm run lint --if-present)",
       "Bash(else echo \"No package.json found\")",
-      "Bash(fi)"
+      "Bash(fi)",
+      "WebFetch(domain:dutch-fieldhockey-drills.com)",
+      "WebFetch(domain:www.miter.com)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

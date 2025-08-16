@@ -4,14 +4,14 @@
  */
 ?>
 <!-- Integrated Header Section -->
-<div class="bg-white rounded-t-2xl shadow-xl border border-gray-200 overflow-hidden">
+<div class="bg-white rounded-t-2xl shadow-lg border border-slate-200 overflow-hidden">
     <!-- Navigation and Season Header -->
-    <div class="bg-gradient-to-r from-gray-50 to-gray-100 py-4 border-b border-gray-200">
+    <div class="bg-gradient-to-r from-slate-50 to-slate-100 py-4 border-b border-slate-200">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-3 sm:px-4 md:px-8">
             <!-- Navigation Tabs - Desktop -->
             <div class="hidden sm:flex items-center space-x-2">
-                <button class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                        :class="activeTab === 'player-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
+                <button class="py-3 px-5 rounded-xl font-semibold text-base transition-all duration-200 focus:outline-none"
+                        :class="activeTab === 'player-management' ? 'bg-[#F77F00] text-white shadow-md' : 'text-slate-600 hover:text-[#F77F00] hover:bg-white/70'"
                         @click="activeTab = 'player-management'"
                         x-show="isTabAvailable('player-management')">
                     <span class="flex items-center space-x-2">
@@ -24,8 +24,8 @@
                 
                 <button x-show="isTabAvailable('team-management')"
                         x-cloak
-                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                        :class="activeTab === 'team-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
+                        class="py-3 px-5 rounded-xl font-semibold text-base transition-all duration-200 focus:outline-none"
+                        :class="activeTab === 'team-management' ? 'bg-[#F77F00] text-white shadow-md' : 'text-slate-600 hover:text-[#F77F00] hover:bg-white/70'"
                         @click="activeTab = 'team-management'">
                     <span class="flex items-center space-x-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,8 +37,8 @@
                 
                 <button x-show="isTabAvailable('trainer-management')"
                         x-cloak
-                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                        :class="activeTab === 'trainer-management' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
+                        class="py-3 px-5 rounded-xl font-semibold text-base transition-all duration-200 focus:outline-none"
+                        :class="activeTab === 'trainer-management' ? 'bg-[#F77F00] text-white shadow-md' : 'text-slate-600 hover:text-[#F77F00] hover:bg-white/70'"
                         @click="activeTab = 'trainer-management'">
                     <span class="flex items-center space-x-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,8 +50,8 @@
                 
                 <button x-show="isTabAvailable('import-export')"
                         x-cloak
-                        class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                        :class="activeTab === 'import-export' ? 'bg-orange-500 text-white shadow-md' : 'text-gray-600 hover:text-orange-600 hover:bg-white/70'"
+                        class="py-3 px-5 rounded-xl font-semibold text-base transition-all duration-200 focus:outline-none"
+                        :class="activeTab === 'import-export' ? 'bg-[#F77F00] text-white shadow-md' : 'text-slate-600 hover:text-[#F77F00] hover:bg-white/70'"
                         @click="activeTab = 'import-export'">
                     <span class="flex items-center space-x-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,8 +61,8 @@
                     </span>
                 </button>
                 
-                <button class="py-3 px-5 rounded-lg font-semibold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                        :class="activeTab === 'help' ? 'bg-green-500 text-white shadow-md' : 'text-gray-600 hover:text-green-600 hover:bg-white/70'"
+                <button class="py-3 px-5 rounded-xl font-semibold text-base transition-all duration-200 focus:outline-none"
+                        :class="activeTab === 'help' ? 'bg-[#4169E1] text-white shadow-md' : 'text-slate-600 hover:text-[#4169E1] hover:bg-white/70'"
                         @click="activeTab = 'help'">
                     <span class="flex items-center space-x-2">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -75,11 +75,11 @@
             
             <!-- Season Selector -->
             <div class="flex items-center space-x-3">
-                <div class="flex items-center space-x-2 text-sm text-gray-600">
-                    <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center space-x-2 text-sm text-slate-600">
+                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
-                    <span class="font-medium">Season:</span>
+                    <span class="font-semibold">Season:</span>
                 </div>
                 <div class="relative">
                     <select x-model="currentSeason" @change="changeSeason" 
@@ -90,7 +90,7 @@
                                 console.log('Forced dropdown to:', currentSeason);
                             });
                         })"
-                        class="bg-white border border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 rounded-lg px-3 py-2 pr-8 text-sm appearance-none cursor-pointer shadow-sm hover:shadow-md transition-all">
+                        class="bg-white border border-slate-200 focus:border-[#F77F00] focus:ring-2 focus:ring-orange-200 rounded-xl px-3 py-2 pr-8 text-sm font-medium appearance-none cursor-pointer shadow-sm hover:shadow-md transition-all">
                         <template x-for="(seasonData, seasonKey) in availableSeasons" :key="seasonKey">
                             <option :value="seasonKey" :selected="seasonKey === currentSeason" x-text="seasonKey"></option>
                         </template>
@@ -105,7 +105,7 @@
                 <!-- Season Management Button (alleen voor WordPress administrators) -->
                 <?php if (current_user_can('manage_options')) : ?>
                 <button @click="showSeasonManagementModal = true"
-                        class="p-2 text-gray-600 hover:text-orange-600 hover:bg-white/70 rounded-lg transition-all duration-200"
+                        class="p-2 text-slate-600 hover:text-[#F77F00] hover:bg-white/70 rounded-xl transition-all duration-200"
                         title="Manage seasons">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>

@@ -5,12 +5,12 @@
  */
 ?>
 <!-- Tabs Section -->
-<div class="bg-white rounded-xl shadow-md p-1 md:p-2 mb-8 overflow-x-auto">
+<div class="bg-white rounded-2xl shadow-lg border border-slate-200 p-1 md:p-2 mb-8 overflow-x-auto">
     <div class="flex items-center">
         <div class="flex space-x-1 md:space-x-2 min-w-fit">
             <!-- Player Management tab - Everyone gets this -->
-            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                    :class="activeTab === 'player-management' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
+            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-xl font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none"
+                    :class="activeTab === 'player-management' ? 'bg-[#F77F00] text-white shadow-md' : 'text-slate-600 hover:text-[#F77F00] hover:bg-orange-50 border border-transparent hover:border-[#F77F00]/20'"
                     @click="activeTab = 'player-management'"
                     x-show="isTabAvailable('player-management')">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">
@@ -24,8 +24,8 @@
             <!-- Team Management tab - only for owners/managers -->
             <button x-show="isTabAvailable('team-management')"
                     x-cloak
-                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                    :class="activeTab === 'team-management' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
+                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-xl font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none"
+                    :class="activeTab === 'team-management' ? 'bg-[#F77F00] text-white shadow-md' : 'text-slate-600 hover:text-[#F77F00] hover:bg-orange-50 border border-transparent hover:border-[#F77F00]/20'"
                     @click="activeTab = 'team-management'">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">
                     <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -38,8 +38,8 @@
             <!-- Trainer Management tab - only for owners/managers -->
             <button x-show="isTabAvailable('trainer-management')"
                     x-cloak
-                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                    :class="activeTab === 'trainer-management' ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg' : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'"
+                    class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-xl font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none"
+                    :class="activeTab === 'trainer-management' ? 'bg-[#F77F00] text-white shadow-md' : 'text-slate-600 hover:text-[#F77F00] hover:bg-orange-50 border border-transparent hover:border-[#F77F00]/20'"
                     @click="activeTab = 'trainer-management'">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">
                     <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,8 +50,8 @@
             </button>
             
             <!-- Help tab - Always available -->
-            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-lg font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-orange-300 focus:ring-offset-2"
-                    :class="activeTab === 'help' ? 'bg-gradient-to-r from-green-500 to-green-600 text-white shadow-lg' : 'text-gray-600 hover:text-green-600 hover:bg-green-50'"
+            <button class="flex-1 md:flex-none py-2 md:py-3 px-3 md:px-6 rounded-xl font-semibold transition-all duration-200 whitespace-nowrap text-sm md:text-base focus:outline-none"
+                    :class="activeTab === 'help' ? 'bg-[#4169E1] text-white shadow-md' : 'text-slate-600 hover:text-[#4169E1] hover:bg-blue-50 border border-transparent hover:border-[#4169E1]/20'"
                     @click="activeTab = 'help'">
                 <span class="flex items-center justify-center space-x-1 md:space-x-2">
                     <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,10 +1,34 @@
 /* Club Manager Styles */
 /* File: assets/css/club-manager-styles.css */
 
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Custom Properties - DFD Design System */
+:root {
+    /* Brand Colors */
+    --brand-orange: #F77F00;
+    --brand-blue: #4169E1;
+    
+    /* Shadows */
+    --shadow-subtle: 0 1px 0 rgba(15, 23, 42, 0.06);
+    --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04);
+    --shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.08);
+    
+    /* Border Radius */
+    --radius-lg: 0.75rem;  /* 12px - rounded-xl */
+    --radius-xl: 1rem;     /* 16px - rounded-2xl */
+    
+    /* Transitions */
+    --transition-base: all 0.2s cubic-bezier(0.2, 0.65, 0.3, 1);
+    --transition-hover: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
 .club-manager-app {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     min-height: 100vh;
     overflow-x: hidden;
+    scroll-behavior: smooth;
 }
 
 /* Fix body scroll when modals are open */
@@ -18,8 +42,8 @@ body.modal-open {
 .club-manager-app select:focus,
 .club-manager-app textarea:focus {
     outline: none;
-    border-color: #f97316;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1);
+    border-color: var(--brand-orange);
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.1);
 }
 
 /* Universal Modal Styles */
@@ -85,61 +109,89 @@ body.modal-open {
     }
 }
 
-/* Fix DaisyUI pink/rose accent colors */
+/* DFD Brand Colors Override */
 .club-manager-app {
-    --p: 25 95% 53% !important; /* Orange primary */
-    --pf: 25 95% 48% !important; /* Orange primary focus */
+    --p: 25 100% 50% !important; /* DFD Orange primary */
+    --pf: 25 100% 45% !important; /* DFD Orange primary focus */
     --pc: 0 0% 100% !important; /* White on primary */
-    --a: 25 95% 53% !important; /* Orange accent */
-    --af: 25 95% 48% !important; /* Orange accent focus */
+    --a: 229 59% 57% !important; /* DFD Blue accent */
+    --af: 229 59% 52% !important; /* DFD Blue accent focus */
     --ac: 0 0% 100% !important; /* White on accent */
 }
 
 .club-manager-app .btn-primary {
-    background-color: #f97316 !important;
-    border-color: #f97316 !important;
+    background-color: var(--brand-orange) !important;
+    border-color: var(--brand-orange) !important;
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+    transition: var(--transition-base);
+    box-shadow: var(--shadow-card);
 }
 
 .club-manager-app .btn-primary:hover {
     background-color: #ea580c !important;
     border-color: #ea580c !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
+.club-manager-app .btn-primary:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .club-manager-app .btn-primary:focus,
 .club-manager-app .btn-primary:focus-visible {
-    background-color: #f97316 !important;
-    border-color: #f97316 !important;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3) !important;
+    background-color: var(--brand-orange) !important;
+    border-color: var(--brand-orange) !important;
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.3) !important;
     outline: none !important;
+}
+
+/* Secondary Button Style - DFD Blue */
+.club-manager-app .btn-secondary {
+    background-color: transparent !important;
+    border: 1px solid var(--brand-blue) !important;
+    color: var(--brand-blue) !important;
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+    transition: var(--transition-base);
+}
+
+.club-manager-app .btn-secondary:hover {
+    background-color: var(--brand-blue) !important;
+    border-color: var(--brand-blue) !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
 }
 
 .club-manager-app [type="checkbox"]:checked,
 .club-manager-app [type="radio"]:checked {
-    background-color: #f97316 !important;
-    border-color: #f97316 !important;
+    background-color: var(--brand-orange) !important;
+    border-color: var(--brand-orange) !important;
 }
 
 .club-manager-app .checkbox-orange:checked {
-    background-color: #f97316 !important;
-    border-color: #f97316 !important;
+    background-color: var(--brand-orange) !important;
+    border-color: var(--brand-orange) !important;
 }
 
 .club-manager-app .range-orange::-webkit-slider-thumb {
-    background-color: #f97316 !important;
+    background-color: var(--brand-orange) !important;
 }
 
 .club-manager-app .range-orange::-moz-range-thumb {
-    background-color: #f97316 !important;
+    background-color: var(--brand-orange) !important;
 }
 
 .club-manager-app .range-xs::-webkit-slider-thumb {
-    background-color: #f97316 !important;
+    background-color: var(--brand-orange) !important;
     width: 1rem;
     height: 1rem;
 }
 
 .club-manager-app .range-xs::-moz-range-thumb {
-    background-color: #f97316 !important;
+    background-color: var(--brand-orange) !important;
     width: 1rem;
     height: 1rem;
 }
@@ -165,7 +217,7 @@ body.modal-open {
 .club-manager-app button[class*="bg-gradient-to-r"]:focus,
 .club-manager-app button[class*="bg-gradient-to-r"]:focus-visible {
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.2) !important;
 }
 
 /* Close/Cancel buttons focus state */
@@ -199,7 +251,7 @@ body.modal-open {
 /* Tab navigation specific styles */
 .club-manager-app button[x-show*="isTabAvailable"]:focus {
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3) !important;
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.3) !important;
 }
 
 /* All tab buttons focus styling */
@@ -208,14 +260,14 @@ body.modal-open {
 .club-manager-app button[@click*="activeTab"]:focus,
 .club-manager-app button[@click*="activeTab"]:focus-visible {
     outline: none !important;
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.3) !important;
+    box-shadow: 0 0 0 3px rgba(247, 127, 0, 0.3) !important;
     border-color: transparent !important;
 }
 
-/* Active tab should maintain its gradient colors */
+/* Active tab should maintain DFD brand gradient colors */
 .club-manager-app button.bg-orange-500:focus,
 .club-manager-app button[class*="from-orange-500"]:focus {
-    background-image: linear-gradient(to right, #f97316, #ea580c) !important;
+    background-image: linear-gradient(to right, var(--brand-orange), #ea580c) !important;
 }
 
 /* Green help button focus */
@@ -252,32 +304,35 @@ body.modal-open {
     border-radius: 0.5rem !important;
 }
 
-/* Enhanced button transitions */
+/* Enhanced button transitions - DFD Style */
 .club-manager-app button {
-    transition: all 0.2s ease !important;
+    transition: var(--transition-base) !important;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
 }
 
-/* Beautiful button hover effects */
+/* Beautiful button hover effects - DFD Style */
 .club-manager-app button:not(:disabled):hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
 }
 
 .club-manager-app button:not(:disabled):active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.98);
 }
 
-/* Enhanced shadow effects for primary buttons */
+/* Enhanced shadow effects for primary buttons - DFD Style */
 .club-manager-app button[class*="bg-gradient-to-r"] {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    box-shadow: var(--shadow-card) !important;
+    font-weight: 600;
 }
 
 .club-manager-app button[class*="bg-gradient-to-r"]:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+    box-shadow: var(--shadow-hover) !important;
 }
 
-/* Nice rounded corners for all buttons */
+/* Nice rounded corners for all buttons - DFD Style */
 .club-manager-app button {
-    border-radius: 0.5rem !important;
+    border-radius: var(--radius-lg) !important;
 }
 
 /* Icon buttons specific enhancements */
@@ -308,21 +363,35 @@ body.modal-open {
 /* END OF BUTTON FOCUS FIXES           */
 /* ==================================== */
 
-/* Player Card Styles */
+/* Player Card Styles - DFD Enhanced */
 .player-card-container {
     margin-top: 2rem;
-    animation: slideIn 0.3s ease-out;
+    animation: fadeUp 0.6s cubic-bezier(0.2, 0.65, 0.3, 1);
 }
 
-@keyframes slideIn {
+@keyframes fadeUp {
     from {
         opacity: 0;
-        transform: translateY(1rem);
+        transform: translateY(12px);
     }
     to {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* DFD Card Styles */
+.club-manager-app .card {
+    border-radius: var(--radius-xl);
+    border: 1px solid rgb(226, 232, 240);
+    background: white;
+    box-shadow: var(--shadow-card);
+    transition: var(--transition-hover);
+}
+
+.club-manager-app .card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
 }
 
 /* Evaluation History Styles */
@@ -339,16 +408,16 @@ body.modal-open {
     transform: translateX(0.25rem);
 }
 
-/* Range input styles */
+/* Range input styles - DFD Brand */
 .club-manager-app .range {
-    --range-shdw: #f97316;
+    --range-shdw: var(--brand-orange);
 }
 
 .club-manager-app .range:focus {
     outline: none;
 }
 
-/* Progress bar for category average */
+/* Progress bar for category average - DFD Style */
 .category-average-bar {
     position: relative;
     height: 0.5rem;
@@ -362,8 +431,28 @@ body.modal-open {
     left: 0;
     top: 0;
     height: 100%;
-    background-color: #f97316;
-    transition: width 0.3s ease;
+    background-color: var(--brand-orange);
+    transition: width 0.6s cubic-bezier(0.2, 0.65, 0.3, 1);
+}
+
+/* DFD Badge Styles */
+.club-manager-app .badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.club-manager-app .badge-orange {
+    background-color: rgba(247, 127, 0, 0.1);
+    color: var(--brand-orange);
+}
+
+.club-manager-app .badge-blue {
+    background-color: rgba(65, 105, 225, 0.1);
+    color: var(--brand-blue);
 }
 
 /* Mobile-specific action button fixes */
@@ -541,13 +630,17 @@ body.modal-open {
     }
 }
 
-/* Smooth transitions for team cards */
+/* Smooth transitions for team cards - DFD Style */
 .club-manager-app .team-card {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: var(--transition-hover);
+    border-radius: var(--radius-xl);
+    border: 1px solid rgb(226, 232, 240);
+    box-shadow: var(--shadow-card);
 }
 
 .club-manager-app .team-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-hover);
 }
 
 /* Loading state for team details */
