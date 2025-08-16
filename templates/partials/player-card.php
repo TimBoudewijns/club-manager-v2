@@ -17,7 +17,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-900 mb-1">Player Card</h2>
+                        <h2 class="text-lg font-semibold text-gray-900 mb-1">Player Card</h2>
                         <p class="text-gray-600" x-text="viewingPlayer?.first_name + ' ' + viewingPlayer?.last_name + ' - ' + selectedTeam?.name"></p>
                     </div>
                 </div>
@@ -39,11 +39,11 @@
                 <!-- Player Info Section -->
                 <div class="flex-1">
                     <div class="flex items-center mb-6">
-                        <div class="flex-shrink-0 h-20 w-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                        <div class="flex-shrink-0 h-20 w-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                             <span x-text="(viewingPlayer?.first_name ? viewingPlayer.first_name.charAt(0) : '') + (viewingPlayer?.last_name ? viewingPlayer.last_name.charAt(0) : '')"></span>
                         </div>
                         <div class="ml-6">
-                            <h3 class="text-2xl font-bold text-gray-900" x-text="viewingPlayer?.first_name + ' ' + viewingPlayer?.last_name"></h3>
+                            <h3 class="text-lg font-semibold text-gray-900" x-text="viewingPlayer?.first_name + ' ' + viewingPlayer?.last_name"></h3>
                             <p class="text-gray-600" x-text="selectedTeam?.name"></p>
                             <div class="flex items-center mt-2 space-x-4 text-sm">
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">

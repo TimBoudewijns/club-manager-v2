@@ -112,7 +112,7 @@ $seat_info = cm_get_available_trainer_seats();
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Trainer Management</h2>
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Trainer Management</h2>
                     <p class="text-gray-600 text-sm sm:text-base">Invite and manage trainers for your club teams</p>
                     <?php if ($seat_info !== false && $seat_info['total'] > 0): ?>
                         <div class="mt-3">
@@ -302,7 +302,7 @@ $seat_info = cm_get_available_trainer_seats();
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
                         </svg>
                     </div>
-                    <h4 class="text-2xl font-bold text-gray-900 mb-2">No trainers yet</h4>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-2">No trainers yet</h4>
                     <p class="text-gray-600 mb-6">Invite trainers to help manage your club teams.</p>
                     <button @click="showInviteTrainerModal = true" 
                             class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-3 px-8 rounded-xl shadow-lg transform transition-all duration-200 hover:scale-105">

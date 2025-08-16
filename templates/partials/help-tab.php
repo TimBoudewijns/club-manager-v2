@@ -17,7 +17,7 @@
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Help & Documentation</h2>
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Help & Documentation</h2>
                     <p class="text-gray-600 text-sm sm:text-base">Everything you need to know about using Club Manager</p>
                 </div>
             </div>
@@ -28,7 +28,7 @@
     <div class="p-6 md:p-8">
         <!-- General Help Section - Always visible -->
         <div class="mb-12">
-            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-green-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -118,7 +118,7 @@
         
         <!-- Player Management Help -->
         <div class="mb-12">
-            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-orange-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -161,7 +161,7 @@
         
         <!-- Team Management Help - Only for users with permission -->
         <div class="mb-12" x-show="hasPermission('can_manage_teams')" x-cloak>
-            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-blue-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
@@ -204,7 +204,7 @@
         
         <!-- Trainer Management Help - Only for users with permission -->
         <div class="mb-12" x-show="hasPermission('can_manage_trainers')" x-cloak>
-            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-purple-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -240,7 +240,7 @@
         
         <!-- Import/Export Help - Only for users with permission -->
         <div class="mb-12" x-show="hasPermission('can_import_export')" x-cloak>
-            <h3 class="text-lg sm:text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-indigo-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
