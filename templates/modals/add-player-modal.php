@@ -20,7 +20,7 @@
              x-transition:leave-end="opacity-0 transform scale-90"
              @click.stop>
             <div class="bg-gradient-to-r from-[#F77F00] to-orange-600 p-4 md:p-6 text-white rounded-t-2xl">
-                <h3 class="font-bold text-xl md:text-2xl tracking-tight">Add New Player</h3>
+                <h3 class="font-semibold text-lg md:text-xl tracking-tight">Add New Player</h3>
                 <p class="text-orange-100 mt-1 text-sm md:text-base">Create a new player profile for <span x-text="selectedTeam?.name"></span></p>
             </div>
             <form @submit.prevent="createPlayer($event)" class="p-4 md:p-6 max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">

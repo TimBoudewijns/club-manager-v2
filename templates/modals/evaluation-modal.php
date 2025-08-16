@@ -23,7 +23,7 @@
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-4 md:p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-bold text-xl md:text-2xl">Player Evaluation</h3>
+                        <h3 class="font-semibold text-base md:text-lg">Player Evaluation</h3>
                         <p class="text-orange-100 mt-1 text-sm md:text-base">
                             <span x-text="evaluatingPlayer?.first_name + ' ' + evaluatingPlayer?.last_name"></span> - 
                             <span x-text="selectedTeam?.name"></span>

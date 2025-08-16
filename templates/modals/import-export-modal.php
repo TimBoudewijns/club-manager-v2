@@ -25,7 +25,7 @@
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-bold text-2xl">Import/Export Data</h3>
+                        <h3 class="font-semibold text-lg">Import/Export Data</h3>
                         <p class="text-orange-100 mt-1">Bulk manage your club data</p>
                     </div>
                     <button @click="showImportExportModal = false; resetImportWizard()" 
@@ -375,19 +375,19 @@
                         <!-- Stats -->
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div class="bg-gray-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-gray-900" x-text="importProgress.processed"></p>
+                                <p class="text-lg font-semibold text-gray-900" x-text="importProgress.processed"></p>
                                 <p class="text-sm text-gray-600">Processed</p>
                             </div>
                             <div class="bg-green-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-green-600" x-text="importProgress.successful"></p>
+                                <p class="text-lg font-semibold text-green-600" x-text="importProgress.successful"></p>
                                 <p class="text-sm text-gray-600">Successful</p>
                             </div>
                             <div class="bg-red-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-red-600" x-text="importProgress.failed"></p>
+                                <p class="text-lg font-semibold text-red-600" x-text="importProgress.failed"></p>
                                 <p class="text-sm text-gray-600">Failed</p>
                             </div>
                             <div class="bg-orange-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-orange-600" x-text="importProgress.total"></p>
+                                <p class="text-lg font-semibold text-orange-600" x-text="importProgress.total"></p>
                                 <p class="text-sm text-gray-600">Total</p>
                             </div>
                         </div>
@@ -432,26 +432,26 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                                 </svg>
                             </div>
-                            <h4 class="text-2xl font-bold text-gray-900 mb-2">Import Complete!</h4>
+                            <h4 class="text-lg font-semibold text-gray-900 mb-2">Import Complete!</h4>
                             <p class="text-gray-600">Your data has been successfully imported.</p>
                         </div>
                         
                         <!-- Results Summary -->
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div class="bg-green-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-green-600" x-text="importResults.created"></p>
+                                <p class="text-lg font-semibold text-green-600" x-text="importResults.created"></p>
                                 <p class="text-sm text-gray-600">Created</p>
                             </div>
                             <div class="bg-orange-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-orange-600" x-text="importResults.updated"></p>
+                                <p class="text-lg font-semibold text-orange-600" x-text="importResults.updated"></p>
                                 <p class="text-sm text-gray-600">Updated</p>
                             </div>
                             <div class="bg-yellow-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-yellow-600" x-text="importResults.skipped"></p>
+                                <p class="text-lg font-semibold text-yellow-600" x-text="importResults.skipped"></p>
                                 <p class="text-sm text-gray-600">Skipped</p>
                             </div>
                             <div class="bg-red-50 rounded-lg p-4 text-center">
-                                <p class="text-2xl font-bold text-red-600" x-text="importResults.failed"></p>
+                                <p class="text-lg font-semibold text-red-600" x-text="importResults.failed"></p>
                                 <p class="text-sm text-gray-600">Failed</p>
                             </div>
                         </div>

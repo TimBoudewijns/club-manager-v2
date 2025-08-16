@@ -115,7 +115,7 @@
                                 </svg>
                             </div>
                             <div>
-                                <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1 tracking-tight">Player Management</h2>
+                                <h2 class="text-lg sm:text-xl font-bold text-slate-900 mb-1 tracking-tight">Player Management</h2>
                                 <p class="text-slate-600 text-sm sm:text-base">Manage players across your teams and view club roster</p>
                             </div>
                         </div>
@@ -129,7 +129,7 @@
                         <!-- Section Header -->
                         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                             <div>
-                                <h3 class="text-lg sm:text-xl font-bold text-gray-900 flex items-center">
+                                <h3 class="text-base sm:text-lg font-semibold text-gray-900 flex items-center">
                                     <span class="bg-orange-100 rounded-lg p-2 mr-3">
                                         <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
@@ -175,7 +175,7 @@
                                     </div>
                                     <div class="p-6">
                                         <div class="flex items-start justify-between mb-4">
-                                            <h4 class="text-2xl font-bold text-gray-900 group-hover:text-orange-600 transition-colors" x-text="team.name"></h4>
+                                            <h4 class="text-lg font-semibold text-gray-900 group-hover:text-orange-600 transition-colors" x-text="team.name"></h4>
                                         </div>
                                         <div class="space-y-2">
                                             <div class="flex items-center text-gray-600">
@@ -215,7 +215,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
                                 </svg>
                             </div>
-                            <h4 class="text-2xl font-bold text-gray-900 mb-2">No teams yet</h4>
+                            <h4 class="text-lg font-semibold text-gray-900 mb-2">No teams yet</h4>
                             <p class="text-gray-600 mb-6" x-show="userPermissions.is_trainer">
                                 Your club manager will assign teams to you.
                             </p>
@@ -279,7 +279,7 @@
                                     </div>
                                     <div class="p-6">
                                         <div class="flex items-start justify-between mb-4">
-                                            <h4 class="text-2xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors" x-text="team.name"></h4>
+                                            <h4 class="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors" x-text="team.name"></h4>
                                         </div>
                                         <div class="space-y-2">
                                             <div class="flex items-center text-gray-600">
@@ -319,7 +319,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
                                 </svg>
                             </div>
-                            <h4 class="text-2xl font-bold text-gray-900 mb-2">No club teams found</h4>
+                            <h4 class="text-lg font-semibold text-gray-900 mb-2">No club teams found</h4>
                             <p class="text-gray-600 mb-6">There are no other teams in your club yet.</p>
                         </div>
                     </div>

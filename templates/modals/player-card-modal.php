@@ -24,7 +24,7 @@
                  :class="modalIsClubView ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-bold text-xl md:text-2xl">Player Card</h3>
+                        <h3 class="font-semibold text-base md:text-lg">Player Card</h3>
                         <p class="mt-1" :class="modalIsClubView ? 'text-blue-100' : 'text-orange-100'" 
                            x-text="modalViewingPlayer?.first_name + ' ' + modalViewingPlayer?.last_name"></p>
                     </div>
@@ -45,7 +45,7 @@
                     <!-- Download PDF Button -->
                     <div class="flex justify-end mb-3 md:mb-4">
                         <button @click="downloadPlayerCardPDF($event, modalIsClubView, true)" 
-                                class="text-white font-bold py-2 px-3 md:px-4 rounded-lg shadow-md transform transition-all duration-200 hover:scale-105 flex items-center space-x-1 md:space-x-2 text-sm md:text-base"
+                                class="text-white font-semibold py-2 px-3 md:px-4 rounded-lg shadow-md transform transition-all duration-200 hover:scale-105 flex items-center space-x-1 md:space-x-2 text-sm md:text-base"
                                 :class="modalIsClubView ? 'bg-blue-500 hover:bg-blue-600' : 'bg-orange-500 hover:bg-orange-600'">
                             <svg class="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -59,12 +59,12 @@
                         <!-- Player Info Section -->
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4 md:mb-6">
-                                <div class="flex-shrink-0 h-16 w-16 md:h-20 md:w-20 rounded-full flex items-center justify-center text-white font-bold text-xl md:text-2xl shadow-lg mx-auto sm:mx-0"
+                                <div class="flex-shrink-0 h-16 w-16 md:h-20 md:w-20 rounded-full flex items-center justify-center text-white font-semibold text-base md:text-lg shadow-lg mx-auto sm:mx-0"
                                      :class="modalIsClubView ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-orange-400 to-orange-600'">
                                     <span x-text="(modalViewingPlayer?.first_name ? modalViewingPlayer.first_name.charAt(0) : '') + (modalViewingPlayer?.last_name ? modalViewingPlayer.last_name.charAt(0) : '')"></span>
                                 </div>
                                 <div class="text-center sm:text-left sm:ml-4 lg:ml-6">
-                                    <h3 class="text-xl md:text-2xl font-bold text-gray-900" x-text="modalViewingPlayer?.first_name + ' ' + modalViewingPlayer?.last_name"></h3>
+                                    <h3 class="text-base md:text-lg font-semibold text-gray-900" x-text="modalViewingPlayer?.first_name + ' ' + modalViewingPlayer?.last_name"></h3>
                                     <p class="text-gray-600" x-text="modalIsClubView ? selectedClubTeam?.name : selectedTeam?.name"></p>
                                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-sm">
                                         <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium"
@@ -73,7 +73,7 @@
                                         </span>
                                         <span class="inline-flex items-center justify-center">
                                             <span class="font-medium text-gray-500">Jersey #</span>
-                                            <span class="ml-1 font-bold text-gray-900" x-text="modalViewingPlayer?.jersey_number || '-'"></span>
+                                            <span class="ml-1 font-semibold text-gray-900" x-text="modalViewingPlayer?.jersey_number || '-'"></span>
                                         </span>
                                     </div>
                                 </div>
@@ -122,7 +122,7 @@
                                                     <span class="text-xs text-gray-500" x-text="new Date(eval.evaluated_at).toLocaleDateString()"></span>
                                                 </div>
                                                 <div class="flex items-center mb-2 md:mb-3">
-                                                    <span class="text-base md:text-lg font-bold" 
+                                                    <span class="text-sm md:text-base font-semibold" 
                                                           :class="modalIsClubView ? 'text-blue-600' : 'text-orange-600'" 
                                                           x-text="parseFloat(eval.score).toFixed(1)"></span>
                                                     <span class="text-xs md:text-sm text-gray-500 ml-2">/10</span>
@@ -170,7 +170,7 @@
                                 <template x-for="category in evaluationCategories" :key="category.key">
                                     <div class="flex justify-between items-center py-1 px-2 rounded hover:bg-gray-50">
                                         <span class="text-gray-600 text-xs truncate pr-2" x-text="category.name"></span>
-                                        <span class="font-bold flex-shrink-0" 
+                                        <span class="font-semibold flex-shrink-0" 
                                               :class="modalIsClubView ? 'text-blue-600' : 'text-orange-600'" 
                                               x-text="getPlayerCardCategoryAverage(category.key)"></span>
                                     </div>

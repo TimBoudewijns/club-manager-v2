@@ -20,7 +20,7 @@
              x-transition:leave-end="opacity-0 transform scale-90"
              @click.stop>
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-4 md:p-6 text-white">
-                <h3 class="font-bold text-xl md:text-2xl">Add Existing Player</h3>
+                <h3 class="font-semibold text-base md:text-lg">Add Existing Player</h3>
                 <p class="text-orange-100 mt-1 text-sm md:text-base">Search and add an existing player to <span x-text="selectedTeam?.name"></span></p>
             </div>
             <div class="p-4 md:p-6 max-h-[calc(90vh-120px)] overflow-y-auto -webkit-overflow-scrolling-touch">

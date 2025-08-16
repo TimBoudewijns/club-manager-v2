@@ -25,7 +25,7 @@
             <!-- Header -->
             <div class="p-6 border-b bg-gradient-to-r from-orange-500 to-orange-600 text-white">
                 <div class="flex items-center justify-between">
-                    <h3 class="font-bold text-xl">Season Management</h3>
+                    <h3 class="font-semibold text-base">Season Management</h3>
                     <button @click="showSeasonManagementModal = false" 
                             class="text-white hover:text-orange-200 p-1">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
