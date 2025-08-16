@@ -17,7 +17,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900 mb-1">Player Card</h2>
+                        <h2 class="text-2xl font-semibold text-gray-900 mb-1">Player Card</h2>
                         <p class="text-gray-600" x-text="viewingPlayer?.first_name + ' ' + viewingPlayer?.last_name + ' - ' + selectedTeam?.name"></p>
                     </div>
                 </div>

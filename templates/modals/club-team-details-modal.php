@@ -20,7 +20,7 @@
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-4 md:p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-base md:text-lg" x-text="selectedClubTeam?.name"></h3>
+                        <h3 class="font-semibold text-xl" x-text="selectedClubTeam?.name"></h3>
                         <p class="text-blue-100 mt-1">Club Team Roster (Read-only)</p>
                     </div>
                     <div class="flex items-center space-x-4">

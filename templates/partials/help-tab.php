@@ -17,7 +17,7 @@
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Help & Documentation</h2>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-1">Help & Documentation</h2>
                     <p class="text-gray-600 text-sm sm:text-base">Everything you need to know about using Club Manager</p>
                 </div>
             </div>
@@ -28,7 +28,7 @@
     <div class="p-6 md:p-8">
         <!-- General Help Section - Always visible -->
         <div class="mb-12">
-            <h3 class="text-sm font-semibold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-green-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -118,7 +118,7 @@
         
         <!-- Player Management Help -->
         <div class="mb-12">
-            <h3 class="text-sm font-semibold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-orange-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
@@ -161,7 +161,7 @@
         
         <!-- Team Management Help - Only for users with permission -->
         <div class="mb-12" x-show="hasPermission('can_manage_teams')" x-cloak>
-            <h3 class="text-sm font-semibold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-blue-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
@@ -204,7 +204,7 @@
         
         <!-- Trainer Management Help - Only for users with permission -->
         <div class="mb-12" x-show="hasPermission('can_manage_trainers')" x-cloak>
-            <h3 class="text-sm font-semibold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-purple-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
@@ -240,7 +240,7 @@
         
         <!-- Import/Export Help - Only for users with permission -->
         <div class="mb-12" x-show="hasPermission('can_import_export')" x-cloak>
-            <h3 class="text-sm font-semibold text-gray-900 mb-6 flex items-center">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
                 <span class="bg-indigo-100 rounded-lg p-2 mr-3">
                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"></path>
@@ -280,7 +280,7 @@
         
         <!-- Tips & Best Practices -->
         <div class="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
-            <h3 class="text-sm font-bold text-gray-900 mb-4 flex items-center">
+            <h3 class="text-lg font-bold text-gray-900 mb-4 flex items-center">
                 <svg class="w-5 h-5 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"></path>
                 </svg>

@@ -24,7 +24,7 @@
                  :class="modalIsClubView ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-base md:text-lg">Player Card</h3>
+                        <h3 class="font-semibold text-xl">Player Card</h3>
                         <p class="mt-1" :class="modalIsClubView ? 'text-blue-100' : 'text-orange-100'" 
                            x-text="modalViewingPlayer?.first_name + ' ' + modalViewingPlayer?.last_name"></p>
                     </div>
@@ -59,12 +59,12 @@
                         <!-- Player Info Section -->
                         <div class="flex-1 min-w-0">
                             <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-4 md:mb-6">
-                                <div class="flex-shrink-0 h-16 w-16 md:h-20 md:w-20 rounded-full flex items-center justify-center text-white font-semibold text-base md:text-lg shadow-lg mx-auto sm:mx-0"
+                                <div class="flex-shrink-0 h-16 w-16 md:h-20 md:w-20 rounded-full flex items-center justify-center text-white font-semibold text-xl shadow-lg mx-auto sm:mx-0"
                                      :class="modalIsClubView ? 'bg-gradient-to-br from-blue-400 to-blue-600' : 'bg-gradient-to-br from-orange-400 to-orange-600'">
                                     <span x-text="(modalViewingPlayer?.first_name ? modalViewingPlayer.first_name.charAt(0) : '') + (modalViewingPlayer?.last_name ? modalViewingPlayer.last_name.charAt(0) : '')"></span>
                                 </div>
                                 <div class="text-center sm:text-left sm:ml-4 lg:ml-6">
-                                    <h3 class="text-base md:text-lg font-semibold text-gray-900" x-text="modalViewingPlayer?.first_name + ' ' + modalViewingPlayer?.last_name"></h3>
+                                    <h3 class="text-xl font-semibold text-gray-900" x-text="modalViewingPlayer?.first_name + ' ' + modalViewingPlayer?.last_name"></h3>
                                     <p class="text-gray-600" x-text="modalIsClubView ? selectedClubTeam?.name : selectedTeam?.name"></p>
                                     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2 text-sm">
                                         <span class="inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-medium"
@@ -100,7 +100,7 @@
                             <!-- Evaluation History -->
                             <div>
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
-                                    <h4 class="text-base md:text-lg font-semibold text-gray-900">Evaluation History</h4>
+                                    <h4 class="text-xl font-semibold text-gray-900">Evaluation History</h4>
                                     <select x-model="selectedEvaluationDate" 
                                             @change="onEvaluationDateChange"
                                             x-show="availableEvaluationDates.length > 0"
@@ -154,7 +154,7 @@
                         <!-- Spider Chart Section -->
                         <div class="flex-1 bg-white rounded-xl p-4 md:p-6 shadow-lg min-w-0">
                             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3 md:mb-4">
-                                <h4 class="text-base md:text-lg font-semibold text-gray-900">Performance Overview</h4>
+                                <h4 class="text-xl font-semibold text-gray-900">Performance Overview</h4>
                                 <span x-show="selectedEvaluationDate !== 'all'" 
                                       class="text-xs md:text-sm font-medium"
                                       :class="modalIsClubView ? 'text-blue-600' : 'text-orange-600'">
@@ -181,7 +181,7 @@
                     
                     <!-- AI Coaching Advice - Full Width -->
                     <div class="mt-6 md:mt-8">
-                        <h4 class="text-base md:text-lg font-semibold text-gray-900 mb-3">AI Coaching Advice</h4>
+                        <h4 class="text-xl font-semibold text-gray-900 mb-3">AI Coaching Advice</h4>
                         <div class="bg-white rounded-lg p-4 md:p-6 shadow-sm">
                             <!-- No evaluations state -->
                             <div x-show="adviceStatus === 'no_evaluations' && !playerAdvice" class="text-center py-8">

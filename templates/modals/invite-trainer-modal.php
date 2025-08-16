@@ -23,7 +23,7 @@
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-base">Invite Trainer</h3>
+                        <h3 class="font-semibold text-xl">Invite Trainer</h3>
                         <p class="text-orange-100 mt-1">Send an invitation to a trainer to join your club</p>
                     </div>
                     <button @click="showInviteTrainerModal = false" 

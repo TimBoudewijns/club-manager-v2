@@ -147,23 +147,24 @@
 }
 
 /* SPECIFIC OVERRIDES FOR CONSISTENCY */
-/* Modal headers */
-.club-manager-app [class*="modal"] h3,
-.club-manager-app [class*="modal"] h2 {
-    font-size: 1.125rem !important; /* 18px */
+/* Page headers - larger for better hierarchy */
+.club-manager-app h2.text-2xl {
+    font-size: 1.5rem !important; /* 24px - Main page headers */
 }
 
-/* Tab headers */
-.club-manager-app .tab-content h3,
-.club-manager-app .tab-content h2 {
-    font-size: 1.125rem !important; /* 18px */
+/* Section headers - medium size */
+.club-manager-app h3.text-lg {
+    font-size: 1.125rem !important; /* 18px - Section headers */
 }
 
-/* Section titles */
-.club-manager-app h3.text-lg,
-.club-manager-app h3.text-xl,
-.club-manager-app h3.text-2xl {
-    font-size: 1.125rem !important; /* 18px */
+/* Modal headers - larger for prominence */
+.club-manager-app h3.text-xl {
+    font-size: 1.25rem !important; /* 20px - Modal headers */
+}
+
+/* Sub-headers - balanced size */
+.club-manager-app h4.text-lg {
+    font-size: 1.125rem !important; /* 18px - Sub-headers */
 }
 
 /* Button text */

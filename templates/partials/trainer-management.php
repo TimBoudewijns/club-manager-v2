@@ -112,7 +112,7 @@ $seat_info = cm_get_available_trainer_seats();
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Trainer Management</h2>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-1">Trainer Management</h2>
                     <p class="text-gray-600 text-sm sm:text-base">Invite and manage trainers for your club teams</p>
                     <?php if ($seat_info !== false && $seat_info['total'] > 0): ?>
                         <div class="mt-3">

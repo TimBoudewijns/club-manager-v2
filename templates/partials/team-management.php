@@ -16,7 +16,7 @@
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-1">Team Management</h2>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-1">Team Management</h2>
                     <p class="text-gray-600 text-sm sm:text-base">Create and manage teams for your club</p>
                 </div>
             </div>

@@ -25,7 +25,7 @@
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-base">Import/Export Data</h3>
+                        <h3 class="font-semibold text-xl">Import/Export Data</h3>
                         <p class="text-orange-100 mt-1">Bulk manage your club data</p>
                     </div>
                     <button @click="showImportExportModal = false; resetImportWizard()" 

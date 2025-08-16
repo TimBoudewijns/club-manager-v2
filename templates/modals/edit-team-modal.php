@@ -23,7 +23,7 @@
             <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-base">Edit Team</h3>
+                        <h3 class="font-semibold text-xl">Edit Team</h3>
                         <p class="text-orange-100 mt-1">Update team information</p>
                     </div>
                     <button @click="showEditTeamModal = false" 

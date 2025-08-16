@@ -24,7 +24,7 @@
                  :class="(historyPlayer && historyPlayer.isClubView) ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 'bg-gradient-to-r from-orange-500 to-orange-600'">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="font-semibold text-base md:text-lg">Player History</h3>
+                        <h3 class="font-semibold text-xl">Player History</h3>
                         <p class="mt-1 text-sm md:text-base" 
                            :class="(historyPlayer && historyPlayer.isClubView) ? 'text-blue-100' : 'text-orange-100'" 
                            x-show="historyPlayer">
