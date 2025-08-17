@@ -16,7 +16,11 @@
       "Bash(done)",
       "Bash(do sed -i 's/<h3 class=\"\"text-lg font-semibold/<h3 class=\"\"text-base font-semibold/g' \"$file\")",
       "Bash(do sed -i 's/text-2xl font-semibold/text-base font-semibold/g' \"$file\")",
-      "Bash(do sed -i 's/text-xl font-bold/text-base font-bold/g' \"$file\")"
+      "Bash(do sed -i 's/text-xl font-bold/text-base font-bold/g' \"$file\")",
+      "Bash(sed:*)",
+      "Bash(start \"C:\\Users\\TimBoudewijns\\OneDrive - Troublefree Software BV\\Bureaublad\\club-manager-v2\\DFD pages\\library.html\")",
+      "Bash(powershell:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

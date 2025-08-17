@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<title>Field Hockey Platform — Frontpage</title>
+<meta content="8,000+ drills, session planner, AI assistant, and player tracking for clubs and coaches." name="description"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#F77F00',       /* primary orange */
+            brand2: '#4169E1'       /* royal blue */
+          },
+          fontFamily: {
+            sans: ['Inter','ui-sans-serif','system-ui','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif']
+          },
+          boxShadow: {
+            subtle: '0 1px 0 rgba(15, 23, 42, 0.06)',
+            card: '0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 1px rgba(15, 23, 42, 0.04)'
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    html, body { scroll-behavior: smooth; }
+    .section { padding-top: 5rem; padding-bottom: 5rem; }
+    .container-salient { max-width: 72rem; margin-inline: auto; padding-inline: 1.5rem; }
+    .bg-grid { background-image: radial-gradient(rgba(15,23,42,.06) 1px, transparent 1px); background-size: 12px 12px; }
+    .bg-blob { filter: blur(60px); opacity: .55; }
+    /* Micro-animations */
+    .a-fade-up { opacity: 0; transform: translateY(12px); transition: opacity .6s cubic-bezier(.2,.65,.3,1), transform .6s cubic-bezier(.2,.65,.3,1); will-change: transform, opacity; }
+    .a-inview { opacity: 1; transform: translateY(0); }
+    .btn { transition: transform .2s ease, box-shadow .2s ease; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: translateY(0) scale(.98); }
+    .btn-secondary { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease, color .2s ease, border-color .2s ease; }
+    .btn-secondary:hover { transform: translateY(-2px); }
+    .card { transition: transform .25s ease, box-shadow .25s ease; }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(15,23,42,.08); }
+    .li-icon { transition: transform .2s ease; }
+    li:hover .li-icon { transform: translateY(-1px); }
+  </style>
+</head>
+<body class="bg-white text-slate-900 antialiased font-sans">
+<!-- Decorative background -->
+<div class="pointer-events-none fixed inset-0 -z-10">
+<div class="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-brand/30 bg-blob"></div>
+<div class="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-orange-200/60 bg-blob"></div>
+<div class="absolute inset-0 bg-grid"></div>
+</div>
+<!-- Hero -->
+<section class="section pt-16 bg-slate-50 border-b border-slate-100" id="top">
+<div class="container-salient grid md:grid-cols-2 gap-10 items-center">
+<div>
+<h1 class="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight a-fade-up" data-animate="">Master the Field: Elevate Your Game.</h1>
+<p class="mt-4 text-xl text-slate-600 leading-relaxed a-fade-up" data-animate="" style="--d:60ms">8,000+ drills, a fast session planner, AI ideas, and simple player tracking — for clubs and individual trainers.</p>
+<div class="mt-6 flex flex-wrap gap-3 a-fade-up" data-animate="" style="--d:120ms">
+<a class="inline-flex items-center justify-center rounded-xl bg-brand text-white px-6 py-3 font-semibold hover:opacity-90 btn" href="promotion-combined-story-TRAINER-HOWFIX-ANIM.html">For Trainers</a>
+<a class="inline-flex items-center justify-center rounded-xl border border-brand2 text-brand2 px-6 py-3 font-semibold hover:bg-brand2 hover:text-white" href="promotion-clubs-story-salient-dual-en-icons-bigfonts-steps-arrows-results-HOWFIX-ANIM.html">For Clubs</a>
+</div>
+<p class="mt-3 text-sm text-slate-500 a-fade-up" data-animate="" style="--d:180ms">Share sessions • Works on all devices • WhatsApp ready</p>
+</div>
+<div class="relative a-fade-up" data-animate="">
+<img alt="Field hockey practice" class="w-full h-72 md:h-[22rem] object-cover rounded-2xl border border-slate-200 shadow-card" src="https://dutch-fieldhockey-drills.com/wp-content/uploads/2024/11/coach-tablet1.jpg?q=80&amp;w=1200&amp;auto=format&amp;fit=crop"/>
+<div class="absolute -bottom-6 -left-6 hidden md:block w-40 rounded-xl bg-white p-3 border border-slate-200 shadow-card">
+<p class="text-sm font-semibold">Master your practice as a trainer</p>
+<div class="mt-1 h-1 w-16 bg-brand rounded-full"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Features / USPs -->
+
+<section class="section" id="features">
+  <div class="container-salient">
+    <div class="grid gap-6 md:grid-cols-3 lg:grid-cols-3">
+      <!-- 8000+ Drills -->
+      <div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="">
+        <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+        <h4 class="text-xl font-semibold">8,000+ Drills</h4>
+        <p class="mt-2 leading-relaxed text-slate-600">Filter by age, skill, and theme. Clear diagrams and instructions.</p>
+      </div>
+      <!-- Drill Designer -->
+      <div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="" style="--d:60ms">
+        <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+        <h4 class="text-xl font-semibold">Drill Designer</h4>
+        <p class="mt-2 leading-relaxed text-slate-600">Create and edit your own drills with simple tools.</p>
+      </div>
+      <!-- Session Plans -->
+      <div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="" style="--d:120ms">
+        <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+        <h4 class="text-xl font-semibold">Session Plans</h4>
+        <p class="mt-2 leading-relaxed text-slate-600">Build structured practices with timing, reps, and coaching points.</p>
+      </div>
+      <!-- WhatsApp Sharing -->
+      <div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="" style="--d:180ms">
+        <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+        <h4 class="text-xl font-semibold">WhatsApp Sharing</h4>
+        <p class="mt-2 leading-relaxed text-slate-600">Share sessions and drills instantly with your staff or players.</p>
+      </div>
+      <!-- Save Your Favorites -->
+      <div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="" style="--d:240ms">
+        <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+        <h4 class="text-xl font-semibold">Save Your Favorites</h4>
+        <p class="mt-2 leading-relaxed text-slate-600">Bookmark drills and sessions for quick access later.</p>
+      </div>
+      <!-- AI Companion -->
+      <div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="" style="--d:300ms">
+        <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+        <h4 class="text-xl font-semibold">AI Companion</h4>
+        <p class="mt-2 leading-relaxed text-slate-600">Get quick ideas, alternates, and focus suggestions for next time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Choose audience -->
+<section class="section bg-slate-50 border-y border-slate-100" id="choose">
+<div class="container-salient">
+<h3 class="text-4xl md:text-5xl font-extrabold tracking-tight a-fade-up" data-animate="">Choose your path</h3>
+<div class="mt-10 grid gap-6 md:grid-cols-2">
+<div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="">
+<span class="inline-flex items-center rounded-full bg-brand/10 text-brand px-3 py-1 text-sm font-semibold">For Clubs</span>
+<h4 class="mt-3 text-2xl font-semibold">Standardize training across your club</h4>
+<p class="mt-2 text-slate-600 leading-relaxed">Uniform drills, shared resources, centralized player tracking, and club-wide insights.</p>
+<a class="mt-4 inline-flex items-center rounded-xl bg-brand text-white px-5 py-3 font-semibold hover:opacity-90 btn" href="promotion-clubs-story-salient-dual-en-icons-bigfonts-steps-arrows-results-HOWFIX-ANIM.html">Explore Clubs</a>
+</div>
+<div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="" style="--d:100ms">
+<span class="inline-flex items-center rounded-full bg-brand2/10 text-brand2 px-3 py-1 text-sm font-semibold">For Trainers</span>
+<h4 class="mt-3 text-2xl font-semibold">Run better sessions, faster</h4>
+<p class="mt-2 text-slate-600 leading-relaxed">Plan, train, and track players in one simple flow — on any device.</p>
+<a class="mt-4 inline-flex items-center rounded-xl border border-brand2 text-brand2 px-5 py-3 font-semibold hover:bg-brand2 hover:text-white btn-secondary" href="promotion-combined-story-TRAINER-HOWFIX-ANIM.html">Explore Trainers</a>
+</div>
+</div>
+</div>
+</section>
+<!-- Pricing -->
+
+<section class="section" id="pricing">
+<div class="container-salient">
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div>
+      <h3 class="text-4xl md:text-5xl font-extrabold tracking-tight a-fade-up" data-animate="">Simple pricing</h3>
+      <p class="mt-2 text-slate-600 leading-relaxed a-fade-up" data-animate="" style="--d:80ms">Everyone gets the same features — choose how you pay. Yearly saves money and is the most popular.</p>
+    </div>
+  </div>
+
+  <div class="mt-10 grid gap-6 md:grid-cols-3">
+    <!-- Monthly -->
+    <div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="">
+      <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+      <h4 class="text-xl font-semibold">Monthly</h4>
+      <div class="mt-4 flex items-end gap-1">
+        <span class="text-4xl font-extrabold text-slate-900">€5</span>
+        <span class="mb-1 text-slate-500">/month</span>
+      </div>
+      <ul class="mt-4 space-y-2 text-slate-700">
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>8,000+ Drills</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Drill Designer</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Session Plans</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>WhatsApp Sharing</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Save Your Favorites</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>AI Companion</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Add teams & players</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Create player evaluations/ratings</span></li>
+</ul>
+      <a class="mt-6 inline-flex items-center rounded-xl bg-brand text-white px-5 py-3 font-semibold hover:opacity-90 btn w-full justify-center" href="#cta">Start Monthly</a>
+    </div>
+
+    <!-- Yearly (Most Popular) -->
+    <div class="relative rounded-2xl border-2 border-brand p-6 bg-white card a-fade-up" data-animate="" style="--d:80ms">
+      <span class="absolute -top-3 right-4 inline-flex items-center rounded-full bg-brand text-white px-3 py-1 text-xs font-semibold shadow-sm">Most popular</span>
+      <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+      <h4 class="text-xl font-semibold">Yearly</h4>
+      <div class="mt-4 flex items-end gap-1">
+        <span class="text-4xl font-extrabold text-slate-900">€50</span>
+        <span class="mb-1 text-slate-500">/year (≈€4.17/month)</span>
+      </div>
+<p class="mt-2 text-sm text-brand font-semibold">You save €10 compared to paying monthly</p>
+      <ul class="mt-4 space-y-2 text-slate-700">
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>8,000+ Drills</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Drill Designer</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Session Plans</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>WhatsApp Sharing</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Save Your Favorites</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>AI Companion</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Add teams & players</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Create player evaluations/ratings</span></li>
+</ul>
+      <a class="mt-6 inline-flex items-center rounded-xl bg-brand text-white px-5 py-3 font-semibold hover:opacity-90 btn w-full justify-center" href="#cta">Start Yearly</a>
+    </div>
+
+    <!-- Club -->
+    <div class="rounded-2xl border border-slate-200 p-6 bg-white card a-fade-up" data-animate="" style="--d:160ms">
+      <div class="h-1 w-10 bg-brand rounded-full mb-4"></div>
+      <h4 class="text-xl font-semibold">Club</h4>
+      <p class="mt-1 text-slate-600">$25 per trainer per year</p>
+      <div class="mt-4 flex items-end gap-1">
+        <span class="text-4xl font-extrabold text-slate-900">$25</span>
+      </div>
+      <ul class="mt-4 space-y-2 text-slate-700">
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>8,000+ Drills</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Drill Designer</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Session Plans</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>WhatsApp Sharing</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Save Your Favorites</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>AI Companion</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Add teams & players</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Create player evaluations/ratings</span></li>
+
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Automatically invite coaches/trainers</span></li>
+<li class="flex items-start gap-2"><svg class="w-4 h-4 flex-shrink-0 li-icon" fill="none" stroke="#4169E1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg><span>Shared standards & oversight</span></li>
+</ul>
+      <a class="mt-6 inline-flex items-center rounded-xl border border-brand2 text-brand2 px-5 py-3 font-semibold hover:bg-brand2 hover:text-white btn-secondary w-full justify-center" href="#cta">Talk to us</a>
+    </div>
+  </div>
+</div>
+</section>
+
+<!-- CTA -->
+<section class="section bg-slate-50 border-t border-slate-100" id="cta">
+<div class="container-salient text-center">
+<h3 class="text-4xl md:text-5xl font-extrabold tracking-tight a-fade-up" data-animate="">Ready to start?</h3>
+<p class="mt-4 text-lg text-slate-600 leading-relaxed a-fade-up" data-animate="" style="--d:80ms">Try it out for just $1, cancel anytime.</p>
+<div class="mt-8 flex flex-wrap justify-center gap-3 a-fade-up" data-animate="" style="--d:140ms">
+<a class="inline-flex items-center justify-center rounded-xl bg-brand text-white px-6 py-3 font-semibold hover:opacity-90 btn" href="promotion-combined-story-TRAINER-HOWFIX-ANIM.html">Start as Trainer</a>
+<a class="inline-flex items-center justify-center rounded-xl border border-brand2 text-brand2 px-6 py-3 font-semibold hover:bg-brand2 hover:text-white btn-secondary" href="promotion-clubs-story-salient-dual-en-icons-bigfonts-steps-arrows-results-HOWFIX-ANIM.html">Start as Club</a>
+</div>
+</div>
+</section>
+<!-- Reveal on scroll -->
+<script>
+    (function(){
+      const q = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+      const all = q(".a-fade-up");
+      all.forEach((el, i) => {
+        const d = el.style.getPropertyValue('--d') || (i * 60) + 'ms';
+        el.style.transitionDelay = d;
+      });
+      const io = new IntersectionObserver((entries)=>{
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add("a-inview");
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      all.forEach(el => io.observe(el));
+
+      // Pricing toggle
+      const toggle = document.getElementById('billingToggle');
+      const dot = document.getElementById('toggleDot');
+      const monthly = document.querySelectorAll('.price-monthly');
+      const yearly = document.querySelectorAll('.price-yearly');
+      let yearlyOn = false;
+      const setState = () => {
+        yearly.forEach(el => el.classList.toggle('hidden', !yearlyOn));
+        monthly.forEach(el => el.classList.toggle('hidden', yearlyOn));
+        toggle.classList.toggle('bg-slate-200', !yearlyOn);
+        toggle.classList.toggle('bg-brand', yearlyOn);
+        dot.style.transform = yearlyOn ? 'translateX(24px)' : 'translateX(0)';
+      };
+      if (toggle) {
+        toggle.addEventListener('click', () => { yearlyOn = !yearlyOn; setState(); });
+        setState();
+      }
+    })();
+  </script>
+</body>
+</html>
