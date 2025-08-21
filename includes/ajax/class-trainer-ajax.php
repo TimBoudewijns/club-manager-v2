@@ -407,9 +407,8 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     public function get_active_trainers() {
         $user_id = $this->verify_request();
         
-        // Check if user is member of any WC Team (niet alleen owner/manager!)
-        if (!class_exists('Club_Manager_Teams_Helper') || !Club_Manager_Teams_Helper::is_team_member($user_id)) {
-            wp_send_json_error('Unauthorized access - not a team member');
+        if (!class_exists('Club_Manager_Teams_Helper') || !Club_Manager_Teams_Helper::can_view_club_teams($user_id)) {
+            wp_send_json_error('Unauthorized access');
             return;
         }
         
@@ -426,12 +425,12 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         
         $trainers = [];
         
-        // BELANGRIJK: Gebruik get_all_user_teams om ALLE teams te krijgen, niet alleen managed teams!
-        $all_user_teams = Club_Manager_Teams_Helper::get_all_user_teams($user_id);
-        error_log('Aantal WC teams waar user lid van is: ' . count($all_user_teams));
+        // Gebruik get_user_managed_teams (werkt wel) en haal dan ALLE members op
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        error_log('Aantal managed teams: ' . count($managed_teams));
         
-        if (empty($all_user_teams)) {
-            error_log('GEEN teams gevonden waar user lid van is!');
+        if (empty($managed_teams)) {
+            error_log('GEEN managed teams gevonden!');
             wp_send_json_success($trainers);
             return;
         }
@@ -439,7 +438,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         // Verzamel ALLE unieke user IDs van ALLE WC Team members
         $all_member_ids = [];
         
-        foreach ($all_user_teams as $team_info) {
+        foreach ($managed_teams as $team_info) {
             $wc_team_id = $team_info['team_id'];
             error_log('Verwerken WC Team: ' . $team_info['team_name'] . ' (ID: ' . $wc_team_id . ')');
             
