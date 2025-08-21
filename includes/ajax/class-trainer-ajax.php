@@ -419,14 +419,45 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        // First, get all trainers who have EVER been assigned to user's teams (across all seasons)
-        $all_trainer_ids = $wpdb->get_col($wpdb->prepare(
+        $all_trainer_ids = [];
+        
+        // Method 1: Get trainers assigned to teams in Club Manager
+        $team_trainer_ids = $wpdb->get_col($wpdb->prepare(
             "SELECT DISTINCT tt.trainer_id
             FROM $trainers_table tt
             INNER JOIN $teams_table t ON tt.team_id = t.id
             WHERE t.created_by = %d",
             $user_id
         ));
+        
+        if (!empty($team_trainer_ids)) {
+            $all_trainer_ids = array_merge($all_trainer_ids, $team_trainer_ids);
+        }
+        
+        // Method 2: Get ALL members from WC Teams (includes those without team assignments)
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        
+        if (!empty($managed_teams) && function_exists('wc_memberships_for_teams_get_team')) {
+            foreach ($managed_teams as $team_info) {
+                $wc_team = wc_memberships_for_teams_get_team($team_info['team_id']);
+                
+                if ($wc_team && is_object($wc_team) && method_exists($wc_team, 'get_members')) {
+                    $members = $wc_team->get_members();
+                    
+                    foreach ($members as $member) {
+                        if (method_exists($member, 'get_user_id')) {
+                            $member_id = $member->get_user_id();
+                            if (!in_array($member_id, $all_trainer_ids)) {
+                                $all_trainer_ids[] = $member_id;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Remove duplicates
+        $all_trainer_ids = array_unique($all_trainer_ids);
         
         $trainers = [];
         
