@@ -422,13 +422,21 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $all_trainer_ids = [];
         
         // Method 1: Get trainers assigned to teams in Club Manager
-        $team_trainer_ids = $wpdb->get_col($wpdb->prepare(
-            "SELECT DISTINCT tt.trainer_id
-            FROM $trainers_table tt
-            INNER JOIN $teams_table t ON tt.team_id = t.id
-            WHERE t.created_by = %d",
-            $user_id
-        ));
+        // Get ALL club member IDs first
+        $club_member_ids = $this->get_club_member_ids($user_id);
+        
+        if (!empty($club_member_ids)) {
+            $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
+            $team_trainer_ids = $wpdb->get_col($wpdb->prepare(
+                "SELECT DISTINCT tt.trainer_id
+                FROM $trainers_table tt
+                INNER JOIN $teams_table t ON tt.team_id = t.id
+                WHERE t.created_by IN ($placeholders)",
+                ...$club_member_ids
+            ));
+        } else {
+            $team_trainer_ids = [];
+        }
         
         if (!empty($team_trainer_ids)) {
             $all_trainer_ids = array_merge($all_trainer_ids, $team_trainer_ids);
@@ -480,13 +488,20 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 $trainer_id = $trainer->trainer_id;
                 
                 // Get teams for this trainer in current season only
-                $trainer_teams = $wpdb->get_results($wpdb->prepare(
-                    "SELECT t.id, t.name, tt.role, tt.is_active
-                    FROM $trainers_table tt
-                    INNER JOIN $teams_table t ON tt.team_id = t.id
-                    WHERE tt.trainer_id = %d AND t.created_by = %d AND t.season = %s",
-                    $trainer_id, $user_id, $season
-                ));
+                // Use club member IDs instead of just user_id
+                $trainer_teams = [];
+                if (!empty($club_member_ids)) {
+                    $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
+                    $query_args = array_merge([$trainer_id], $club_member_ids, [$season]);
+                    
+                    $trainer_teams = $wpdb->get_results($wpdb->prepare(
+                        "SELECT t.id, t.name, tt.role, tt.is_active
+                        FROM $trainers_table tt
+                        INNER JOIN $teams_table t ON tt.team_id = t.id
+                        WHERE tt.trainer_id = %d AND t.created_by IN ($placeholders) AND t.season = %s",
+                        ...$query_args
+                    ));
+                }
                 
                 // Get the role and active status (from current season if available, otherwise default)
                 $role = 'trainer';
@@ -1348,5 +1363,53 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         if ($cleaned_up > 0) {
             error_log("Club Manager: Cleaned up {$cleaned_up} orphaned pending assignments for user {$user_id}");
         }
+    }
+    
+    /**
+     * Get all member IDs in the user's club.
+     * Same as in class-team-ajax.php
+     */
+    private function get_club_member_ids($user_id) {
+        if (!class_exists('Club_Manager_Teams_Helper')) {
+            return [];
+        }
+        
+        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        
+        if (empty($managed_teams)) {
+            return [];
+        }
+        
+        $member_ids = [];
+        
+        // Get all members from managed teams
+        foreach ($managed_teams as $team_info) {
+            $team_id = $team_info['team_id'];
+            
+            // Try to get team members
+            if (function_exists('wc_memberships_for_teams_get_team')) {
+                $team = wc_memberships_for_teams_get_team($team_id);
+                
+                if ($team && is_object($team) && method_exists($team, 'get_members')) {
+                    $members = $team->get_members();
+                    
+                    foreach ($members as $member) {
+                        if (method_exists($member, 'get_user_id')) {
+                            $member_ids[] = $member->get_user_id();
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Remove duplicates
+        $member_ids = array_unique($member_ids);
+        
+        // Always include the current user
+        if (!in_array($user_id, $member_ids)) {
+            $member_ids[] = $user_id;
+        }
+        
+        return $member_ids;
     }
 }
