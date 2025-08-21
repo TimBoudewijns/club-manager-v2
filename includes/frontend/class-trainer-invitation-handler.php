@@ -145,9 +145,10 @@ class Club_Manager_Trainer_Invitation_Handler {
         
         // Get CM team names
         $team_names = [];
+        global $wpdb;
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        
         if ($cm_team_ids && is_array($cm_team_ids)) {
-            global $wpdb;
-            $teams_table = Club_Manager_Database::get_table_name('teams');
             foreach ($cm_team_ids as $team_id) {
                 $team_name = $wpdb->get_var($wpdb->prepare(
                     "SELECT name FROM $teams_table WHERE id = %d",
@@ -158,6 +159,9 @@ class Club_Manager_Trainer_Invitation_Handler {
                 }
             }
         }
+        
+        // Note: Old invitations without specific team assignments will only grant club membership
+        // Teams can be assigned later by the club owner
 
         // Note: Pending assignments will be processed after successful login/registration 
         
@@ -226,6 +230,12 @@ class Club_Manager_Trainer_Invitation_Handler {
                                 <li><?php echo esc_html($team_name); ?></li>
                             <?php endforeach; ?>
                         </ul>
+                    </div>
+                <?php else: ?>
+                    <div class="cm-invitation-teams">
+                        <h3>Club Membership</h3>
+                        <p>You will become a member of <strong><?php echo esc_html($invitation_data->club_name); ?></strong>.</p>
+                        <p><small>Team assignments can be configured after acceptance by the club administrator.</small></p>
                     </div>
                 <?php endif; ?>
                 
@@ -675,9 +685,10 @@ class Club_Manager_Trainer_Invitation_Handler {
         
         // Get CM team names
         $team_names = [];
+        global $wpdb;
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        
         if ($cm_team_ids && is_array($cm_team_ids)) {
-            global $wpdb;
-            $teams_table = Club_Manager_Database::get_table_name('teams');
             foreach ($cm_team_ids as $team_id) {
                 $team_name = $wpdb->get_var($wpdb->prepare(
                     "SELECT name FROM $teams_table WHERE id = %d",
@@ -688,6 +699,9 @@ class Club_Manager_Trainer_Invitation_Handler {
                 }
             }
         }
+        
+        // Note: Old invitations without specific team assignments will only grant club membership
+        // Teams can be assigned later by the club owner
         
         // Get club name from inviter's WooCommerce Team
         $club_name = get_bloginfo('name'); // Default fallback
@@ -722,6 +736,12 @@ class Club_Manager_Trainer_Invitation_Handler {
                                     <li><?php echo esc_html($team_name); ?></li>
                                 <?php endforeach; ?>
                             </ul>
+                        </div>
+                    <?php else: ?>
+                        <div style="margin: 20px 0;">
+                            <h3>Club Membership</h3>
+                            <p>You will become a member of <strong><?php echo esc_html($club_name); ?></strong>.</p>
+                            <p><small>Team assignments can be configured after acceptance by the club administrator.</small></p>
                         </div>
                     <?php endif; ?>
                     
@@ -912,11 +932,13 @@ class Club_Manager_Trainer_Invitation_Handler {
             $user_email = get_user_by('id', $user_id)->user_email;
             $this->process_pending_assignments($user_id, $user_email);
             
-            // Add to Club Manager trainer table for each selected team
+            // Add to Club Manager trainer table for each selected team (if any)
             $cm_team_ids = get_post_meta($invitation->get_id(), '_cm_team_ids', true);
             $role = get_post_meta($invitation->get_id(), '_cm_role', true) ?: 'trainer';
             $inviter_id = $invitation->get_sender_id();
             
+            // Only add to teams if explicitly specified in the invitation
+            // Old invitations without _cm_team_ids will NOT automatically assign to teams
             if ($cm_team_ids && is_array($cm_team_ids)) {
                 $teams_added = [];
                 foreach ($cm_team_ids as $cm_team_id) {

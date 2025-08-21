@@ -117,20 +117,59 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 }
             }
             
-            // 2. Get pending invitations - Fixed query
-            if (!empty($wc_team_ids)) {
-                $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
+            // 2. Get ALL pending invitations and filter them
+            // Get ALL pending invitations
+            $all_invitation_posts = $wpdb->get_results(
+                "SELECT DISTINCT p.ID, p.post_parent
+                FROM {$wpdb->posts} p
+                WHERE p.post_type = 'wc_team_invitation'
+                AND p.post_status = 'wcmti-pending'
+                ORDER BY p.post_date DESC"
+            );
+            
+            $invitation_ids = [];
+            
+            // Filter invitations to only include those belonging to this club
+            foreach ($all_invitation_posts as $inv_post) {
+                $inv_meta = get_post_meta($inv_post->ID);
+                $belongs_to_club = false;
                 
-                // Get invitations using a proper meta query
-                $invitation_ids = $wpdb->get_col($wpdb->prepare(
-                    "SELECT DISTINCT p.ID
-                    FROM {$wpdb->posts} p
-                    WHERE p.post_type = 'wc_team_invitation'
-                    AND p.post_status = 'wcmti-pending'
-                    AND p.post_parent IN ($placeholders)
-                    ORDER BY p.post_date DESC",
-                    ...$wc_team_ids
-                ));
+                // Check if post_parent is in our WC team IDs
+                if (!empty($wc_team_ids) && in_array($inv_post->post_parent, $wc_team_ids)) {
+                    $belongs_to_club = true;
+                }
+                
+                // Check if sender is the current user or in the same club
+                if (!$belongs_to_club && isset($inv_meta['_sender_id'])) {
+                    $sender_id = $inv_meta['_sender_id'][0];
+                    if ($sender_id == $user_id) {
+                        $belongs_to_club = true;
+                    } else {
+                        // Check if sender is in the same club
+                        $sender_teams = Club_Manager_Teams_Helper::get_user_managed_teams($sender_id);
+                        foreach ($sender_teams as $sender_team) {
+                            if (in_array($sender_team['team_id'], $wc_team_ids)) {
+                                $belongs_to_club = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Check if the invitation has been synced and marked for this club
+                if (!$belongs_to_club && isset($inv_meta['_cm_synced']) && isset($inv_meta['_team_id'])) {
+                    $team_id = $inv_meta['_team_id'][0];
+                    if (in_array($team_id, $wc_team_ids)) {
+                        $belongs_to_club = true;
+                    }
+                }
+                
+                if ($belongs_to_club) {
+                    $invitation_ids[] = $inv_post->ID;
+                }
+            }
+            
+            if (!empty($invitation_ids)) {
                 
                 // Now get the details for each invitation
                 foreach ($invitation_ids as $invitation_id) {
@@ -242,28 +281,63 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
             $wc_team_ids[] = $team_data['team_id'];
         }
         
-        if (!empty($wc_team_ids)) {
-            global $wpdb;
-            
-            // Get pending invitations for these teams
-            $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
-            $query_args = array_merge($wc_team_ids);
-            
-            $all_invitations = $wpdb->get_results($wpdb->prepare(
-                "SELECT p.ID, p.post_parent, p.post_status, p.post_title, p.post_name, p.post_date
-                FROM {$wpdb->posts} p
-                WHERE p.post_type = 'wc_team_invitation'
-                AND p.post_status = 'wcmti-pending'
-                AND p.post_parent IN ($placeholders)
-                ORDER BY p.post_date DESC",
-                ...$query_args
-            ));
+        global $wpdb;
+        
+        // Get ALL pending invitations, not just those with a post_parent
+        // We'll filter them later based on sender or team association
+        $all_invitations = $wpdb->get_results(
+            "SELECT p.ID, p.post_parent, p.post_status, p.post_title, p.post_name, p.post_date
+            FROM {$wpdb->posts} p
+            WHERE p.post_type = 'wc_team_invitation'
+            AND p.post_status = 'wcmti-pending'
+            ORDER BY p.post_date DESC"
+        );
+        
+        if (!empty($all_invitations)) {
             
             $teams_table = Club_Manager_Database::get_table_name('teams');
             
             foreach ($all_invitations as $inv_post) {
                 // Get ALL meta data for this invitation
                 $all_meta = get_post_meta($inv_post->ID);
+                
+                // Check if this invitation belongs to this club
+                $belongs_to_club = false;
+                
+                // Method 1: Check if post_parent is in our WC team IDs
+                if (!empty($wc_team_ids) && in_array($inv_post->post_parent, $wc_team_ids)) {
+                    $belongs_to_club = true;
+                }
+                
+                // Method 2: Check if sender is the current user or in the same club
+                if (!$belongs_to_club && isset($all_meta['_sender_id'])) {
+                    $sender_id = $all_meta['_sender_id'][0];
+                    if ($sender_id == $user_id) {
+                        $belongs_to_club = true;
+                    } else {
+                        // Check if sender is in the same club
+                        $sender_teams = Club_Manager_Teams_Helper::get_user_managed_teams($sender_id);
+                        foreach ($sender_teams as $sender_team) {
+                            if (in_array($sender_team['team_id'], $wc_team_ids)) {
+                                $belongs_to_club = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                
+                // Method 3: Check if the invitation has been synced and marked for this club
+                if (!$belongs_to_club && isset($all_meta['_cm_synced']) && isset($all_meta['_team_id'])) {
+                    $team_id = $all_meta['_team_id'][0];
+                    if (in_array($team_id, $wc_team_ids)) {
+                        $belongs_to_club = true;
+                    }
+                }
+                
+                // Skip if not belonging to this club
+                if (!$belongs_to_club) {
+                    continue;
+                }
                 
                 // Try to get email from various sources
                 $email = null;

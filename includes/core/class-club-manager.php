@@ -103,6 +103,7 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-trainer-ajax.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-import-export-ajax.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-season-ajax.php';
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ajax/class-sync-ajax.php';
         
         // AI
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/ai/class-ai-manager.php';
@@ -112,6 +113,9 @@ class Club_Manager {
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/frontend/class-shortcode.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/frontend/class-assets.php';
         require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/frontend/class-trainer-invitation-handler.php';
+        
+        // Admin
+        require_once CLUB_MANAGER_PLUGIN_DIR . 'includes/admin/class-invitation-sync.php';
         
         $this->loader = new Club_Manager_Loader();
     }
@@ -151,6 +155,7 @@ class Club_Manager {
         $trainer_ajax = new Club_Manager_Trainer_Ajax();
         $import_export_ajax = new Club_Manager_Import_Export_Ajax();
         $season_ajax = new Club_Manager_Season_Ajax();
+        $sync_ajax = new Club_Manager_Sync_Ajax();
         
         // Initialize AJAX handlers immediately
         $team_ajax->init();
@@ -161,6 +166,7 @@ class Club_Manager {
         $trainer_ajax->init();
         $import_export_ajax->init();
         $season_ajax->init();
+        $sync_ajax->init();
         
         // AI Manager
         $ai_manager = new Club_Manager_AI_Manager();
