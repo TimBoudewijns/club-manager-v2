@@ -515,24 +515,27 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         error_log("Role: " . $role);
         error_log("POST data: " . print_r($_POST, true));
         
-        if (empty($email) || empty($team_ids)) {
-            wp_send_json_error('Email and teams are required');
+        if (empty($email)) {
+            wp_send_json_error('Email is required');
             return;
         }
         
-        // Verify all selected teams are owned by the current user
-        global $wpdb;
-        $teams_table = Club_Manager_Database::get_table_name('teams');
-        $owned_teams = $wpdb->get_col($wpdb->prepare(
-            "SELECT id FROM $teams_table WHERE created_by = %d",
-            $user_id
-        ));
-        
-        foreach ($team_ids as $team_id) {
-            if (!in_array($team_id, $owned_teams)) {
-                error_log("Club Manager Debug - Unauthorized team access: User {$user_id} tried to assign team {$team_id}");
-                wp_send_json_error('Unauthorized access to one or more teams');
-                return;
+        // Teams are optional - trainer can be invited to club without specific team assignment
+        // If teams are provided, verify they are owned by the current user
+        if (!empty($team_ids)) {
+            global $wpdb;
+            $teams_table = Club_Manager_Database::get_table_name('teams');
+            $owned_teams = $wpdb->get_col($wpdb->prepare(
+                "SELECT id FROM $teams_table WHERE created_by = %d",
+                $user_id
+            ));
+            
+            foreach ($team_ids as $team_id) {
+                if (!in_array($team_id, $owned_teams)) {
+                    error_log("Club Manager Debug - Unauthorized team access: User {$user_id} tried to assign team {$team_id}");
+                    wp_send_json_error('Unauthorized access to one or more teams');
+                    return;
+                }
             }
         }
         
@@ -574,32 +577,35 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 return;
             }
             
-            // Store Club Manager specific data
-            update_post_meta($invitation->get_id(), '_cm_team_ids', $team_ids);
+            // Store Club Manager specific data (only if teams were selected)
+            if (!empty($team_ids)) {
+                update_post_meta($invitation->get_id(), '_cm_team_ids', $team_ids);
+            }
             update_post_meta($invitation->get_id(), '_cm_role', $role);
             update_post_meta($invitation->get_id(), '_cm_message', $message);
             
-            // IMPORTANT: Create pending assignments for each selected team
-            global $wpdb;
-            $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
-            
-            // Create table if it doesn't exist
-            $charset_collate = $wpdb->get_charset_collate();
-            $sql = "CREATE TABLE IF NOT EXISTS $pending_assignments_table (
-                id mediumint(9) NOT NULL AUTO_INCREMENT,
-                team_id mediumint(9) NOT NULL,
-                trainer_email varchar(255) NOT NULL,
-                assigned_by bigint(20) NOT NULL,
-                assigned_at datetime DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (id),
-                UNIQUE KEY team_email (team_id, trainer_email)
-            ) $charset_collate;";
-            
-            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-            dbDelta($sql);
-            
-            // Insert pending assignment for each team (avoid duplicates)
-            foreach ($team_ids as $team_id) {
+            // IMPORTANT: Create pending assignments for each selected team (if any)
+            if (!empty($team_ids)) {
+                global $wpdb;
+                $pending_assignments_table = Club_Manager_Database::get_table_name('pending_trainer_assignments');
+                
+                // Create table if it doesn't exist
+                $charset_collate = $wpdb->get_charset_collate();
+                $sql = "CREATE TABLE IF NOT EXISTS $pending_assignments_table (
+                    id mediumint(9) NOT NULL AUTO_INCREMENT,
+                    team_id mediumint(9) NOT NULL,
+                    trainer_email varchar(255) NOT NULL,
+                    assigned_by bigint(20) NOT NULL,
+                    assigned_at datetime DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (id),
+                    UNIQUE KEY team_email (team_id, trainer_email)
+                ) $charset_collate;";
+                
+                require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+                dbDelta($sql);
+                
+                // Insert pending assignment for each team (avoid duplicates)
+                foreach ($team_ids as $team_id) {
                 // Check if assignment already exists
                 $existing = $wpdb->get_var($wpdb->prepare(
                     "SELECT id FROM $pending_assignments_table 
@@ -623,18 +629,22 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
                 } else {
                     error_log("Club Manager Debug - Pending assignment already exists for team {$team_id}, email {$email}");
                 }
-            }
-            
-            // Get team names for email
-            $team_names = [];
-            foreach ($team_ids as $team_id) {
-                $team_name = $wpdb->get_var($wpdb->prepare(
-                    "SELECT name FROM $teams_table WHERE id = %d",
-                    $team_id
-                ));
-                if ($team_name) {
-                    $team_names[] = $team_name;
                 }
+                
+                // Get team names for email
+                $team_names = [];
+                foreach ($team_ids as $team_id) {
+                    $team_name = $wpdb->get_var($wpdb->prepare(
+                        "SELECT name FROM $teams_table WHERE id = %d",
+                        $team_id
+                    ));
+                    if ($team_name) {
+                        $team_names[] = $team_name;
+                    }
+                }
+            } else {
+                // No teams selected - just club membership
+                $team_names = [];
             }
             
             // Send custom email

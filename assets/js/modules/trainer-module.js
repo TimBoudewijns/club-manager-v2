@@ -125,10 +125,8 @@ class TrainerModule {
     }
     
     async inviteTrainer(event) {
-        if (!this.app.newTrainerInvite.selectedTeams || this.app.newTrainerInvite.selectedTeams.length === 0) {
-            console.error('Please select at least one team for the trainer');
-            return;
-        }
+        // Teams are optional - trainer can be invited to club without specific team assignment
+        // Teams can be assigned later by the club administrator
         
         const button = event?.target?.closest('button');
         this.app.setButtonLoading(button, true, 'Send Invitation');
