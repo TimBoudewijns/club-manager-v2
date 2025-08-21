@@ -61,30 +61,23 @@
                                 <option value="">Choose a trainer...</option>
                                 
                                 <!-- Active trainers section -->
-                                <template x-if="availableTrainers && availableTrainers.filter(t => t.type === 'active').length > 0">
-                                    <optgroup label="Active Trainers">
-                                        <template x-for="trainer in availableTrainers.filter(t => t.type === 'active')" :key="'active-' + trainer.id">
-                                            <option :value="trainer.id"
-                                                    :disabled="teamTrainers && teamTrainers.some(tt => tt.trainer_id == trainer.id)">
-                                                <span x-text="trainer.display_name"></span>
-                                                <span x-show="trainer.email" x-text="' (' + trainer.email + ')'"></span>
-                                                <span x-show="teamTrainers && teamTrainers.some(tt => tt.trainer_id == trainer.id)"> - Already assigned</span>
-                                            </option>
-                                        </template>
-                                    </optgroup>
-                                </template>
+                                <optgroup label="Active Trainers" x-show="availableTrainers && availableTrainers.filter(t => t.type === 'active').length > 0">
+                                    <template x-for="trainer in availableTrainers.filter(t => t.type === 'active')" :key="trainer.id ? trainer.id : 'active-unknown-' + Math.random()">
+                                        <option :value="trainer.id"
+                                                :disabled="teamTrainers && teamTrainers.some(tt => tt.trainer_id == trainer.id)"
+                                                x-text="trainer.display_name + (trainer.email ? ' (' + trainer.email + ')' : '') + (teamTrainers && teamTrainers.some(tt => tt.trainer_id == trainer.id) ? ' - Already assigned' : '')">
+                                        </option>
+                                    </template>
+                                </optgroup>
                                 
                                 <!-- Pending invitations section -->
-                                <template x-if="availableTrainers && availableTrainers.filter(t => t.type === 'pending').length > 0">
-                                    <optgroup label="Pending Invitations">
-                                        <template x-for="trainer in availableTrainers.filter(t => t.type === 'pending')" :key="'pending-' + trainer.id">
-                                            <option :value="'pending:' + trainer.email">
-                                                <span x-text="trainer.email || trainer.display_name || 'Unknown'"></span>
-                                                <span> (Invitation Pending)</span>
-                                            </option>
-                                        </template>
-                                    </optgroup>
-                                </template>
+                                <optgroup label="Pending Invitations" x-show="availableTrainers && availableTrainers.filter(t => t.type === 'pending').length > 0">
+                                    <template x-for="trainer in availableTrainers.filter(t => t.type === 'pending')" :key="trainer.id ? trainer.id : 'pending-' + trainer.email">
+                                        <option :value="'pending:' + trainer.email"
+                                                x-text="(trainer.email || trainer.display_name || 'Unknown') + ' (Invitation Pending)'">
+                                        </option>
+                                    </template>
+                                </optgroup>
                             </select>
                             
                             <!-- No trainers available message -->

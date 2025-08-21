@@ -101,6 +101,14 @@ class TeamManagementModule {
             console.log('Active trainers count:', this.app.availableTrainers.filter(t => t.type === 'active').length);
             console.log('Pending trainers count:', this.app.availableTrainers.filter(t => t.type === 'pending').length);
             
+            // Debug: Show structure of first active trainer
+            const activeTrainers = this.app.availableTrainers.filter(t => t.type === 'active');
+            if (activeTrainers.length > 0) {
+                console.log('First active trainer structure:', activeTrainers[0]);
+                console.log('First active trainer ID:', activeTrainers[0].id);
+                console.log('First active trainer ID type:', typeof activeTrainers[0].id);
+            }
+            
         } catch (error) {
             console.error('Error loading available trainers:', error);
             this.app.availableTrainers = [];
