@@ -399,79 +399,26 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         $processed_users = array();
         $processed_emails = array();
         
-        // Get club member IDs first
-        $club_member_ids = $this->get_club_member_ids($user_id);
-        
-        // 0. FIRST: Add current user (club owner/manager) as available trainer
-        $current_user = get_user_by('id', $user_id);
-        if ($current_user) {
-            $first_name = get_user_meta($user_id, 'first_name', true);
-            $last_name = get_user_meta($user_id, 'last_name', true);
-            
-            $available_trainers[] = array(
-                'id' => $user_id,
-                'display_name' => $current_user->display_name,
-                'email' => $current_user->user_email,
-                'first_name' => $first_name,
-                'last_name' => $last_name,
-                'type' => 'active'
-            );
-            
-            $processed_users[] = $user_id;
-            $processed_emails[] = strtolower($current_user->user_email);
-        }
-        
-        // 1. Then get ALL trainers from Club Manager system
-        if (!empty($club_member_ids)) {
-            $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
-            $teams_table = Club_Manager_Database::get_table_name('teams');
-            
-            $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
-            
-            // Get ALL UNIQUE trainers who have EVER been assigned to ANY team in the club
-            $existing_trainers = $wpdb->get_results($wpdb->prepare(
-                "SELECT DISTINCT u.ID, u.display_name, u.user_email as email,
-                        um1.meta_value as first_name, um2.meta_value as last_name
-                FROM {$wpdb->users} u
-                INNER JOIN $trainers_table tt ON u.ID = tt.trainer_id
-                INNER JOIN $teams_table t ON tt.team_id = t.id
-                LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
-                LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
-                WHERE t.created_by IN ($placeholders)
-                ORDER BY u.display_name",
-                ...$club_member_ids
-            ));
-            
-            foreach ($existing_trainers as $trainer) {
-                $processed_users[] = $trainer->ID;
-                $processed_emails[] = strtolower($trainer->email);
-                
-                $available_trainers[] = array(
-                    'id' => $trainer->ID,
-                    'display_name' => $trainer->display_name,
-                    'email' => $trainer->email,
-                    'first_name' => $trainer->first_name,
-                    'last_name' => $trainer->last_name,
-                    'type' => 'active'
-                );
-            }
-        }
-        
-        // 2. Get ALL club members from WC Teams and add them as available trainers
+        // FIRST: Get ALL club members from WC Teams (deze zijn ALLEMAAL beschikbaar als trainer)
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        
+        error_log('Club Manager - Starting get_available_trainers for user: ' . $user_id);
+        error_log('Club Manager - Found ' . count($managed_teams) . ' managed teams');
         
         if (!empty($managed_teams)) {
             $wc_team_ids = array_column($managed_teams, 'team_id');
             
-            // Get ALL club members from WC Teams and add as available trainers
+            // Get ALL club members from WC Teams - IEDEREEN is beschikbaar als trainer!
             foreach ($managed_teams as $team_info) {
                 $wc_team_id = $team_info['team_id'];
+                error_log('Club Manager - Processing WC Team ID: ' . $wc_team_id);
                 
                 if (function_exists('wc_memberships_for_teams_get_team')) {
                     $team = wc_memberships_for_teams_get_team($wc_team_id);
                     
                     if ($team && is_object($team) && method_exists($team, 'get_members')) {
                         $members = $team->get_members();
+                        error_log('Club Manager - Team ' . $wc_team_id . ' has ' . count($members) . ' members');
                         
                         foreach ($members as $member) {
                             if (method_exists($member, 'get_user_id')) {
@@ -482,18 +429,29 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
                                     $member_user = get_user_by('id', $member_user_id);
                                     
                                     if ($member_user) {
+                                        $first_name = get_user_meta($member_user->ID, 'first_name', true);
+                                        $last_name = get_user_meta($member_user->ID, 'last_name', true);
+                                        $display_name = trim($first_name . ' ' . $last_name);
+                                        if (empty($display_name)) {
+                                            $display_name = $member_user->display_name;
+                                        }
+                                        
+                                        error_log('Club Manager - Adding member: ' . $display_name . ' (ID: ' . $member_user->ID . ')');
+                                        
                                         $processed_users[] = $member_user_id;
                                         $processed_emails[] = strtolower($member_user->user_email);
                                         
                                         $available_trainers[] = array(
                                             'id' => $member_user->ID,
-                                            'display_name' => $member_user->display_name,
+                                            'display_name' => $display_name,
                                             'email' => $member_user->user_email,
-                                            'first_name' => get_user_meta($member_user->ID, 'first_name', true),
-                                            'last_name' => get_user_meta($member_user->ID, 'last_name', true),
+                                            'first_name' => $first_name,
+                                            'last_name' => $last_name,
                                             'type' => 'active'
                                         );
                                     }
+                                } else {
+                                    error_log('Club Manager - Skipping already processed user ID: ' . $member_user_id);
                                 }
                             }
                         }
@@ -550,15 +508,15 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         // Debug logging
-        error_log('Club Manager - Available trainers debug: ' . json_encode(array(
+        error_log('Club Manager - Final available trainers debug: ' . json_encode(array(
             'total' => count($available_trainers),
             'active' => count(array_filter($available_trainers, function($t) { return $t['type'] === 'active'; })),
             'pending' => count(array_filter($available_trainers, function($t) { return $t['type'] === 'pending'; })),
-            'first_few_trainers' => array_slice($available_trainers, 0, 3),
+            'all_trainer_names' => array_map(function($t) { return $t['display_name'] . ' (ID: ' . $t['id'] . ')'; }, $available_trainers),
             'user_id' => $user_id,
             'season' => $season,
             'managed_teams_count' => !empty($managed_teams) ? count($managed_teams) : 0,
-            'club_member_ids_count' => !empty($club_member_ids) ? count($club_member_ids) : 0
+            'processed_users' => $processed_users
         )));
         
         wp_send_json_success($available_trainers);
