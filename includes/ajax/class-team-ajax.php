@@ -381,7 +381,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Get available trainers for a season - includes both active trainers and pending invitations.
+     * Get available trainers - ALLE club members zijn beschikbaar als trainer!
      */
     public function get_available_trainers() {
         $user_id = $this->verify_request();
@@ -396,128 +396,204 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         
         global $wpdb;
         $available_trainers = array();
-        $processed_users = array();
-        $processed_emails = array();
+        $processed_user_ids = array();
         
-        // FIRST: Get ALL club members from WC Teams (deze zijn ALLEMAAL beschikbaar als trainer)
+        error_log('===== START get_available_trainers =====');
+        error_log('User ID: ' . $user_id);
+        error_log('Season: ' . $season);
+        
+        // Stap 1: Haal ALLE WC Teams op waar de user owner/manager van is
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        error_log('Aantal managed teams: ' . count($managed_teams));
         
-        error_log('Club Manager - Starting get_available_trainers for user: ' . $user_id);
-        error_log('Club Manager - Found ' . count($managed_teams) . ' managed teams');
+        if (empty($managed_teams)) {
+            error_log('WAARSCHUWING: Geen managed teams gevonden!');
+            wp_send_json_success($available_trainers);
+            return;
+        }
         
-        if (!empty($managed_teams)) {
-            $wc_team_ids = array_column($managed_teams, 'team_id');
+        // Stap 2: Loop door ALLE teams en haal ALLE members op
+        foreach ($managed_teams as $team_info) {
+            $team_id = $team_info['team_id'];
+            $team_name = $team_info['team_name'];
+            error_log('Verwerken team: ' . $team_name . ' (ID: ' . $team_id . ')');
             
-            // Get ALL club members from WC Teams - IEDEREEN is beschikbaar als trainer!
-            foreach ($managed_teams as $team_info) {
-                $wc_team_id = $team_info['team_id'];
-                error_log('Club Manager - Processing WC Team ID: ' . $wc_team_id);
-                
-                if (function_exists('wc_memberships_for_teams_get_team')) {
-                    $team = wc_memberships_for_teams_get_team($wc_team_id);
-                    
-                    if ($team && is_object($team) && method_exists($team, 'get_members')) {
-                        $members = $team->get_members();
-                        error_log('Club Manager - Team ' . $wc_team_id . ' has ' . count($members) . ' members');
-                        
-                        foreach ($members as $member) {
-                            if (method_exists($member, 'get_user_id')) {
-                                $member_user_id = $member->get_user_id();
-                                
-                                // Skip if already processed
-                                if (!in_array($member_user_id, $processed_users)) {
-                                    $member_user = get_user_by('id', $member_user_id);
-                                    
-                                    if ($member_user) {
-                                        $first_name = get_user_meta($member_user->ID, 'first_name', true);
-                                        $last_name = get_user_meta($member_user->ID, 'last_name', true);
-                                        $display_name = trim($first_name . ' ' . $last_name);
-                                        if (empty($display_name)) {
-                                            $display_name = $member_user->display_name;
-                                        }
-                                        
-                                        error_log('Club Manager - Adding member: ' . $display_name . ' (ID: ' . $member_user->ID . ')');
-                                        
-                                        $processed_users[] = $member_user_id;
-                                        $processed_emails[] = strtolower($member_user->user_email);
-                                        
-                                        $available_trainers[] = array(
-                                            'id' => $member_user->ID,
-                                            'display_name' => $display_name,
-                                            'email' => $member_user->user_email,
-                                            'first_name' => $first_name,
-                                            'last_name' => $last_name,
-                                            'type' => 'active'
-                                        );
-                                    }
-                                } else {
-                                    error_log('Club Manager - Skipping already processed user ID: ' . $member_user_id);
-                                }
-                            }
-                        }
-                    }
-                }
+            if (!function_exists('wc_memberships_for_teams_get_team')) {
+                error_log('FOUT: wc_memberships_for_teams_get_team functie bestaat niet!');
+                continue;
             }
             
-            // 3. Get pending invitations
-            if (!empty($wc_team_ids)) {
-                $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
-                
-                $invitation_ids = $wpdb->get_col($wpdb->prepare(
-                    "SELECT DISTINCT p.ID
-                    FROM {$wpdb->posts} p
-                    WHERE p.post_type = 'wc_team_invitation'
-                    AND p.post_status = 'wcmti-pending'
-                    AND p.post_parent IN ($placeholders)
-                    ORDER BY p.post_date DESC",
-                    ...$wc_team_ids
-                ));
-                
-                foreach ($invitation_ids as $invitation_id) {
-                    $meta_data = get_post_meta($invitation_id);
-                    
-                    $email = null;
-                    if (isset($meta_data['_email'][0]) && !empty($meta_data['_email'][0])) {
-                        $email = $meta_data['_email'][0];
-                    } elseif (isset($meta_data['_recipient_email'][0]) && !empty($meta_data['_recipient_email'][0])) {
-                        $email = $meta_data['_recipient_email'][0];
-                    } else {
-                        $invitation_post = get_post($invitation_id);
-                        if ($invitation_post && filter_var($invitation_post->post_title, FILTER_VALIDATE_EMAIL)) {
-                            $email = $invitation_post->post_title;
-                        }
-                    }
-                    
-                    if (empty($email) || in_array(strtolower($email), $processed_emails)) {
-                        continue;
-                    }
-                    
-                    $processed_emails[] = strtolower($email);
-                    
-                    $available_trainers[] = array(
-                        'id' => 'pending_' . $invitation_id,
-                        'display_name' => $email,
-                        'email' => $email,
-                        'first_name' => '',
-                        'last_name' => '',
-                        'type' => 'pending',
-                        'invitation_id' => $invitation_id
-                    );
+            $team = wc_memberships_for_teams_get_team($team_id);
+            if (!$team || !is_object($team)) {
+                error_log('FOUT: Kon team object niet ophalen voor ID: ' . $team_id);
+                continue;
+            }
+            
+            if (!method_exists($team, 'get_members')) {
+                error_log('FOUT: get_members method bestaat niet voor team!');
+                continue;
+            }
+            
+            $members = $team->get_members();
+            error_log('Team ' . $team_name . ' heeft ' . count($members) . ' members');
+            
+            // Loop door alle members van dit team
+            foreach ($members as $member) {
+                if (!method_exists($member, 'get_user_id')) {
+                    continue;
                 }
+                
+                $member_user_id = $member->get_user_id();
+                
+                // Check of we deze user al hebben verwerkt
+                if (in_array($member_user_id, $processed_user_ids)) {
+                    error_log('Skip duplicate user ID: ' . $member_user_id);
+                    continue;
+                }
+                
+                // Haal user data op
+                $member_user = get_user_by('id', $member_user_id);
+                if (!$member_user) {
+                    error_log('FOUT: Kon user niet vinden voor ID: ' . $member_user_id);
+                    continue;
+                }
+                
+                // Haal user meta op
+                $first_name = get_user_meta($member_user_id, 'first_name', true);
+                $last_name = get_user_meta($member_user_id, 'last_name', true);
+                
+                // Bepaal display name
+                $display_name = '';
+                if (!empty($first_name) || !empty($last_name)) {
+                    $display_name = trim($first_name . ' ' . $last_name);
+                }
+                if (empty($display_name)) {
+                    $display_name = $member_user->display_name;
+                }
+                
+                error_log('Toevoegen trainer: ' . $display_name . ' (ID: ' . $member_user_id . ', Email: ' . $member_user->user_email . ')');
+                
+                // Voeg toe aan processed lijst
+                $processed_user_ids[] = $member_user_id;
+                
+                // Voeg toe aan available trainers
+                $available_trainers[] = array(
+                    'id' => $member_user_id,
+                    'display_name' => $display_name,
+                    'email' => $member_user->user_email,
+                    'first_name' => $first_name,
+                    'last_name' => $last_name,
+                    'type' => 'active'
+                );
             }
         }
         
-        // Debug logging
-        error_log('Club Manager - Final available trainers debug: ' . json_encode(array(
-            'total' => count($available_trainers),
-            'active' => count(array_filter($available_trainers, function($t) { return $t['type'] === 'active'; })),
-            'pending' => count(array_filter($available_trainers, function($t) { return $t['type'] === 'pending'; })),
-            'all_trainer_names' => array_map(function($t) { return $t['display_name'] . ' (ID: ' . $t['id'] . ')'; }, $available_trainers),
-            'user_id' => $user_id,
-            'season' => $season,
-            'managed_teams_count' => !empty($managed_teams) ? count($managed_teams) : 0,
-            'processed_users' => $processed_users
-        )));
+        // Stap 3: Haal ook trainers op die al aan Club Manager teams zijn toegewezen
+        // Dit zijn trainers die misschien niet in WC Teams zitten maar wel al trainer zijn
+        $teams_table = Club_Manager_Database::get_table_name('teams');
+        $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
+        
+        // Haal alle club member IDs op (eigenaren van teams)
+        $club_member_ids = $this->get_club_member_ids($user_id);
+        
+        if (!empty($club_member_ids)) {
+            $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
+            
+            // Haal alle trainers op die ooit aan een team zijn toegewezen
+            $existing_trainers = $wpdb->get_results($wpdb->prepare(
+                "SELECT DISTINCT u.ID, u.display_name, u.user_email,
+                        um1.meta_value as first_name, um2.meta_value as last_name
+                FROM {$wpdb->users} u
+                INNER JOIN $trainers_table tt ON u.ID = tt.trainer_id
+                INNER JOIN $teams_table t ON tt.team_id = t.id
+                LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
+                LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
+                WHERE t.created_by IN ($placeholders)
+                ORDER BY u.display_name",
+                ...$club_member_ids
+            ));
+            
+            error_log('Gevonden trainers uit Club Manager teams: ' . count($existing_trainers));
+            
+            foreach ($existing_trainers as $trainer) {
+                // Check of we deze user al hebben
+                if (in_array($trainer->ID, $processed_user_ids)) {
+                    error_log('Skip duplicate trainer from teams: ' . $trainer->ID);
+                    continue;
+                }
+                
+                // Bepaal display name
+                $display_name = '';
+                if (!empty($trainer->first_name) || !empty($trainer->last_name)) {
+                    $display_name = trim($trainer->first_name . ' ' . $trainer->last_name);
+                }
+                if (empty($display_name)) {
+                    $display_name = $trainer->display_name;
+                }
+                
+                error_log('Toevoegen trainer uit teams: ' . $display_name . ' (ID: ' . $trainer->ID . ')');
+                
+                $processed_user_ids[] = $trainer->ID;
+                
+                $available_trainers[] = array(
+                    'id' => $trainer->ID,
+                    'display_name' => $display_name,
+                    'email' => $trainer->user_email,
+                    'first_name' => $trainer->first_name,
+                    'last_name' => $trainer->last_name,
+                    'type' => 'active'
+                );
+            }
+        }
+        
+        // Stap 4: Haal ook pending invitations op
+        $wc_team_ids = array_column($managed_teams, 'team_id');
+        if (!empty($wc_team_ids)) {
+            $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
+            
+            $invitations = $wpdb->get_results($wpdb->prepare(
+                "SELECT p.ID, p.post_title, p.post_parent,
+                        pm_email.meta_value as email
+                FROM {$wpdb->posts} p
+                LEFT JOIN {$wpdb->postmeta} pm_email ON p.ID = pm_email.post_id AND pm_email.meta_key = '_email'
+                WHERE p.post_type = 'wc_team_invitation'
+                AND p.post_status = 'wcmti-pending'
+                AND p.post_parent IN ($placeholders)",
+                ...$wc_team_ids
+            ));
+            
+            error_log('Gevonden pending invitations: ' . count($invitations));
+            
+            foreach ($invitations as $invitation) {
+                $email = $invitation->email ?: $invitation->post_title;
+                
+                if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    continue;
+                }
+                
+                error_log('Toevoegen pending invitation: ' . $email);
+                
+                $available_trainers[] = array(
+                    'id' => 'pending_' . $invitation->ID,
+                    'display_name' => $email,
+                    'email' => $email,
+                    'first_name' => '',
+                    'last_name' => '',
+                    'type' => 'pending'
+                );
+            }
+        }
+        
+        // Debug output
+        error_log('===== SAMENVATTING get_available_trainers =====');
+        error_log('Totaal aantal trainers: ' . count($available_trainers));
+        error_log('Active: ' . count(array_filter($available_trainers, function($t) { return $t['type'] === 'active'; })));
+        error_log('Pending: ' . count(array_filter($available_trainers, function($t) { return $t['type'] === 'pending'; })));
+        
+        $trainer_lijst = array_map(function($t) {
+            return $t['display_name'] . ' (' . $t['type'] . ', ID: ' . $t['id'] . ')';
+        }, $available_trainers);
+        error_log('Trainer lijst: ' . implode(', ', $trainer_lijst));
         
         wp_send_json_success($available_trainers);
     }
