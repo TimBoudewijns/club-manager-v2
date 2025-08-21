@@ -10,6 +10,7 @@ class Club_Manager_Trainer_Invitation_Handler {
      */
     public function init() {
         add_action('init', array($this, 'check_invitation_token'));
+        add_action('template_redirect', array($this, 'intercept_wc_teams_pages'));
         add_shortcode('club_manager_accept_invitation', array($this, 'render_accept_invitation'));
         add_action('wp_ajax_nopriv_cm_check_email', array($this, 'ajax_check_email'));
         add_action('wp_ajax_nopriv_cm_login_trainer', array($this, 'ajax_login_trainer'));
@@ -67,6 +68,55 @@ class Club_Manager_Trainer_Invitation_Handler {
     }
     
     /**
+     * Intercept WC Teams invitation pages and redirect to our system
+     */
+    public function intercept_wc_teams_pages() {
+        // Only run if there's a wc_invite token and we haven't processed it yet
+        if (!isset($_GET['wc_invite']) || isset($_GET['cm_processed'])) {
+            return;
+        }
+        
+        global $wp;
+        $current_url = home_url($wp->request);
+        
+        // Check if this looks like a WC Teams invitation page
+        if (strpos($current_url, '/my-account') !== false ||
+            strpos($current_url, '/team-invitation') !== false ||
+            strpos($current_url, '/invitation') !== false ||
+            strpos($current_url, '/accept') !== false ||
+            is_account_page()) {
+            
+            $token = sanitize_text_field($_GET['wc_invite']);
+            
+            // Find our custom invitation page
+            global $wpdb;
+            $page_id = $wpdb->get_var(
+                "SELECT ID FROM {$wpdb->posts} 
+                 WHERE post_content LIKE '%[club_manager_accept_invitation]%' 
+                 AND post_status = 'publish' 
+                 AND post_type = 'page' 
+                 LIMIT 1"
+            );
+            
+            if ($page_id) {
+                // Redirect to our custom page
+                wp_redirect(add_query_arg(array(
+                    'wc_invite' => $token,
+                    'cm_processed' => '1'
+                ), get_permalink($page_id)));
+                exit;
+            } else {
+                // No custom page found, redirect to home page
+                wp_redirect(add_query_arg(array(
+                    'wc_invite' => $token,
+                    'cm_processed' => '1'
+                ), home_url('/')));
+                exit;
+            }
+        }
+    }
+    
+    /**
      * Check if invitation token is present in URL
      */
     public function check_invitation_token() {
@@ -97,6 +147,23 @@ class Club_Manager_Trainer_Invitation_Handler {
                     'cm_processed' => '1'
                 ), get_permalink($page_id)));
                 exit;
+            } elseif (!$page_id) {
+                // No dedicated page found, but we still want to redirect away from WC Teams default pages
+                // Check if we're on a WC Teams invitation page and redirect to home with the token
+                $current_url = $_SERVER['REQUEST_URI'];
+                
+                // Common WC Teams invitation page patterns
+                if (strpos($current_url, '/team-invitation/') !== false || 
+                    strpos($current_url, '/invitation/') !== false ||
+                    strpos($current_url, '/accept') !== false) {
+                    
+                    // Redirect to home page with token - the shortcode can be placed anywhere
+                    wp_redirect(add_query_arg(array(
+                        'wc_invite' => $token,
+                        'cm_processed' => '1'
+                    ), home_url('/')));
+                    exit;
+                }
             }
         }
     }
