@@ -457,13 +457,13 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             }
         }
         
-        // 2. Then get WC Teams members (but skip if already processed)
+        // 2. Get ALL club members from WC Teams and add them as available trainers
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
         
         if (!empty($managed_teams)) {
             $wc_team_ids = array_column($managed_teams, 'team_id');
             
-            // Get active trainers from WC Teams
+            // Get ALL club members from WC Teams and add as available trainers
             foreach ($managed_teams as $team_info) {
                 $wc_team_id = $team_info['team_id'];
                 

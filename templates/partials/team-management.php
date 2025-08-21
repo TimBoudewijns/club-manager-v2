@@ -78,13 +78,13 @@
                                         </div>
                                         <!-- Trainer names/emails -->
                                         <div x-show="team.trainer_names" class="text-xs text-gray-500 max-w-xs">
-                                            <span x-html="team.trainer_names.split(', ').map(name => {
+                                            <span x-html="team.trainer_names ? team.trainer_names.split(', ').map(name => {
                                                 if (name.includes('(Invitation Pending)')) {
                                                     return '<span class=\'text-yellow-600\'>' + name + '</span>';
                                                 } else {
                                                     return '<span class=\'text-gray-700\'>' + name + '</span>';
                                                 }
-                                            }).join(', ')"></span>
+                                            }).join(', ') : ''"></span>
                                         </div>
                                     </div>
                                 </td>

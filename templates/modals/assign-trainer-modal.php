@@ -61,7 +61,7 @@
                                 <option value="">Choose a trainer...</option>
                                 
                                 <!-- Active trainers section -->
-                                <template x-if="availableTrainers.filter(t => t.type === 'active').length > 0">
+                                <template x-if="availableTrainers && availableTrainers.filter(t => t.type === 'active').length > 0">
                                     <optgroup label="Active Trainers">
                                         <template x-for="trainer in availableTrainers.filter(t => t.type === 'active')" :key="'active-' + trainer.id">
                                             <option :value="trainer.id"
@@ -75,7 +75,7 @@
                                 </template>
                                 
                                 <!-- Pending invitations section -->
-                                <template x-if="availableTrainers.filter(t => t.type === 'pending').length > 0">
+                                <template x-if="availableTrainers && availableTrainers.filter(t => t.type === 'pending').length > 0">
                                     <optgroup label="Pending Invitations">
                                         <template x-for="trainer in availableTrainers.filter(t => t.type === 'pending')" :key="'pending-' + trainer.id">
                                             <option :value="'pending:' + trainer.email">
