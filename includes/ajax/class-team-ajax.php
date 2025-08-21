@@ -439,11 +439,27 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
             
             // Loop door alle members van dit team
             foreach ($members as $member) {
-                if (!method_exists($member, 'get_user_id')) {
-                    continue;
+                error_log('Member object type: ' . get_class($member));
+                error_log('Member methods: ' . implode(', ', get_class_methods($member)));
+                
+                // Probeer verschillende methodes om user ID te krijgen (zoals in trainer-ajax)
+                $member_user_id = null;
+                
+                if (method_exists($member, 'get_user_id')) {
+                    $member_user_id = $member->get_user_id();
+                } elseif (method_exists($member, 'get_id')) {
+                    $member_user_id = $member->get_id();
+                } elseif (isset($member->user_id)) {
+                    $member_user_id = $member->user_id;
+                } elseif (isset($member->ID)) {
+                    $member_user_id = $member->ID;
                 }
                 
-                $member_user_id = $member->get_user_id();
+                error_log('Member ID gevonden: ' . ($member_user_id ? $member_user_id : 'GEEN'));
+                
+                if (!$member_user_id) {
+                    continue;
+                }
                 
                 // Check of we deze user al hebben verwerkt
                 if (in_array($member_user_id, $processed_user_ids)) {
