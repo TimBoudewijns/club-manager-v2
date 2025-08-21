@@ -81,18 +81,25 @@ class TeamManagementModule {
             });
             
             console.log('Available trainers response:', response);
+            console.log('Response type:', typeof response);
+            console.log('Response data field exists:', response && response.data !== undefined);
             
             // Ensure we have an array
             if (Array.isArray(response)) {
                 this.app.availableTrainers = response;
+                console.log('Used direct response array');
             } else if (response && Array.isArray(response.data)) {
                 this.app.availableTrainers = response.data;
+                console.log('Used response.data array');
             } else {
                 console.warn('Unexpected response format for available trainers:', response);
                 this.app.availableTrainers = [];
             }
             
             console.log('Available trainers set to:', this.app.availableTrainers);
+            console.log('Available trainers count:', this.app.availableTrainers.length);
+            console.log('Active trainers count:', this.app.availableTrainers.filter(t => t.type === 'active').length);
+            console.log('Pending trainers count:', this.app.availableTrainers.filter(t => t.type === 'pending').length);
             
         } catch (error) {
             console.error('Error loading available trainers:', error);

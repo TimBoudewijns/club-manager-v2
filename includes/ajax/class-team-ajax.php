@@ -550,13 +550,16 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         // Debug logging
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('Club Manager - Available trainers: ' . json_encode(array(
-                'total' => count($available_trainers),
-                'active' => count(array_filter($available_trainers, function($t) { return $t['type'] === 'active'; })),
-                'pending' => count(array_filter($available_trainers, function($t) { return $t['type'] === 'pending'; }))
-            )));
-        }
+        error_log('Club Manager - Available trainers debug: ' . json_encode(array(
+            'total' => count($available_trainers),
+            'active' => count(array_filter($available_trainers, function($t) { return $t['type'] === 'active'; })),
+            'pending' => count(array_filter($available_trainers, function($t) { return $t['type'] === 'pending'; })),
+            'first_few_trainers' => array_slice($available_trainers, 0, 3),
+            'user_id' => $user_id,
+            'season' => $season,
+            'managed_teams_count' => !empty($managed_teams) ? count($managed_teams) : 0,
+            'club_member_ids_count' => !empty($club_member_ids) ? count($club_member_ids) : 0
+        )));
         
         wp_send_json_success($available_trainers);
     }

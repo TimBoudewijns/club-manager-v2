@@ -153,14 +153,17 @@ class Club_Manager_Teams_Helper {
         }
         
         if (!$user_id) {
+            error_log('Club Manager: get_user_managed_teams - No user ID provided');
             return array();
         }
         
         // Check if Teams plugin is active
         if (!self::is_teams_plugin_active()) {
+            error_log('Club Manager: get_user_managed_teams - Teams plugin not active');
             return array();
         }
         
+        error_log('Club Manager: get_user_managed_teams - Starting for user ID: ' . $user_id);
         $managed_teams = array();
         
         // Method 1: Try the official function
@@ -274,6 +277,7 @@ class Club_Manager_Teams_Helper {
             }
         }
         
+        error_log('Club Manager: get_user_managed_teams - Returning ' . count($managed_teams) . ' managed teams for user ' . $user_id);
         return $managed_teams;
     }
     
