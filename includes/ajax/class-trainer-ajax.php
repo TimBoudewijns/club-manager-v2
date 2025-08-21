@@ -402,7 +402,7 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
     }
     
     /**
-     * Get active trainers.
+     * Get active trainers - ALLE members van de WC Teams club.
      */
     public function get_active_trainers() {
         $user_id = $this->verify_request();
@@ -419,116 +419,140 @@ class Club_Manager_Trainer_Ajax extends Club_Manager_Ajax_Handler {
         $trainers_table = Club_Manager_Database::get_table_name('team_trainers');
         $teams_table = Club_Manager_Database::get_table_name('teams');
         
-        $all_trainer_ids = [];
+        error_log('===== START cm_get_active_trainers =====');
+        error_log('User ID: ' . $user_id);
+        error_log('Season: ' . $season);
         
-        // Method 1: Get trainers assigned to teams in Club Manager
-        // Get ALL club member IDs first
-        $club_member_ids = $this->get_club_member_ids($user_id);
+        $trainers = [];
         
-        if (!empty($club_member_ids)) {
-            $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
-            $team_trainer_ids = $wpdb->get_col($wpdb->prepare(
-                "SELECT DISTINCT tt.trainer_id
-                FROM $trainers_table tt
-                INNER JOIN $teams_table t ON tt.team_id = t.id
-                WHERE t.created_by IN ($placeholders)",
-                ...$club_member_ids
-            ));
-        } else {
-            $team_trainer_ids = [];
-        }
-        
-        if (!empty($team_trainer_ids)) {
-            $all_trainer_ids = array_merge($all_trainer_ids, $team_trainer_ids);
-        }
-        
-        // Method 2: Get ALL members from WC Teams (includes those without team assignments)
+        // SIMPEL: Haal ALLE WC Teams op waar de user owner/manager van is
         $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
+        error_log('Aantal managed WC teams: ' . count($managed_teams));
         
-        if (!empty($managed_teams) && function_exists('wc_memberships_for_teams_get_team')) {
-            foreach ($managed_teams as $team_info) {
-                $wc_team = wc_memberships_for_teams_get_team($team_info['team_id']);
-                
-                if ($wc_team && is_object($wc_team) && method_exists($wc_team, 'get_members')) {
-                    $members = $wc_team->get_members();
-                    
-                    foreach ($members as $member) {
-                        if (method_exists($member, 'get_user_id')) {
-                            $member_id = $member->get_user_id();
-                            if (!in_array($member_id, $all_trainer_ids)) {
-                                $all_trainer_ids[] = $member_id;
-                            }
-                        }
+        if (empty($managed_teams)) {
+            error_log('GEEN managed teams gevonden!');
+            wp_send_json_success($trainers);
+            return;
+        }
+        
+        // Verzamel ALLE unieke user IDs van ALLE WC Team members
+        $all_member_ids = [];
+        
+        foreach ($managed_teams as $team_info) {
+            $wc_team_id = $team_info['team_id'];
+            error_log('Verwerken WC Team: ' . $team_info['team_name'] . ' (ID: ' . $wc_team_id . ')');
+            
+            if (!function_exists('wc_memberships_for_teams_get_team')) {
+                error_log('FOUT: wc_memberships_for_teams_get_team functie bestaat niet!');
+                continue;
+            }
+            
+            $wc_team = wc_memberships_for_teams_get_team($wc_team_id);
+            
+            if (!$wc_team || !is_object($wc_team)) {
+                error_log('FOUT: Kon WC team object niet ophalen voor ID: ' . $wc_team_id);
+                continue;
+            }
+            
+            if (!method_exists($wc_team, 'get_members')) {
+                error_log('FOUT: get_members method bestaat niet voor team!');
+                continue;
+            }
+            
+            $members = $wc_team->get_members();
+            error_log('Team ' . $team_info['team_name'] . ' heeft ' . count($members) . ' members');
+            
+            foreach ($members as $member) {
+                if (method_exists($member, 'get_user_id')) {
+                    $member_id = $member->get_user_id();
+                    if (!in_array($member_id, $all_member_ids)) {
+                        $all_member_ids[] = $member_id;
+                        error_log('Toegevoegd member ID: ' . $member_id);
                     }
                 }
             }
         }
         
-        // Remove duplicates
-        $all_trainer_ids = array_unique($all_trainer_ids);
+        error_log('Totaal aantal unieke members gevonden: ' . count($all_member_ids));
         
-        $trainers = [];
-        
-        if (!empty($all_trainer_ids)) {
-            $placeholders = implode(',', array_fill(0, count($all_trainer_ids), '%d'));
-            
-            // Get all trainer details
-            $trainers_data = $wpdb->get_results($wpdb->prepare(
-                "SELECT u.ID as trainer_id, u.display_name, u.user_email as email,
-                        um1.meta_value as first_name, um2.meta_value as last_name
-                FROM {$wpdb->users} u
-                LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
-                LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
-                WHERE u.ID IN ($placeholders)
-                ORDER BY u.display_name",
-                ...$all_trainer_ids
-            ));
-            
-            foreach ($trainers_data as $trainer) {
-                $trainer_id = $trainer->trainer_id;
-                
-                // Get teams for this trainer in current season only
-                // Use club member IDs instead of just user_id
-                $trainer_teams = [];
-                if (!empty($club_member_ids)) {
-                    $placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
-                    $query_args = array_merge([$trainer_id], $club_member_ids, [$season]);
-                    
-                    $trainer_teams = $wpdb->get_results($wpdb->prepare(
-                        "SELECT t.id, t.name, tt.role, tt.is_active
-                        FROM $trainers_table tt
-                        INNER JOIN $teams_table t ON tt.team_id = t.id
-                        WHERE tt.trainer_id = %d AND t.created_by IN ($placeholders) AND t.season = %s",
-                        ...$query_args
-                    ));
-                }
-                
-                // Get the role and active status (from current season if available, otherwise default)
-                $role = 'trainer';
-                $is_active = 1;
-                if (!empty($trainer_teams)) {
-                    $role = $trainer_teams[0]->role;
-                    $is_active = $trainer_teams[0]->is_active;
-                }
-                
-                $trainers[] = [
-                    'id' => $trainer_id,
-                    'display_name' => $trainer->display_name,
-                    'email' => $trainer->email,
-                    'first_name' => $trainer->first_name,
-                    'last_name' => $trainer->last_name,
-                    'role' => $role,
-                    'is_active' => $is_active,
-                    'teams' => array_map(function($team) {
-                        return [
-                            'id' => $team->id,
-                            'name' => $team->name
-                        ];
-                    }, $trainer_teams),
-                    'has_teams_in_season' => !empty($trainer_teams)
-                ];
-            }
+        if (empty($all_member_ids)) {
+            error_log('GEEN members gevonden in WC Teams!');
+            wp_send_json_success($trainers);
+            return;
         }
+        
+        // Haal de user details op voor ALLE members
+        $placeholders = implode(',', array_fill(0, count($all_member_ids), '%d'));
+        
+        $all_members = $wpdb->get_results($wpdb->prepare(
+            "SELECT u.ID, u.display_name, u.user_email,
+                    um1.meta_value as first_name, 
+                    um2.meta_value as last_name
+            FROM {$wpdb->users} u
+            LEFT JOIN {$wpdb->usermeta} um1 ON u.ID = um1.user_id AND um1.meta_key = 'first_name'
+            LEFT JOIN {$wpdb->usermeta} um2 ON u.ID = um2.user_id AND um2.meta_key = 'last_name'
+            WHERE u.ID IN ($placeholders)
+            ORDER BY u.display_name",
+            ...$all_member_ids
+        ));
+        
+        error_log('User details opgehaald voor ' . count($all_members) . ' members');
+        
+        // Haal club member IDs op voor team queries
+        $club_member_ids = $this->get_club_member_ids($user_id);
+        
+        // Bouw de trainers array
+        foreach ($all_members as $member) {
+            // Check welke teams deze trainer heeft (indien van toepassing)
+            $trainer_teams = [];
+            
+            if (!empty($club_member_ids)) {
+                $team_placeholders = implode(',', array_fill(0, count($club_member_ids), '%d'));
+                $query_args = array_merge([$member->ID], $club_member_ids, [$season]);
+                
+                $trainer_teams = $wpdb->get_results($wpdb->prepare(
+                    "SELECT t.id, t.name, tt.role, tt.is_active
+                    FROM $trainers_table tt
+                    INNER JOIN $teams_table t ON tt.team_id = t.id
+                    WHERE tt.trainer_id = %d 
+                    AND t.created_by IN ($team_placeholders) 
+                    AND t.season = %s",
+                    ...$query_args
+                ));
+            }
+            
+            // Bepaal display name
+            $display_name = '';
+            if (!empty($member->first_name) || !empty($member->last_name)) {
+                $display_name = trim($member->first_name . ' ' . $member->last_name);
+            }
+            if (empty($display_name)) {
+                $display_name = $member->display_name;
+            }
+            
+            error_log('Toevoegen trainer: ' . $display_name . ' (ID: ' . $member->ID . ', Teams: ' . count($trainer_teams) . ')');
+            
+            // Voeg trainer toe aan lijst
+            $trainers[] = [
+                'id' => $member->ID,
+                'display_name' => $display_name,
+                'email' => $member->user_email,
+                'first_name' => $member->first_name,
+                'last_name' => $member->last_name,
+                'role' => !empty($trainer_teams) ? $trainer_teams[0]->role : 'trainer',
+                'is_active' => !empty($trainer_teams) ? $trainer_teams[0]->is_active : '1',
+                'teams' => array_map(function($team) {
+                    return [
+                        'id' => $team->id,
+                        'name' => $team->name
+                    ];
+                }, $trainer_teams),
+                'has_teams_in_season' => !empty($trainer_teams)
+            ];
+        }
+        
+        error_log('===== EINDE cm_get_active_trainers =====');
+        error_log('Totaal aantal trainers: ' . count($trainers));
         
         wp_send_json_success($trainers);
     }
