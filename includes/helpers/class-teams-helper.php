@@ -402,4 +402,68 @@ class Club_Manager_Teams_Helper {
         $managed_teams = self::get_user_managed_teams($user_id);
         return array_column($managed_teams, 'team_id');
     }
+    
+    /**
+     * Get ALL teams a user is member of (not just owner/manager)
+     * This is used to get ALL club members
+     * 
+     * @param int $user_id User ID
+     * @return array
+     */
+    public static function get_all_user_teams($user_id = null) {
+        if (!$user_id) {
+            $user_id = get_current_user_id();
+        }
+        
+        if (!$user_id) {
+            return array();
+        }
+        
+        // Check if Teams plugin is active
+        if (!self::is_teams_plugin_active()) {
+            return array();
+        }
+        
+        error_log('Club Manager: get_all_user_teams - Starting for user ID: ' . $user_id);
+        $all_teams = array();
+        
+        // Get ALL teams for user (not just where they are owner/manager)
+        if (function_exists('wc_memberships_for_teams_get_user_teams')) {
+            try {
+                $teams = wc_memberships_for_teams_get_user_teams($user_id);
+                
+                if (!empty($teams)) {
+                    foreach ($teams as $team) {
+                        if (is_object($team) && method_exists($team, 'get_id') && method_exists($team, 'get_name')) {
+                            $team_id = $team->get_id();
+                            $team_name = $team->get_name();
+                            
+                            // Get user's role in this team
+                            $role = 'member'; // default
+                            if (method_exists($team, 'get_member')) {
+                                $member = $team->get_member($user_id);
+                                if ($member && method_exists($member, 'get_role')) {
+                                    $role = $member->get_role();
+                                }
+                            }
+                            
+                            error_log('Club Manager: User is ' . $role . ' of team: ' . $team_name . ' (ID: ' . $team_id . ')');
+                            
+                            // Add ALL teams, not just managed ones
+                            $all_teams[] = array(
+                                'team_id' => $team_id,
+                                'team_name' => $team_name,
+                                'role' => $role
+                            );
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                error_log('Club Manager Teams Helper Error: ' . $e->getMessage());
+            }
+        }
+        
+        error_log('Club Manager: get_all_user_teams - Found ' . count($all_teams) . ' teams for user ' . $user_id);
+        return $all_teams;
+    }
 }

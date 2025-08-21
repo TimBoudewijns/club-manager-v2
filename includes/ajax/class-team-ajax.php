@@ -386,9 +386,9 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
     public function get_available_trainers() {
         $user_id = $this->verify_request();
         
-        // Check if user can manage teams
-        if (!Club_Manager_User_Permissions_Helper::is_club_owner_or_manager($user_id)) {
-            wp_send_json_error('Unauthorized access');
+        // Check if user is member of any WC Team (niet alleen owner/manager!)
+        if (!Club_Manager_Teams_Helper::is_team_member($user_id)) {
+            wp_send_json_error('Unauthorized access - not a team member');
             return;
         }
         
@@ -402,18 +402,18 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         error_log('User ID: ' . $user_id);
         error_log('Season: ' . $season);
         
-        // Stap 1: Haal ALLE WC Teams op waar de user owner/manager van is
-        $managed_teams = Club_Manager_Teams_Helper::get_user_managed_teams($user_id);
-        error_log('Aantal managed teams: ' . count($managed_teams));
+        // Stap 1: Haal ALLE WC Teams op waar de user LID van is (niet alleen owner/manager!)
+        $all_user_teams = Club_Manager_Teams_Helper::get_all_user_teams($user_id);
+        error_log('Aantal teams waar user lid van is: ' . count($all_user_teams));
         
-        if (empty($managed_teams)) {
-            error_log('WAARSCHUWING: Geen managed teams gevonden!');
+        if (empty($all_user_teams)) {
+            error_log('WAARSCHUWING: Geen teams gevonden waar user lid van is!');
             wp_send_json_success($available_trainers);
             return;
         }
         
         // Stap 2: Loop door ALLE teams en haal ALLE members op
-        foreach ($managed_teams as $team_info) {
+        foreach ($all_user_teams as $team_info) {
             $team_id = $team_info['team_id'];
             $team_name = $team_info['team_name'];
             error_log('Verwerken team: ' . $team_name . ' (ID: ' . $team_id . ')');
@@ -547,7 +547,7 @@ class Club_Manager_Team_Ajax extends Club_Manager_Ajax_Handler {
         }
         
         // Stap 4: Haal ook pending invitations op
-        $wc_team_ids = array_column($managed_teams, 'team_id');
+        $wc_team_ids = array_column($all_user_teams, 'team_id');
         if (!empty($wc_team_ids)) {
             $placeholders = implode(',', array_fill(0, count($wc_team_ids), '%d'));
             
