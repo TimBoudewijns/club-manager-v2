@@ -5,7 +5,7 @@ window.clubManager = function() {
     return {
         // Core data
         activeTab: 'player-management',
-        currentSeason: window.clubManagerAjax?.preferred_season || '2024-2025',
+        currentSeason: window.clubManagerAjax?.preferred_season || '2025-2026',
         userPermissions: window.clubManagerAjax?.permissions || {},
         
         // Global loading state
